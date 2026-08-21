@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | Kalyan Covering</title>
+    <meta name="description" content="Manage your Kalyan Covering profile, view wishlist, orders, and account settings.">
+    <script>
+        if (!localStorage.getItem('kc_user')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+    <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ======= DASHBOARD LAYOUT ======= */
+        body { background: var(--black); }
+        
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 70px);
+            padding-top: 70px; /* offset for nav */
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ---- SIDEBAR ---- */
+        .sidebar {
+            background: var(--black-card);
+            border-right: 1px solid var(--black-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: sticky;
+            top: 70px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+
+        .user-quick-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px dashed var(--black-border);
+        }
+
+        .sidebar-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--gold);
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .sidebar-user-info h3 {
+            font-size: 1rem;
+            color: var(--white);
+            font-family: var(--font-serif);
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .sidebar-user-info span {
+            font-size: 0.75rem;
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: var(--radius-sm);
+            color: #aaa;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--white);
+        }
+
+        .nav-item.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border-left: 3px solid var(--gold);
+        }
+
+        .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+        
+        .logout-btn {
+            margin-top: auto;
+            color: #ff5555;
+            background: rgba(255, 85, 85, 0.1);
+            border: 1px solid rgba(255, 85, 85, 0.2);
+        }
+        .logout-btn:hover { background: rgba(255, 85, 85, 0.2); color: #ff6666; }
+
+        /* ---- MAIN CONTENT AREA ---- */
+        .main-content {
+            padding: 2.5rem 3rem;
+            overflow-y: auto;
+            background: var(--black);
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        
+        .section-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--black-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            color: var(--gold);
+        }
+
+        /* ---- PROFILE TAB ---- */
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .glass-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .form-group { margin-bottom: 1.2rem; }
+        .form-label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 1px;}
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            border-radius: var(--radius-sm);
+            color: var(--white);
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .form-input:focus { border-color: var(--gold); outline: none; }
+        .form-input:disabled { background: transparent; border-color: transparent; padding-left: 0; color: #ccc; }
+
+        /* ---- ADDRESS TAB ---- */
+        .address-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .address-card {
+            background: var(--black-card);
+            border: 1px dashed #444;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            position: relative;
+            transition: 0.3s;
+        }
+        .address-card:hover { border-color: var(--gold); }
+        .address-tag { position: absolute; top: 1rem; right: 1rem; background: rgba(212,175,55,0.1); color: var(--gold); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+        .address-actions { display: flex; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; }
+        .address-add-btn {
+            border: 1px dashed var(--gold);
+            background: rgba(212,175,55,0.02);
+            color: var(--gold);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            min-height: 160px;
+        }
+
+        /* ---- SETTINGS TAB ---- */
+        .settings-list { display: flex; flex-direction: column; gap: 1rem; }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: var(--radius-sm);
+        }
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* ---- NOTIFICATIONS TAB ---- */
+        .notification-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid #222;
+        }
+        .notif-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+        }
+        .notif-icon.order { background: rgba(212,175,55,0.1); color: var(--gold); }
+        .notif-icon.promo { background: rgba(46,204,113,0.1); color: #2ecc71; }
+        .notif-content h4 { margin-bottom: 0.3rem; color: var(--white); font-size: 1rem; }
+        .notif-content p { color: #888; font-size: 0.9rem; }
+        .notif-time { color: #555; font-size: 0.75rem; margin-top: 0.5rem; display: block; }
+
+        /* ---- ORDER HISTORY ---- */
+        .order-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .order-header {
+            padding: 1.2rem 1.5rem;
+            background: rgba(212, 175, 55, 0.05);
+            border-bottom: 1px solid var(--black-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .order-id { color: var(--gold); font-weight: 700; font-family: var(--font-sans); }
+        .order-date { color: #888; font-size: 0.85rem; margin-top: 0.2rem; }
+        .order-actions { display: flex; gap: 0.8rem; }
+        
+        .order-body { padding: 1.5rem; }
+        .order-item {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed #333;
+        }
+        .order-item:last-child { border: none; margin: 0; padding: 0; }
+        .order-item-img { width: 70px; height: 70px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid #333; }
+        .order-item-info { flex: 1; }
+        
+        /* Status Badge */
+        .status-badge {
+            padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 0.4rem;
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-delivered { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+        .status-delivered .status-dot { background: #2ecc71; }
+        .status-processing { background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid rgba(212, 175, 55, 0.3); }
+        .status-processing .status-dot { background: var(--gold); animation: pulse 1.5s infinite; }
+
+        /* ---- WISHLIST GRID ---- */
+        .wishlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+        .wishlist-item {
+            background: var(--black-card); border: 1px solid #333; border-radius: var(--radius); overflow: hidden;
+        }
+        .wishlist-item-img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+        .wishlist-item-body { padding: 1rem; }
+
+        /* Responsive */
+        .mobile-nav-toggle { display: none; }
+        @media (max-width: 900px) {
+            .dashboard-container { grid-template-columns: 1fr; padding-top: 120px; }
+            .sidebar {
+                position: fixed; top: 70px; left: -100%; width: 280px; z-index: 100;
+                transition: 0.3s ease; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+            }
+            .sidebar.open { left: 0; }
+            .mobile-nav-toggle {
+                display: flex; position: fixed; top: 70px; left: 0; right: 0; background: var(--black-card);
+                padding: 1rem; border-bottom: 1px solid var(--gold); z-index: 99; justify-content: space-between; align-items: center;
+            }
+            .main-content { padding: 1.5rem; }
+            .profile-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation (Main App Nav) -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="profile.html" class="active">Dashboard</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'">
+                    🛒 <span class="badge cart-count" id="nav-cart-count">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Dashboard Header -->
+    <div class="mobile-nav-toggle">
+        <div style="font-family:var(--font-serif); color:var(--gold); font-size:1.2rem;" id="mobile-current-tab">Profile</div>
+        <button class="btn btn-outline btn-sm" onclick="toggleSidebar()">☰ Menu</button>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="dashboard-sidebar">
+            <div class="user-quick-profile">
+                <div class="sidebar-avatar" id="sidebar-initials">U</div>
+                <div class="sidebar-user-info">
+                    <h3 id="sidebar-name">User Name</h3>
+                    <span>Premium Member</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="switchTab('profile', this)">
+                    <span class="nav-icon">👤</span> Profile Details
+                </div>
+                <div class="nav-item" onclick="switchTab('orders', this)">
+                    <span class="nav-icon">📦</span> Order History
+                </div>
+                <div class="nav-item" onclick="switchTab('returns', this)">
+                    <span class="nav-icon">↩️</span> Returns & Refunds
+                </div>
+                <div class="nav-item" onclick="switchTab('wishlist', this)">
+                    <span class="nav-icon">❤️</span> My Wishlist
+                </div>
+                <div class="nav-item" onclick="switchTab('addresses', this)">
+                    <span class="nav-icon">📍</span> Saved Addresses
+                </div>
+                <div class="nav-item" onclick="switchTab('notifications', this)">
+                    <span class="nav-icon">🔔</span> Notifications
+                </div>
+                <div class="nav-item" onclick="switchTab('settings', this)">
+                    <span class="nav-icon">⚙️</span> Settings
+                </div>
+                <div class="nav-item logout-btn" onclick="performLogout()">
+                    <span class="nav-icon">🚪</span> Logout
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            
+            <!-- PROFILE TAB -->
+            <section class="tab-content active" id="tab-profile">
+                <div class="section-header">
+                    <h2 class="section-title">Profile Details</h2>
+                    <button class="btn btn-gold btn-sm" id="edit-profile-btn" onclick="toggleEditProfile()">Edit Profile</button>
+                </div>
+                
+                <div class="profile-grid">
+                    <div class="glass-card">
+                        <h3 style="color:var(--white); margin-bottom:1.5rem; font-family:var(--font-sans); font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">Personal Information</h3>
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="profile-name-input" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-input" id="profile-email-input" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-input" id="profile-phone-input" disabled>
+                        </div>
+                        <button class="btn btn-gold" id="save-profile-btn" style="display:none; width:100%; margin-top:1rem;" onclick="saveProfile()">Save Changes</button>
+                    </div>
+                    
+                    <div class="glass-card">
+                        <h3 style="color:var(--white); margin-bottom:1.5rem; font-family:var(--font-sans); font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">Account Security</h3>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-input" value="********" disabled>
+                        </div>
+                        <button class="btn btn-outline btn-sm">Change Password</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ORDERS TAB -->
+            <section class="tab-content" id="tab-orders">
+                <div class="section-header">
+                    <h2 class="section-title">Order History</h2>
+                </div>
+                <div id="orders-container">
+                    <!-- Populated via JS -->
+                    <div style="text-align:center; padding:3rem; color:#888;">Loading orders...</div>
+                </div>
+            </section>
+
+            <!-- RETURNS TAB -->
+            <section class="tab-content" id="tab-returns">
+                <div class="section-header">
+                    <h2 class="section-title">Returns & Refunds</h2>
+                </div>
+                <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                    <div style="font-size:3rem; margin-bottom:1rem; opacity:0.5;">↩️</div>
+                    <h3 style="color:var(--white); margin-bottom:0.5rem;">No Active Returns</h3>
+                    <p style="color:#888; font-size:0.9rem;">You don't have any return requests at the moment. You can initiate a return from the Order History page for eligible items.</p>
+                </div>
+            </section>
+
+            <!-- ADDRESSES TAB -->
+            <section class="tab-content" id="tab-addresses">
+                <div class="section-header">
+                    <h2 class="section-title">Saved Addresses</h2>
+                </div>
+                <div class="address-grid" id="address-grid">
+                    <!-- Populated via JS -->
+                </div>
+            </section>
+
+            <!-- WISHLIST TAB -->
+            <section class="tab-content" id="tab-wishlist">
+                <div class="section-header">
+                    <h2 class="section-title">My Wishlist</h2>
+                </div>
+                <div id="wishlist-container">
+                    <!-- Populated via JS -->
+                </div>
+            </section>
+
+            <!-- NOTIFICATIONS TAB -->
+            <section class="tab-content" id="tab-notifications">
+                <div class="section-header">
+                    <h2 class="section-title">Notifications</h2>
+                    <button class="btn btn-ghost btn-sm">Mark all as read</button>
+                </div>
+                <div class="glass-card" style="padding:0; border:none; background:transparent;">
+                    <div class="notification-item">
+                        <div class="notif-icon promo">🎉</div>
+                        <div class="notif-content">
+                            <h4>Welcome to Premium</h4>
+                            <p>You have been upgraded to Premium Member status! Enjoy exclusive perks.</p>
+                            <span class="notif-time">Just now</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notif-icon order">📦</div>
+                        <div class="notif-content">
+                            <h4>Order Delivered</h4>
+                            <p>Your order #KC293842 has been delivered successfully. We hope you love your jewellery!</p>
+                            <span class="notif-time">2 days ago</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SETTINGS TAB -->
+            <section class="tab-content" id="tab-settings">
+                <div class="section-header">
+                    <h2 class="section-title">Preferences & Settings</h2>
+                </div>
+                <div class="glass-card" style="max-width: 600px;">
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">Email Notifications</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive order updates and promotions via email</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">SMS Alerts</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive delivery updates via SMS</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">Two-Factor Authentication</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Add an extra layer of security</div>
+                            </div>
+                            <button class="btn btn-outline btn-sm">Enable</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Firebase -->
+    <script src="app.js" type="module"></script>
+    <script type="module">
+        import { db, auth, collection, getDocs, query, where, doc, getDoc } from "./firebase-config.js";
+
+        const user = JSON.parse(localStorage.getItem('kc_user'));
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate Initial Profile Data
+            const uName = user.name || 'Customer';
+            document.getElementById('sidebar-name').textContent = uName;
+            document.getElementById('sidebar-initials').textContent = uName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+            
+            document.getElementById('profile-name-input').value = uName;
+            document.getElementById('profile-email-input').value = user.email || '';
+            document.getElementById('profile-phone-input').value = user.phone || '';
+
+            loadAddresses();
+            loadWishlist();
+            loadMockOrders(); // In a real app, query Firebase
+            updateCartCount();
+        });
+
+        // Toggle Mobile Sidebar
+        window.toggleSidebar = function() {
+            document.getElementById('dashboard-sidebar').classList.toggle('open');
+        };
+
+        // Tab Switching Logic
+        window.switchTab = function(tabId, el) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            el.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById('mobile-current-tab').textContent = el.textContent.trim();
+            
+            // Close sidebar on mobile after selection
+            if(window.innerWidth <= 900) {
+                document.getElementById('dashboard-sidebar').classList.remove('open');
+            }
+        };
+
+        // Profile Edit Logic
+        window.toggleEditProfile = function() {
+            const inputs = ['profile-name-input', 'profile-phone-input'];
+            const isEditing = !document.getElementById('profile-name-input').disabled;
+            
+            if(isEditing) {
+                // Cancel
+                inputs.forEach(id => {
+                    document.getElementById(id).disabled = true;
+                    document.getElementById(id).style.borderColor = 'transparent';
+                });
+                document.getElementById('edit-profile-btn').textContent = 'Edit Profile';
+                document.getElementById('save-profile-btn').style.display = 'none';
+            } else {
+                // Edit
+                inputs.forEach(id => {
+                    document.getElementById(id).disabled = false;
+                    document.getElementById(id).style.borderColor = '#333';
+                });
+                document.getElementById('profile-name-input').focus();
+                document.getElementById('edit-profile-btn').textContent = 'Cancel';
+                document.getElementById('save-profile-btn').style.display = 'block';
+            }
+        };
+
+        window.saveProfile = function() {
+            alert('Profile updated successfully!');
+            toggleEditProfile();
+            // Update localstorage
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            u.name = document.getElementById('profile-name-input').value;
+            u.phone = document.getElementById('profile-phone-input').value;
+            localStorage.setItem('kc_user', JSON.stringify(u));
+            document.getElementById('sidebar-name').textContent = u.name;
+        };
+
+        // Load Addresses
+        function loadAddresses() {
+            const grid = document.getElementById('address-grid');
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            
+            let html = `
+                <div class="address-card address-add-btn" onclick="alert('Add new address modal opens')">
+                    <div style="font-size:2rem;">+</div>
+                    <div>Add New Address</div>
+                </div>
+            `;
+
+            if(u.address) {
+                html += `
+                    <div class="address-card">
+                        <div class="address-tag">Default</div>
+                        <h4 style="color:var(--white); margin-bottom:0.5rem; font-size:1.1rem;">${u.name}</h4>
+                        <p style="color:#888; font-size:0.9rem; line-height:1.5;">
+                            ${u.address}<br>
+                            ${u.city||''}, ${u.state||''} - ${u.pin||''}<br>
+                            Phone: ${u.phone||''}
+                        </p>
+                        <div class="address-actions">
+                            <button class="btn btn-outline btn-sm" style="flex:1;">Edit</button>
+                            <button class="btn btn-ghost btn-sm" style="color:var(--red);">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        // Load Wishlist
+        function loadWishlist() {
+            const container = document.getElementById('wishlist-container');
+            const wishlist = JSON.parse(localStorage.getItem('kc_wishlist') || '[]');
+            
+            if(wishlist.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                        <span style="font-size:3rem; opacity:0.5;">❤️</span>
+                        <h3 style="color:var(--white); margin:1rem 0 0.5rem;">Wishlist Empty</h3>
+                        <p style="color:#888; margin-bottom:1.5rem;">Save your favorite pieces for later.</p>
+                        <a href="products.html" class="btn btn-gold">Explore Collection</a>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="wishlist-grid">
+                ${wishlist.map(p => `
+                    <div class="wishlist-item">
+                        <img src="${p.image||p.primaryImageURL||'https://via.placeholder.com/300'}" class="wishlist-item-img">
+                        <div class="wishlist-item-body">
+                            <h4 style="color:var(--white); font-size:0.95rem; margin-bottom:0.3rem;">${p.name}</h4>
+                            <div style="color:var(--gold); font-weight:bold; margin-bottom:1rem;">₹${(p.price||0).toLocaleString()}</div>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button class="btn btn-gold btn-sm" style="flex:1;" onclick="window.location='product-detail.html?id=${p.id}'">View</button>
+                                <button class="btn btn-outline btn-sm" onclick="removeWish('${p.id}')">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+
+        window.removeWish = function(id) {
+            let w = JSON.parse(localStorage.getItem('kc_wishlist')||'[]');
+            w = w.filter(i => i.id !== id);
+            localStorage.setItem('kc_wishlist', JSON.stringify(w));
+            loadWishlist();
+        };
+
+        // Download Invoice via Cloud Function
+        window.downloadInvoice = async function(orderId, orderNumber) {
+            const btn = document.getElementById('inv-btn-' + orderId);
+            if (btn) { btn.textContent = '⌛ Generating...'; btn.disabled = true; }
+            try {
+                const { functions, httpsCallable } = await import('./firebase-config.js');
+                const genInvoice = httpsCallable(functions, 'generateInvoice');
+                const { data } = await genInvoice({ orderId });
+                if (data.pdfBase64) {
+                    // Convert base64 → Blob → download
+                    const byteChars = atob(data.pdfBase64);
+                    const byteArray = new Uint8Array(byteChars.length);
+                    for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Invoice-${data.orderNumber || orderId}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch(err) {
+                console.error('Invoice error:', err);
+                alert('Failed to generate invoice: ' + (err.message || 'Unknown error'));
+            } finally {
+                if (btn) { btn.textContent = '⬇ Download Invoice'; btn.disabled = false; }
+            }
+        };
+
+        // Load Real Orders from Firestore
+        async function loadRealOrders() {
+            const container = document.getElementById('orders-container');
+            try {
+                const { db, auth, collection, query, where, orderBy, getDocs } = await import('./firebase-config.js');
+                const user = auth.currentUser;
+                if (!user) {
+                    container.innerHTML = `<div style="text-align:center;padding:3rem;color:#888;">Please log in to view your orders.</div>`;
+                    return;
+                }
+
+                const q = query(
+                    collection(db, 'orders'),
+                    where('customerId', '==', user.uid),
+                    orderBy('createdAt', 'desc')
+                );
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    container.innerHTML = `
+                        <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                            <span style="font-size:3rem; opacity:0.5;">📦</span>
+                            <h3 style="color:var(--white); margin:1rem 0 0.5rem;">No Orders Yet</h3>
+                            <p style="color:#888; margin-bottom:1.5rem;">You haven't placed any orders yet. Start exploring our collection!</p>
+                            <a href="products.html" class="btn btn-gold">Shop Now</a>
+                        </div>`;
+                    return;
+                }
+
+                const STATUS_COLORS = {
+                    pending: 'status-pending', confirmed: 'status-confirmed', packed: 'status-packed',
+                    shipped: 'status-shipped', out_for_delivery: 'status-shipped',
+                    delivered: 'status-delivered', cancelled: 'status-cancelled',
+                    returned: 'status-cancelled', refunded: 'status-cancelled'
+                };
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const order = doc.data();
+                    const orderId = doc.id;
+                    const date = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : 'N/A';
+                    const statusClass = STATUS_COLORS[order.orderStatus] || 'status-pending';
+                    const tracking = order.shippingDetails?.trackingNumber;
+                    const carrier = order.shippingDetails?.carrier;
+
+                    return `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <div>
+                                    <div class="order-id">Order #${order.orderNumber || orderId}</div>
+                                    <div class="order-date">Placed on ${date}</div>
+                                    ${tracking ? `<div style="color:var(--gold); font-size:0.82rem; margin-top:0.3rem;">🚚 ${carrier || ''} · Tracking: <strong>${tracking}</strong></div>` : ''}
+                                </div>
+                                <div style="text-align:right;">
+                                    <span class="status-badge ${statusClass}">
+                                        <span class="status-dot"></span>${(order.orderStatus||'').replace('_',' ').toUpperCase()}
+                                    </span>
+                                    <div style="color:var(--gold); font-family:var(--font-serif); font-size:1.2rem; font-weight:bold; margin-top:0.5rem;">₹${(order.totalAmount||0).toLocaleString('en-IN')}</div>
+                                </div>
+                            </div>
+                            <div class="order-body">
+                                ${(order.items||[]).slice(0,3).map(i => `
+                                    <div class="order-item">
+                                        <img src="${i.image||i.primaryImageURL||'https://via.placeholder.com/80'}" class="order-item-img" onerror="this.src='https://via.placeholder.com/80'">
+                                        <div class="order-item-info">
+                                            <h4 style="color:var(--white); font-size:1rem; margin-bottom:0.2rem;">${i.name}</h4>
+                                            <div style="color:#888; font-size:0.85rem;">Qty: ${i.qty||1} | ₹${(i.price||0).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div style="color:var(--gold); font-weight:bold; font-size:1.1rem;">₹${((i.qty||1)*(i.price||0)).toLocaleString('en-IN')}</div>
+                                    </div>
+                                `).join('')}
+                                ${(order.items||[]).length > 3 ? `<div style="color:#888; font-size:0.85rem; text-align:center; padding:0.5rem;">+${order.items.length - 3} more items</div>` : ''}
+
+                                <div class="order-actions" style="margin-top:1.5rem; justify-content:flex-end;">
+                                    ${order.orderStatus === 'delivered' || order.orderStatus === 'shipped' || order.paymentStatus === 'paid' ? `
+                                        <button class="btn btn-gold btn-sm" id="inv-btn-${orderId}" onclick="downloadInvoice('${orderId}', '${order.orderNumber||orderId}')">⬇ Download Invoice</button>
+                                    ` : ''}
+                                    ${order.orderStatus === 'delivered' ? `
+                                        <button class="btn btn-outline btn-sm" onclick="alert('Return feature coming soon!')">↩ Request Return</button>
+                                    ` : ''}
+                                    ${['pending','confirmed','packed'].includes(order.orderStatus) ? `
+                                        <button class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red);" onclick="alert('Cancel feature coming soon!')">✕ Cancel</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch(err) {
+                console.error('Orders load error:', err);
+                container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--red);">Failed to load orders. Please refresh.</div>`;
+            }
+        }
+
+        // Override the tab switch for orders to load real data
+        const _origSwitch = window.switchTab;
+        window.switchTab = function(tab) {
+            if (typeof _origSwitch === 'function') _origSwitch(tab);
+            if (tab === 'orders') loadRealOrders();
+        };
+        // Preload if orders tab is default
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRealOrders();
+        });
+
+        window.performLogout = async function() {
+            if(confirm("Logout from Dashboard?")) {
+                localStorage.removeItem('kc_user');
+                window.location.replace('auth.html');
+            }
+        };
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('kc_cart') || '[]');
+            document.getElementById('nav-cart-count').textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
+        }
+    </script>
+</body>
+</html>

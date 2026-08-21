@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Your Jewellery Video – Kalyan Covering</title>
+    <script>
+        if (!localStorage.getItem('kc_user') && !window.location.pathname.includes('auth.html')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+
+    <meta name="description"
+        content="Share your jewellery experience! Upload a video of your Kalyan Covering jewellery and help others see the shine and quality.">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ======= VIDEO UPLOAD ======= */
+        .upload-page {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        .upload-header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+        }
+
+        .upload-hero-txt {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+        }
+
+        /* Upload Container */
+        .upload-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 2rem 5rem;
+        }
+
+        /* --- Step Indicator --- */
+        .steps-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 3rem;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #555;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle.active {
+            border-color: var(--gold);
+            color: var(--gold);
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .step-circle.done {
+            border-color: var(--gold);
+            background: var(--gold);
+            color: var(--black);
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            color: #555;
+            margin-top: 0.4rem;
+            white-space: nowrap;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .step-item.active .step-label {
+            color: var(--gold);
+        }
+
+        .step-item.done .step-label {
+            color: var(--green);
+        }
+
+        .step-item-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .step-connector {
+            width: 80px;
+            height: 2px;
+            background: #222;
+            margin: 0 -2px;
+            transition: var(--transition);
+            margin-bottom: 1.2rem;
+        }
+
+        .step-connector.done {
+            background: var(--gold);
+        }
+
+        /* --- Drop Zone --- */
+        .drop-zone {
+            border: 2px dashed rgba(255, 215, 0, 0.4);
+            border-radius: var(--radius-lg);
+            background: var(--black-card);
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.04), transparent);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.03);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
+        }
+
+        .drop-zone:hover::before,
+        .drop-zone.drag-over::before {
+            opacity: 1;
+        }
+
+        .drop-zone.drag-over {
+            animation: dropPulse 0.8s ease infinite alternate;
+        }
+
+        @keyframes dropPulse {
+            from {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            }
+
+            to {
+                box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+            }
+        }
+
+        .upload-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: block;
+            animation: uploadBob 2s ease-in-out infinite;
+        }
+
+        @keyframes uploadBob {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .drop-zone h3 {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone p {
+            color: var(--white-dim);
+            font-size: 0.9rem;
+        }
+
+        .drop-zone .or-divider {
+            margin: 1.2rem auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            max-width: 280px;
+            color: #444;
+            font-size: 0.8rem;
+        }
+
+        .drop-zone .or-divider::before,
+        .drop-zone .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #222;
+        }
+
+        .file-type-chips {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .file-chip {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #666;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* --- Upload Progress --- */
+        .upload-progress-wrap {
+            margin-top: 1.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .upload-progress-wrap.visible {
+            display: flex;
+        }
+
+        .upload-progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--white-dim);
+        }
+
+        .upload-filename {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* --- Video Preview --- */
+        #video-preview-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        #video-preview-section.visible {
+            display: block;
+        }
+
+        .preview-video-wrap {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--black-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-video-wrap video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .preview-video-wrap:hover {
+            border-color: rgba(255, 215, 0, 0.4);
+        }
+
+        .video-trim-controls {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .trim-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .trim-bar-wrap {
+            position: relative;
+            height: 40px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .trim-filled {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 20%;
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.6));
+            border-radius: 6px;
+        }
+
+        .trim-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 14px;
+            background: var(--gold);
+            border-radius: 3px;
+            cursor: ew-resize;
+        }
+
+        .trim-handle.end {
+            right: 20%;
+        }
+
+        /* --- Video Details Form --- */
+        .video-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .tags-input-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            border: 1.5px solid var(--black-border);
+            border-radius: var(--radius);
+            padding: 0.6rem;
+            background: var(--black-card);
+            min-height: 48px;
+            cursor: text;
+            transition: var(--transition);
+        }
+
+        .tags-input-wrap:focus-within {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px var(--gold-dim);
+        }
+
+        .tag-chip {
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            color: var(--gold);
+            padding: 0.2rem 0.5rem 0.2rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .tag-chip button {
+            background: none;
+            border: none;
+            color: var(--gold-dark);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0;
+        }
+
+        .tag-chip button:hover {
+            color: var(--red);
+        }
+
+        .tags-input {
+            border: none;
+            background: transparent;
+            color: white;
+            outline: none;
+            font-size: 0.88rem;
+            min-width: 120px;
+            flex: 1;
+        }
+
+        /* Visibility Toggle */
+        .visibility-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+        }
+
+        /* .visibility-toggle-info removed empty ruleset */
+
+        .visibility-toggle-info strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .visibility-toggle-info span {
+            font-size: 0.8rem;
+            color: var(--white-dim);
+        }
+
+        /* Submit section */
+        .submit-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        /* Guidelines */
+        .guidelines {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .guidelines h4 {
+            color: var(--gold);
+            font-family: var(--font-serif);
+            margin-bottom: 1rem;
+        }
+
+        .guidelines ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .guidelines ul li {
+            display: flex;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: var(--white-dim);
+        }
+
+        .guidelines ul li::before {
+            content: '✓';
+            color: var(--green);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Success screen */
+        #success-screen {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            animation: fadeIn 0.6s ease;
+        }
+
+        #success-screen.visible {
+            display: block;
+        }
+
+        .success-icon-anim {
+            font-size: 6rem;
+            display: block;
+            animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes successPop {
+            from {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .steps-indicator {
+                gap: 0;
+            }
+
+            .step-connector {
+                width: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" onerror="this.style.display='none'">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="video-display.html">Videos</a></li>
+                <li><a href="video-upload.html" class="active">Upload</a></li>
+                <li><a href="checkout.html">Cart</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'">🛒 <span
+                        class="badge cart-count">0</span></button>
+                <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="search-modal">
+        <div class="search-modal-overlay" onclick="closeSearchModal()"></div>
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search products..."
+                        oninput="performSearch(this.value)">
+                    <button class="search-close-btn" onclick="closeSearchModal()">×</button>
+                </div>
+            </div>
+            <div class="search-results" id="search-results"></div>
+            <div class="search-modal-footer">
+                <span>Press ESC to close</span>
+                <span>Search by product name or category</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-page">
+        <div class="upload-header container">
+            <div class="section-subtitle">Community</div>
+            <h1 class="upload-hero-txt">Share Your <span class="gold-text">Experience</span></h1>
+            <p style="color:var(--white-dim);max-width:500px;margin:0.8rem auto 0">Upload a video of your Kalyan
+                Covering jewellery and help others see the exquisite craftsmanship.</p>
+        </div>
+
+        <div class="upload-container">
+            <!-- Steps -->
+            <div class="steps-indicator">
+                <div class="step-item-wrap">
+                    <div class="step-item active">
+                        <div class="step-circle active" id="step1-circle">1</div>
+                    </div>
+                    <div class="step-label active" id="step1-label">Upload</div>
+                </div>
+                <div class="step-connector" id="conn1"></div>
+                <div class="step-item-wrap">
+                    <div class="step-item" id="step2-item">
+                        <div class="step-circle" id="step2-circle">2</div>
+                    </div>
+                    <div class="step-label" id="step2-label">Details</div>
+                </div>
+                <div class="step-connector" id="conn2"></div>
+                <div class="step-item-wrap">
+                    <div class="step-item" id="step3-item">
+                        <div class="step-circle" id="step3-circle">3</div>
+                    </div>
+                    <div class="step-label" id="step3-label">Review & Submit</div>
+                </div>
+            </div>
+
+            <!-- STEP 1: Upload -->
+            <div id="step1-panel">
+                <!-- Guidelines -->
+                <div class="guidelines reveal">
+                    <h4>📋 Video Guidelines</h4>
+                    <ul>
+                        <li>Show the actual Kalyan Covering jewellery you purchased</li>
+                        <li>Video should be 5 seconds to 1 minute long</li>
+                        <li>Good lighting to showcase the shine and details</li>
+                        <li>No offensive content, elegant background music preferred</li>
+                        <li>Include the jewellery name for accurate tagging</li>
+                    </ul>
+                </div>
+
+                <!-- Drop Zone -->
+                <div class="drop-zone reveal" id="drop-zone" onclick="document.getElementById('file-input').click()"
+                    ondragover="event.preventDefault();onDragOver()" ondragleave="onDragLeave()"
+                    ondrop="event.preventDefault();onFileDrop(event)">
+                    <span class="upload-icon">🎬</span>
+                    <h3>Drag & Drop Your Video Here</h3>
+                    <p>or</p>
+                    <div class="or-divider"><span>or browse files</span></div>
+                    <button class="btn btn-gold"
+                        onclick="event.stopPropagation();document.getElementById('file-input').click()">
+                        📁 Browse Files
+                    </button>
+                    <div class="file-type-chips">
+                        <span class="file-chip">MP4</span>
+                        <span class="file-chip">MOV</span>
+                        <span class="file-chip">AVI</span>
+                        <span class="file-chip">WebM</span>
+                        <span class="file-chip">Max 200MB</span>
+                    </div>
+                    <input type="file" id="file-input" accept="video/*" onchange="onFileSelected(this.files[0])">
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="upload-progress-wrap" id="progress-wrap">
+                    <div class="upload-progress-info">
+                        <span class="upload-filename" id="upload-filename"></span>
+                        <span id="upload-pct">0%</span>
+                    </div>
+                    <div class="progress-bar-wrap">
+                        <div class="progress-bar" id="upload-bar" style="width:0%"></div>
+                    </div>
+                    <div style="font-size:0.78rem;color:#666" id="upload-status">Preparing upload...</div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Details -->
+            <div id="step2-panel" style="display:none;animation:fadeIn 0.5s ease">
+                <!-- Preview -->
+                <div id="video-preview-section" class="visible">
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1rem">Video Preview</h3>
+                    <div class="preview-video-wrap">
+                        <video controls id="preview-video"></video>
+                    </div>
+
+                    <!-- Trim -->
+                    <div class="video-trim-controls">
+                        <h4 style="font-size:0.9rem;color:var(--white-dim);margin-bottom:0.8rem">✂️ Trim Video
+                            (optional)</h4>
+                        <div class="trim-labels">
+                            <span>Start: <strong id="trim-start" style="color:var(--gold)">0:00</strong></span>
+                            <span>End: <strong id="trim-end" style="color:var(--gold)">—</strong></span>
+                        </div>
+                        <div class="trim-bar-wrap" id="trim-bar">
+                            <div class="trim-filled" id="trim-filled"></div>
+                            <div class="trim-handle" id="trim-handle-start" style="left:0"></div>
+                            <div class="trim-handle end" id="trim-handle-end"></div>
+                        </div>
+                        <div style="font-size:0.75rem;color:#555;margin-top:0.5rem">Drag handles to select trim range
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <div class="video-form">
+                    <div class="form-group">
+                        <label class="form-label">📝 Video Title *</label>
+                        <input type="text" class="form-input" id="video-title"
+                            placeholder="e.g., My Royal Velvet Sofa Cover – Honest Review!" maxlength="100">
+                        <div style="font-size:0.75rem;color:#555;margin-top:0.3rem;text-align:right"><span
+                                id="title-count">0</span>/100</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">📖 Description</label>
+                        <textarea class="form-input" id="video-desc" rows="4"
+                            placeholder="Tell viewers what's in your video, how the product looks in your home, your honest thoughts..."
+                            style="resize:vertical"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">🏷️ Tags</label>
+                        <div class="tags-input-wrap" id="tags-wrap">
+                            <input type="text" class="tags-input" id="tag-input" placeholder="Add tags & press Enter"
+                                onkeydown="handleTagInput(event)">
+                        </div>
+                        <div style="font-size:0.75rem;color:#555;margin-top:0.3rem">Suggested: necklace, ring,
+                            bracelet, earrings, bangles, bridal</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">📦 Link to Product</label>
+                        <select class="form-input" id="product-link" style="cursor:pointer">
+                            <option value="">Select the product you're reviewing...</option>
+                            ${KC?.products?.map(p => `<option value="${p.id}">${p.name}</option>`).join('') || ''}
+                        </select>
+                    </div>
+
+                    <div class="visibility-toggle-row">
+                        <div class="visibility-toggle-info">
+                            <strong>🌐 Visibility</strong>
+                            <span id="visibility-label">Public – visible to all customers</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="visibility-toggle" checked onchange="updateVisibilityLabel()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="submit-section">
+                        <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+                        <button class="btn btn-gold btn-lg" onclick="goToStep(3)" style="flex:1">
+                            Review & Submit →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Review -->
+            <div id="step3-panel" style="display:none;animation:fadeIn 0.5s ease">
+                <div class="card" style="padding:2rem;margin-bottom:2rem">
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem">Review Your
+                        Submission</h3>
+                    <div style="display:grid;grid-template-columns:200px 1fr;gap:1.5rem;align-items:start">
+                        <div class="preview-video-wrap" style="border-radius:var(--radius)">
+                            <video id="review-preview"
+                                style="width:200px;height:130px;object-fit:cover;border-radius:var(--radius)"></video>
+                        </div>
+                        <div>
+                            <div style="color:var(--gold);font-family:var(--font-serif);font-size:1.2rem;margin-bottom:0.5rem"
+                                id="review-title-display">—</div>
+                            <div style="color:var(--white-dim);font-size:0.85rem;margin-bottom:0.8rem;line-height:1.7"
+                                id="review-desc-display">—</div>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap" id="review-tags-display"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    style="background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.2);border-radius:var(--radius);padding:1.2rem;margin-bottom:2rem">
+                    <p style="font-size:0.85rem;color:var(--white-dim)">⚠️ Your video will be reviewed by our team
+                        within 24 hours before going live. Thank you for contributing to the Kalyan Covering community!
+                    </p>
+                </div>
+
+                <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                    <button class="btn btn-outline" onclick="goToStep(2)">← Edit Details</button>
+                    <button class="btn btn-gold btn-lg" onclick="submitVideo()" style="flex:1">
+                        🚀 Submit Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUCCESS -->
+            <div id="success-screen">
+                <span class="success-icon-anim">🎉</span>
+                <h2 style="font-family:var(--font-serif);font-size:2.5rem;margin:1.5rem 0 0.8rem">Video Submitted!</h2>
+                <p style="color:var(--white-dim);max-width:400px;margin:0 auto 2rem">Your video has been submitted for
+                    review. It will be live within 24 hours. Thank you for being part of our community!</p>
+                <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+                    <a href="video-display.html" class="btn btn-gold btn-lg">View All Videos</a>
+                    <a href="products.html" class="btn btn-outline">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <span>© 2026 Kalyan Covering. All rights reserved.</span>
+                <a href="video-display.html" style="color:var(--gold)">Watch Community Videos →</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script type="module">
+        import { db, collection, addDoc, serverTimestamp } from "./firebase-config.js";
+
+        let currentStep = 1;
+        let selectedFile = null;
+        let downloadURL = null;
+        const tags = [];
+
+        // Global functions for buttons (since it's a module)
+        window.goToStep = goToStep;
+        window.onFileSelected = onFileSelected;
+        window.onFileDrop = onFileDrop;
+        window.handleTagInput = handleTagInput;
+        window.removeTag = removeTag;
+        window.updateVisibilityLabel = updateVisibilityLabel;
+        window.submitVideo = submitVideo;
+        window.onDragOver = onDragOver;
+        window.onDragLeave = onDragLeave;
+
+        function goToStep(n) {
+            if (n === 2 && !selectedFile) {
+                Toast.error('Please upload a video first!');
+                return;
+            }
+            if (n === 3) {
+                const title = document.getElementById('video-title').value;
+                if (!title) { Toast.error('Please add a video title!'); return; }
+                populateReview();
+            }
+            currentStep = n;
+            document.getElementById('step1-panel').style.display = n === 1 ? 'block' : 'none';
+            document.getElementById('step2-panel').style.display = n === 2 ? 'block' : 'none';
+            document.getElementById('step3-panel').style.display = n === 3 ? 'block' : 'none';
+            updateStepUI();
+            if (n === 3) populateReview();
+        }
+
+        function updateStepUI() {
+            for (let i = 1; i <= 3; i++) {
+                const circle = document.getElementById(`step${i}-circle`);
+                const label = document.getElementById(`step${i}-label`);
+                if (!circle || !label) continue;
+                circle.className = 'step-circle' + (i < currentStep ? ' done' : i === currentStep ? ' active' : '');
+                circle.textContent = i < currentStep ? '✓' : i;
+                label.style.color = i < currentStep ? '#00CC66' : i === currentStep ? 'var(--gold)' : '#555';
+            }
+            for (let i = 1; i <= 2; i++) {
+                const conn = document.getElementById(`conn${i}`);
+                if (conn) conn.classList.toggle('done', currentStep > i);
+            }
+        }
+
+        function onDragOver() { document.getElementById('drop-zone').classList.add('drag-over'); }
+        function onDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+        function onFileDrop(e) {
+            document.getElementById('drop-zone').classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('video/')) onFileSelected(file);
+            else Toast.error('Please drop a video file');
+        }
+
+        function onFileSelected(file) {
+            if (!file) return;
+            selectedFile = file;
+            const wrap = document.getElementById('progress-wrap');
+            wrap.classList.add('visible');
+            document.getElementById('upload-filename').textContent = file.name;
+            handleFileUpload(file);
+        }
+
+        async function handleFileUpload(file) {
+            const bar = document.getElementById('upload-bar');
+            const pctLabel = document.getElementById('upload-pct');
+            const status = document.getElementById('upload-status');
+
+            status.textContent = 'Uploading to Cloudinary...';
+
+            // Define global progress callback for Cloudinary upload (called by app.js)
+            window.updateUploadProgress = (progress) => {
+                bar.style.width = progress + '%';
+                pctLabel.textContent = Math.round(progress) + '%';
+            };
+
+            try {
+                // uploadVideoToCloudinary is globally defined in app.js
+                const result = await window.uploadVideoToCloudinary(file);
+                if (result && result.url) {
+                    downloadURL = result.url;
+                    status.textContent = '✓ Upload complete!';
+                    status.style.color = 'var(--green)';
+                    setTimeout(() => {
+                        document.getElementById('preview-video').src = result.url;
+                        document.getElementById('review-preview').src = result.url;
+                        goToStep(2);
+                        Toast.success('Video ready!', 'Now add details about your video');
+                    }, 600);
+                } else {
+                    throw new Error('Upload failed');
+                }
+            } catch (error) {
+                console.error("Cloudinary upload error:", error);
+                Toast.error('Upload failed. Please try again.');
+                status.textContent = 'Upload failed.';
+            } finally {
+                delete window.updateUploadProgress;
+            }
+        }
+
+        function handleTagInput(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = document.getElementById('tag-input').value.trim().replace(/,$/, '');
+                if (val && !tags.includes(val) && tags.length < 10) {
+                    tags.push(val);
+                    renderTags();
+                    document.getElementById('tag-input').value = '';
+                }
+            }
+        }
+
+        function renderTags() {
+            const wrap = document.getElementById('tags-wrap');
+            const input = document.getElementById('tag-input');
+            wrap.innerHTML = '';
+            tags.forEach((t, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'tag-chip';
+                chip.innerHTML = `${t} <button onclick="removeTag(${i})">×</button>`;
+                wrap.appendChild(chip);
+            });
+            wrap.appendChild(input);
+            input.focus();
+        }
+
+        function removeTag(idx) { tags.splice(idx, 1); renderTags(); }
+
+        function updateVisibilityLabel() {
+            const checked = document.getElementById('visibility-toggle').checked;
+            document.getElementById('visibility-label').textContent = checked
+                ? 'Public – visible to all customers'
+                : 'Private – only visible to you';
+        }
+
+        document.getElementById('video-title')?.addEventListener('input', function () {
+            document.getElementById('title-count').textContent = this.value.length;
+        });
+
+        function populateReview() {
+            const title = document.getElementById('video-title').value;
+            const desc = document.getElementById('video-desc').value;
+            document.getElementById('review-title-display').textContent = title || '—';
+            document.getElementById('review-desc-display').textContent = desc || 'No description added.';
+            document.getElementById('review-tags-display').innerHTML = tags.map(t => `<span class="badge badge-outline">${t}</span>`).join(' ');
+        }
+
+        async function submitVideo() {
+            if (!downloadURL) {
+                Toast.error('Video hasn\'t finished uploading yet.');
+                return;
+            }
+
+            Toast.info('Submitting...', 'Saving details to database');
+
+            try {
+                const videoDoc = {
+                    title: document.getElementById('video-title').value,
+                    description: document.getElementById('video-desc').value,
+                    tags: tags,
+                    productId: document.getElementById('product-link').value,
+                    videoUrl: downloadURL,
+                    isPublic: document.getElementById('visibility-toggle').checked,
+                    status: 'pending', // Pending review
+                    likes: 0,
+                    views: 0,
+                    createdAt: serverTimestamp(),
+                    authorName: 'Guest User' // In real app, get from Auth
+                };
+
+                await addDoc(collection(db, "videos"), videoDoc);
+
+                document.getElementById('step3-panel').style.display = 'none';
+                document.getElementById('success-screen').classList.add('visible');
+                launchConfetti(3000);
+                Toast.success('Successfully submitted!');
+            } catch (error) {
+                console.error("Firestore error:", error);
+                Toast.error('Failed to save details. Please try again.');
+            }
+        }
+
+        // Initialize product list
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('product-link');
+            if (select && KC && KC.products) {
+                select.innerHTML = '<option value="">Select the product you\'re reviewing...</option>' +
+                    KC.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            }
+        });
+    </script>
+</body>
+
+</html>

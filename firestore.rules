@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Security Helper Functions ---
+    
+    // Check if the user is signed in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if the user has an admin role (via custom claims)
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'owner' || 
+        request.auth.token.role == 'manager' || 
+        request.auth.token.role == 'staff'
+      );
+    }
+    
+    // Check if the user is owner or manager (for sensitive operations)
+    function isOwnerOrManager() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'owner' || 
+        request.auth.token.role == 'manager'
+      );
+    }
+    
+    // Check if the user is requesting their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- Publicly Readable Collections ---
+    
+    match /categories/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /brands/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /branches/{document=**} {
+      allow read: if true;
+      allow write: if isOwnerOrManager();
+    }
+    
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isOwnerOrManager();
+    }
+
+    match /config/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /videos/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /coupons/{document=**} {
+      allow read: if true;
+      allow write: if isOwnerOrManager();
+    }
+    
+    match /reviews/{document=**} {
+      allow read: if true;
+      // Create via submitReview Cloud Function only
+      allow create: if false;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+    }
+
+    // --- Protected User Collections ---
+    
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Admins can do anything. Users can create their own profile but cannot grant themselves admin roles.
+      allow create: if isAdmin() || (
+        isOwner(userId) && 
+        request.resource.data.role == 'customer' && 
+        request.resource.data.status == 'active' &&
+        (!('phoneNumber' in request.resource.data) || request.resource.data.phoneNumber == request.auth.token.phone_number)
+      );
+      
+      // Users can update their profile but cannot change their role, status, or fake a phone number.
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['role', 'status']) == false &&
+        (!('phoneNumber' in request.resource.data) || 
+          request.resource.data.phoneNumber == resource.data.phoneNumber ||
+          request.resource.data.phoneNumber == request.auth.token.phone_number)
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    match /carts/{userId} {
+      // Carts are 1-to-1 with the user ID
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    match /orders/{orderId} {
+      // Users can only view their own orders
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      // Orders must be created via Cloud Functions for secure payment processing
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /wishlists/{userId} {
+      // Wishlists are 1-to-1 with the user ID
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Allow users to update their own notifications (e.g. mark as read)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+      allow create, delete: if isAdmin();
+    }
+
+    // --- Audit Logs (Owner-only read, no client writes) ---
+    
+    match /audit_logs/{logId} {
+      // Only the owner role can read audit logs
+      allow read: if isAuthenticated() && request.auth.token.role == 'owner';
+      // No one can write directly from the client — only Cloud Functions or Admin SDK
+      allow write: if false;
+    }
+    
+    match /inventory_history/{historyId} {
+      // Only the owner role can read inventory history directly from client
+      allow read: if isAuthenticated() && request.auth.token.role == 'owner';
+      allow write: if false;
+    }
+    
+    // --- Invoices (read: owner or admin; write: Cloud Functions only) ---
+    
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow write: if false; // Managed exclusively by Cloud Functions
+    }
+
+    // Catch-all: Deny any access to unspecified collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

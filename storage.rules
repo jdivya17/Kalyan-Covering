@@ -1,0 +1,66 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // --- Security Helper Functions ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Admins have custom claims for role
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'owner' || 
+        request.auth.token.role == 'manager' || 
+        request.auth.token.role == 'staff'
+      );
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    function isUnder10MB() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    function isUnder100MB() {
+      return request.resource.size < 100 * 1024 * 1024;
+    }
+
+    // --- Product Images (public read, admin write with size/type constraints) ---
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isUnder10MB();
+    }
+
+    // --- Product Videos (public read, admin write with size/type constraints) ---
+    match /videos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isVideo() && isUnder100MB();
+    }
+
+    // --- User Avatars (authenticated users can upload their own) ---
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId && isImage() && isUnder10MB();
+    }
+
+    // --- General Assets (admin only) ---
+    match /assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnder10MB();
+    }
+
+    // --- Deny all other paths ---
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

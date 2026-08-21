@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register | Kalyan Covering</title>
+    <meta name="description" content="Login or create your Kalyan Covering account to shop for premium jewellery.">
+    <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Early redirect: runs before page renders, avoids flash -->
+    <script>
+        (function () {
+            // If already logged in, go to home immediately
+            if (localStorage.getItem('kc_user')) {
+                var params = new URLSearchParams(window.location.search);
+                window.location.replace(params.get('redirect') || 'index.html');
+            }
+        })();
+    </script>
+
+    <style>
+        :root {
+            --gold-gradient: linear-gradient(135deg, #FFD700, #B8860B);
+        }
+
+        /* ---- Page Layout ---- */
+        body {
+            background-color: #000;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        /* Animated Background */
+        .auth-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(ellipse at center, #0d0d0d 0%, #000 100%);
+            overflow: hidden;
+        }
+
+        .auth-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.03) 0%, transparent 40%);
+            animation: bgPulse 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgPulse {
+            from {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+
+        /* Sparkle */
+        .sparkle {
+            position: absolute;
+            background: var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 6px var(--gold);
+            animation: twinkle var(--duration, 3s) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        /* ---- Auth Container ---- */
+        .auth-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 2.5rem;
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(255, 215, 0, 0.04);
+            z-index: 10;
+            animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ---- Logo ---- */
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-logo img {
+            height: 90px;
+            width: 90px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid var(--gold);
+            margin-bottom: 1rem;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .auth-logo img:hover {
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.7);
+        }
+
+        .auth-logo h1 {
+            font-family: var(--font-serif);
+            color: var(--gold);
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+        }
+
+        /* ---- Tabs ---- */
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--black-border);
+            margin-bottom: 2rem;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            overflow: hidden;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            color: var(--white-dim);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            position: relative;
+            /* Better touch target */
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .auth-tab:hover {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .auth-tab.active {
+            color: var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .auth-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: var(--gold);
+            box-shadow: 0 0 10px var(--gold);
+            border-radius: 2px;
+        }
+
+        /* ---- Step Panels ---- */
+        .auth-step {
+            display: none;
+            animation: panelIn 0.3s ease;
+        }
+
+        .auth-step.active {
+            display: block;
+        }
+
+        @keyframes panelIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ---- Form Fields ---- */
+        .form-group {
+            margin-bottom: 1.3rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--white-dim);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: #0a0a0a;
+            border: 1.5px solid #222;
+            border-radius: var(--radius-sm);
+            padding: 0.9rem 1.1rem;
+            color: var(--white);
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.12);
+            outline: none;
+            background: #0d0d0d;
+        }
+
+        .form-input.error {
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.12);
+        }
+
+        .form-input.success {
+            border-color: var(--green);
+        }
+
+        /* Field error hint */
+        .field-error {
+            font-size: 0.72rem;
+            color: var(--red);
+            margin-top: 0.35rem;
+            display: none;
+        }
+
+        .field-error.show {
+            display: block;
+            animation: panelIn 0.2s ease;
+        }
+
+        /* ---- Password Wrap ---- */
+        .password-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrap .form-input {
+            padding-right: 3.2rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.1rem;
+            user-select: none;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            padding: 0.5rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .password-toggle:hover {
+            color: var(--gold);
+        }
+
+        /* ---- Buttons ---- */
+        .btn-auth {
+            width: 100%;
+            background: var(--gold-gradient);
+            color: var(--black);
+            padding: 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 800;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            margin-top: 0.8rem;
+            box-shadow: 0 4px 20px rgba(184, 134, 11, 0.35);
+            position: relative;
+            overflow: hidden;
+            /* Important for mobile tap */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-auth::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-auth:hover::before {
+            left: 100%;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.5);
+            filter: brightness(1.08);
+        }
+
+        .btn-auth:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-auth:disabled {
+            filter: grayscale(0.6) brightness(0.8);
+            cursor: not-allowed;
+            transform: none;
+            pointer-events: none;
+        }
+
+        /* Loading state */
+        .btn-auth.loading {
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        .btn-auth .btn-text {
+            transition: opacity 0.2s;
+        }
+
+        .btn-auth.loading .btn-text {
+            opacity: 0;
+        }
+
+        .btn-auth .spinner {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(0, 0, 0, 0.15);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        .btn-auth.loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ---- T&C ---- */
+        .tnc-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.8rem;
+            color: var(--white-dim);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .gold-check {
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid var(--gold);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.2s ease;
+            margin-top: 1px;
+        }
+
+        .gold-check.checked {
+            background: var(--gold);
+        }
+
+        .gold-check.checked::after {
+            content: '✓';
+            color: #000;
+            font-weight: 900;
+            font-size: 12px;
+        }
+
+        /* ---- Footer link ---- */
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--white-dim);
+        }
+
+        .auth-footer a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ---- Forgot Password ---- */
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.78rem;
+            color: #666;
+            margin-top: 0.4rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .forgot-link:hover {
+            color: var(--gold);
+        }
+
+        /* ---- Forgot Modal ---- */
+        .forgot-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .forgot-modal-overlay.open {
+            display: flex;
+            animation: panelIn 0.25s ease;
+        }
+
+        .forgot-modal {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.06);
+        }
+
+        .forgot-modal h3 {
+            font-family: var(--font-serif);
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .forgot-modal p {
+            font-size: 0.82rem;
+            color: var(--white-dim);
+            margin-bottom: 1.2rem;
+            line-height: 1.5;
+        }
+
+        /* ---- Password Strength ---- */
+        .pw-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: 0.5rem;
+            height: 3px;
+        }
+
+        .pw-bar {
+            flex: 1;
+            background: #222;
+            border-radius: 2px;
+            transition: background 0.3s ease;
+        }
+
+        /* ---- Divider ---- */
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: #444;
+            font-size: 0.78rem;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #222;
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 500px) {
+            body {
+                padding: 1rem 0.75rem;
+                align-items: flex-start;
+            }
+
+            .auth-container {
+                padding: 1.8rem 1.4rem;
+                border-radius: var(--radius);
+                max-width: 100%;
+            }
+
+            .auth-logo h1 {
+                font-size: 1.3rem;
+            }
+
+            .auth-logo img {
+                height: 70px;
+                width: 70px;
+            }
+
+            .auth-tab {
+                font-size: 0.78rem;
+                padding: 0.85rem 0.5rem;
+                letter-spacing: 0.5px;
+            }
+
+            .form-input {
+                font-size: 16px;
+                /* prevents iOS zoom */
+            }
+        }
+
+        @media (max-width: 360px) {
+            .auth-container {
+                padding: 1.4rem 1rem;
+            }
+
+            .auth-tab {
+                font-size: 0.72rem;
+                min-height: 46px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-bg" id="auth-bg"></div>
+    <div id="toast-container" class="toast-container"></div>
+    <script type="module" src="app.js"></script>
+
+    <div class="auth-container">
+        <!-- Logo -->
+        <div class="auth-logo">
+            <img src="assets/kalyan_logo.png" alt="Kalyan Covering"
+                onerror="this.src='https://via.placeholder.com/90/000/ffd700?text=KC'">
+            <h1>KALYAN COVERING</h1>
+        </div>
+
+        <!-- Tabs -->
+        <div class="auth-tabs" role="tablist">
+            <div class="auth-tab active" id="tab-login" role="tab" aria-selected="true" onclick="switchTab('login')"
+                tabindex="0" onkeypress="if(event.key==='Enter')switchTab('login')">
+                🔑 Login
+            </div>
+            <div class="auth-tab" id="tab-reg" role="tab" aria-selected="false" onclick="switchTab('reg')" tabindex="0"
+                onkeypress="if(event.key==='Enter')switchTab('reg')">
+                ✨ Register
+            </div>
+        </div>
+
+        <!-- LOGIN PANEL -->
+        <div id="panel-login" class="auth-step active" role="tabpanel">
+            <form id="login-form" onsubmit="performLogin(); return false;" novalidate autocomplete="on">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">Email address</label>
+                    <input type="email" id="login-email" name="email" class="form-input" placeholder="you@example.com"
+                        autocomplete="email" inputmode="email">
+                    <div class="field-error" id="login-email-err">Please enter a valid email address.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-password">Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="login-password" name="password" class="form-input"
+                            placeholder="Enter your password" autocomplete="current-password">
+                        <span class="password-toggle" onclick="togglePassword('login-password', this)"
+                            title="Show/hide password">👁️</span>
+                    </div>
+                    <div class="field-error" id="login-password-err">Password cannot be empty.</div>
+                    <span class="forgot-link" onclick="openForgotPassword()">Forgot password?</span>
+                </div>
+                <button type="submit" class="btn-auth" id="btn-login-send">
+                    <span class="btn-text">🔑 Login to Account</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+            <div class="auth-footer">
+                New here? <a onclick="switchTab('reg')">Create an account</a>
+            </div>
+        </div>
+
+        <!-- REGISTER PANEL -->
+        <div id="panel-reg" class="auth-step" role="tabpanel">
+            <form id="reg-form" onsubmit="performRegister(); return false;" novalidate autocomplete="on">
+                <div class="form-group">
+                    <label class="form-label" for="reg-name">Full Name</label>
+                    <input type="text" id="reg-name" name="name" class="form-input" placeholder="Priya Sharma"
+                        autocomplete="name">
+                    <div class="field-error" id="reg-name-err">Please enter your name.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" name="email" class="form-input" placeholder="priya@example.com"
+                        autocomplete="email" inputmode="email">
+                    <div class="field-error" id="reg-email-err">Please enter a valid email address.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-phone">Phone Number</label>
+                    <input type="tel" id="reg-phone" name="phone" class="form-input" placeholder="9876543210"
+                        autocomplete="tel" inputmode="numeric" maxlength="10">
+                    <div class="field-error" id="reg-phone-err">Enter a valid 10-digit phone number.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-password">Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="reg-password" name="password" class="form-input"
+                            placeholder="Min. 8 characters" autocomplete="new-password"
+                            oninput="checkPasswordStrength(this.value)">
+                        <span class="password-toggle" onclick="togglePassword('reg-password', this)"
+                            title="Show/hide password">👁️</span>
+                    </div>
+                    <div class="pw-strength" id="pw-strength">
+                        <div class="pw-bar" id="pw-bar-1"></div>
+                        <div class="pw-bar" id="pw-bar-2"></div>
+                        <div class="pw-bar" id="pw-bar-3"></div>
+                        <div class="pw-bar" id="pw-bar-4"></div>
+                    </div>
+                    <div class="field-error" id="reg-password-err">Password must be at least 8 characters.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-password-conf">Confirm Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="reg-password-conf" name="confirm-password" class="form-input"
+                            placeholder="Repeat your password" autocomplete="new-password">
+                        <span class="password-toggle" onclick="togglePassword('reg-password-conf', this)"
+                            title="Show/hide password">👁️</span>
+                    </div>
+                    <div class="field-error" id="reg-conf-err">Passwords do not match.</div>
+                </div>
+                <div class="tnc-wrapper" onclick="document.getElementById('reg-tnc').classList.toggle('checked')">
+                    <div class="gold-check" id="reg-tnc"></div>
+                    <span>I agree to the <a href="#" onclick="event.stopPropagation()">Terms &amp; Conditions</a>
+                        and Privacy Policy of Kalyan Covering.</span>
+                </div>
+                <div class="field-error" id="reg-tnc-err" style="margin-top:-0.8rem;margin-bottom:0.8rem">
+                    Please accept the Terms &amp; Conditions.
+                </div>
+                <button type="submit" class="btn-auth" id="btn-reg-send">
+                    <span class="btn-text">✨ Create Account</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+            <div class="auth-footer">
+                Already have an account? <a onclick="switchTab('login')">Login here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="forgot-modal-overlay" id="forgot-overlay" onclick="if(event.target===this)closeForgotPassword()">
+        <div class="forgot-modal">
+            <h3>🔑 Reset Password</h3>
+            <p>Enter your email address and we'll send you a link to reset your password.</p>
+            <form onsubmit="sendResetEmail(); return false;" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="forgot-email">Email Address</label>
+                    <input type="email" id="forgot-email" name="email" class="form-input" placeholder="you@example.com"
+                        autocomplete="email" inputmode="email">
+                    <div class="field-error" id="forgot-email-err">Please enter a valid email address.</div>
+                </div>
+                <div style="display:flex;gap:0.8rem;margin-top:0.5rem">
+                    <button type="submit" class="btn-auth" id="btn-forgot-send" style="flex:1">
+                        <span class="btn-text">Send Reset Link</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <button type="button" class="btn-auth" onclick="closeForgotPassword()"
+                        style="flex:0.4;background:none;border:1px solid #333;color:var(--white-dim);font-weight:500">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Module -->
+    <script type="module">
+        import {
+            auth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            db,
+            setDoc,
+            doc as fdoc,
+            serverTimestamp,
+            getDoc
+        } from "./firebase-config.js";
+
+        // ---- Toast ----
+        const Toast = {
+            container: null,
+            init() {
+                this.container = document.getElementById('toast-container')
+                    || Object.assign(document.body.appendChild(document.createElement('div')), { id: 'toast-container', className: 'toast-container' });
+            },
+            show(title, msg = '', icon = '✨', duration = 3500) {
+                if (!this.container) this.init();
+                const t = Object.assign(document.createElement('div'), { className: 'toast' });
+                t.innerHTML = `<span class="toast-icon">${icon}</span><div class="toast-body"><div class="toast-title">${title}</div>${msg ? `<div class="toast-msg">${msg}</div>` : ''}</div>`;
+                this.container.appendChild(t);
+                setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, duration);
+            },
+            success(m, s = '') { this.show(m, s, '🌟'); },
+            error(m, s = '') { this.show(m, s, '❌'); },
+            info(m, s = '') { this.show(m, s, '💛'); }
+        };
+        window.Toast = Toast;
+        Toast.init();
+
+        // ---- Tab Switch ----
+        window.switchTab = function (tab) {
+            ['login', 'reg'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`tab-${t}`).setAttribute('aria-selected', t === tab);
+                document.getElementById(`panel-${t}`).classList.toggle('active', t === tab);
+            });
+            // Clear errors when switching
+            document.querySelectorAll('.field-error.show').forEach(e => e.classList.remove('show'));
+            document.querySelectorAll('.form-input.error').forEach(e => e.classList.remove('error'));
+        };
+
+        // ---- Password Toggle ----
+        window.togglePassword = function (id, el) {
+            const inp = document.getElementById(id);
+            if (inp.type === 'password') { inp.type = 'text'; el.textContent = '🔒'; }
+            else { inp.type = 'password'; el.textContent = '👁️'; }
+        };
+
+        // ---- Password Strength ----
+        window.checkPasswordStrength = function (pw) {
+            let score = 0;
+            if (pw.length >= 8) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+            const colors = ['#ff4444', '#ff8800', '#ffd700', '#00cc66'];
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById(`pw-bar-${i}`);
+                if (bar) bar.style.background = i <= score ? colors[score - 1] : '#222';
+            }
+        };
+
+        // ---- Field Validation Helpers ----
+        function setError(inputId, errId, show) {
+            const inp = document.getElementById(inputId);
+            const err = document.getElementById(errId);
+            if (inp) inp.classList.toggle('error', show);
+            if (err) err.classList.toggle('show', show);
+            return !show;
+        }
+
+        function clearErrors() {
+            document.querySelectorAll('.field-error').forEach(e => e.classList.remove('show'));
+            document.querySelectorAll('.form-input').forEach(e => e.classList.remove('error', 'success'));
+        }
+
+        // ---- CHECK URL PARAM ----
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'reg') window.switchTab('reg');
+
+        // ---- Background sparkles ----
+        (function () {
+            const bg = document.getElementById('auth-bg');
+            if (!bg) return;
+            for (let i = 0; i < 30; i++) {
+                const s = document.createElement('div');
+                s.className = 'sparkle';
+                const size = Math.random() * 3 + 1;
+                Object.assign(s.style, {
+                    width: size + 'px', height: size + 'px',
+                    left: Math.random() * 100 + '%',
+                    top: Math.random() * 100 + '%',
+                    '--duration': (Math.random() * 4 + 2) + 's',
+                    animationDelay: Math.random() * 3 + 's'
+                });
+                bg.appendChild(s);
+            }
+        })();
+
+        // ---- LOGIN ----
+        window.performLogin = async function () {
+            clearErrors();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login-send');
+
+            let valid = true;
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+                valid = setError('login-email', 'login-email-err', true) && false;
+            if (!password)
+                valid = setError('login-password', 'login-password-err', true) && false;
+            if (!valid) return;
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+                let userName = 'User', userPhone = '';
+                try {
+                    const snap = await getDoc(fdoc(db, 'users', user.uid));
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        userName = d.name || 'User';
+                        userPhone = d.phone || '';
+                    }
+                } catch (e) { console.log('Profile fetch skipped:', e.code); }
+
+                await setDoc(fdoc(db, 'users', user.uid), { lastLogin: serverTimestamp() }, { merge: true });
+
+                localStorage.setItem('kc_user', JSON.stringify({
+                    uid: user.uid, email: user.email, name: userName, phone: userPhone
+                }));
+
+                Toast.success('Welcome back!', `Logged in as ${userName}`);
+                setTimeout(() => {
+                    window.location.href = urlParams.get('redirect') || 'index.html';
+                }, 900);
+            } catch (error) {
+                console.error('Login Error:', error);
+                btn.classList.remove('loading');
+                btn.disabled = false;
+
+                // User-friendly Firebase error messages
+                const msgs = {
+                    'auth/user-not-found': 'No account found with this email.',
+                    'auth/wrong-password': 'Incorrect password. Please try again.',
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/too-many-requests': 'Too many attempts. Please try again later.',
+                    'auth/network-request-failed': 'Network error. Check your connection.',
+                    'auth/invalid-credential': 'Invalid email or password.'
+                };
+                const msg = msgs[error.code] || error.message.replace('Firebase: ', '').replace(/\(.*\)/, '').trim();
+                Toast.error('Login Failed', msg);
+            }
+        };
+
+        // ---- REGISTER ----
+        window.performRegister = async function () {
+            clearErrors();
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-password-conf').value;
+            const tncChecked = document.getElementById('reg-tnc').classList.contains('checked');
+            const btn = document.getElementById('btn-reg-send');
+
+            let valid = true;
+            if (!name) valid = setError('reg-name', 'reg-name-err', true) && false;
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) valid = setError('reg-email', 'reg-email-err', true) && false;
+            if (!phone || phone.length < 10 || !/^\d{10}$/.test(phone)) valid = setError('reg-phone', 'reg-phone-err', true) && false;
+            if (!password || password.length < 8) valid = setError('reg-password', 'reg-password-err', true) && false;
+            if (password !== confirmPassword) valid = setError('reg-password-conf', 'reg-conf-err', true) && false;
+            if (!tncChecked) {
+                document.getElementById('reg-tnc-err').classList.add('show');
+                valid = false;
+            }
+            if (!valid) return;
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const { user } = await createUserWithEmailAndPassword(auth, email, password);
+
+                await setDoc(fdoc(db, 'users', user.uid), {
+                    name, email: user.email, phone,
+                    role: 'customer',
+                    createdAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
+                    wishlist: [], orders: [], totalOrders: 0
+                }, { merge: true });
+
+                localStorage.setItem('kc_user', JSON.stringify({
+                    uid: user.uid, email: user.email, name, phone
+                }));
+
+                Toast.success('Account Created! 🎉', `Welcome, ${name}!`);
+                setTimeout(() => { window.location.href = 'index.html'; }, 900);
+            } catch (error) {
+                console.error('Registration Error:', error);
+                btn.classList.remove('loading');
+                btn.disabled = false;
+
+                const msgs = {
+                    'auth/email-already-in-use': 'This email is already registered. Please login instead.',
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/weak-password': 'Password is too weak. Use at least 8 characters.',
+                    'auth/network-request-failed': 'Network error. Check your connection.'
+                };
+                const msg = msgs[error.code] || error.message.replace('Firebase: ', '').replace(/\(.*\)/, '').trim();
+                Toast.error('Registration Failed', msg);
+            }
+        };
+
+        // ---- Forgot Password ----
+        window.openForgotPassword = function () {
+            document.getElementById('forgot-overlay').classList.add('open');
+            setTimeout(() => document.getElementById('forgot-email').focus(), 100);
+        };
+        window.closeForgotPassword = function () {
+            document.getElementById('forgot-overlay').classList.remove('open');
+            document.getElementById('forgot-email').value = '';
+            document.getElementById('forgot-email').classList.remove('error');
+            document.getElementById('forgot-email-err').classList.remove('show');
+        };
+        window.sendResetEmail = async function () {
+            const emailEl = document.getElementById('forgot-email');
+            const errEl = document.getElementById('forgot-email-err');
+            const btn = document.getElementById('btn-forgot-send');
+            const email = emailEl.value.trim();
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                emailEl.classList.add('error');
+                errEl.classList.add('show');
+                return;
+            }
+            emailEl.classList.remove('error');
+            errEl.classList.remove('show');
+            btn.classList.add('loading');
+            btn.disabled = true;
+            try {
+                const { sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
+                await sendPasswordResetEmail(auth, email);
+                Toast.success('Reset Email Sent!', 'Check your inbox for a password reset link.');
+                closeForgotPassword();
+            } catch (e) {
+                const msgs = {
+                    'auth/user-not-found': 'No account found with this email.',
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/too-many-requests': 'Too many attempts. Try again later.'
+                };
+                Toast.error('Error', msgs[e.code] || 'Failed to send reset email.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        };
+
+        // ---- Keyboard: Escape closes forgot modal ----
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeForgotPassword();
+        });
+    </script>
+</body>
+
+</html>

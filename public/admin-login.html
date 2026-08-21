@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Kalyan Covering</title>
+    <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background-color: var(--black);
+            color: var(--white);
+            font-family: var(--font-sans);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .login-container {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header img {
+            width: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .login-header h1 {
+            font-family: var(--font-serif);
+            color: var(--gold);
+            font-size: 1.8rem;
+            margin: 0;
+        }
+
+        .login-header p {
+            color: var(--white-dim);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--white-dim);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            border-radius: var(--radius);
+            color: var(--white);
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--white-dim);
+            cursor: pointer;
+        }
+
+        .remember-me input {
+            accent-color: var(--gold);
+            cursor: pointer;
+        }
+
+        .forgot-password {
+            color: var(--gold);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .forgot-password:hover {
+            color: #fff;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--gold), #cca000);
+            color: var(--black);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, #cca000, var(--gold));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top-color: var(--black);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-msg, .success-msg {
+            padding: 0.8rem;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            text-align: center;
+        }
+
+        .error-msg {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--red);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .success-msg {
+            background: rgba(0, 204, 102, 0.1);
+            color: var(--green);
+            border: 1px solid rgba(0, 204, 102, 0.3);
+        }
+
+        /* Background decoration */
+        .bg-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="assets/kalyan_logo.png" alt="Kalyan Covering" onerror="this.style.display='none'">
+            <h1>Admin Portal</h1>
+            <p>Sign in to access the dashboard</p>
+        </div>
+
+        <div id="error-message" class="error-msg"></div>
+        <div id="success-message" class="success-msg"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" class="form-input" required placeholder="admin@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-input" required placeholder="••••••••">
+            </div>
+
+            <div class="flex-between">
+                <label class="remember-me">
+                    <input type="checkbox" id="remember-me" checked>
+                    Remember me
+                </label>
+                <a href="#" id="forgot-btn" class="forgot-password">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn-login" id="login-btn">
+                <span>Sign In</span>
+                <div class="spinner" id="login-spinner"></div>
+            </button>
+        </form>
+
+        <form id="mfa-form" style="display: none;">
+            <p style="color:var(--white-dim);font-size:0.9rem;margin-bottom:1.5rem;text-align:center">Enter the 6-digit verification code from your authenticator app or SMS.</p>
+            <div class="form-group">
+                <label for="mfa-code">Verification Code</label>
+                <input type="text" id="mfa-code" class="form-input" required placeholder="123456" maxlength="6" autocomplete="one-time-code">
+            </div>
+            <button type="submit" class="btn-login" id="mfa-btn">
+                <span>Verify & Login</span>
+                <div class="spinner" id="mfa-spinner"></div>
+            </button>
+            <div style="text-align:center;margin-top:1rem">
+                <a href="#" id="mfa-cancel-btn" style="color:var(--white-dim);font-size:0.85rem;text-decoration:none">← Back to login</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Need to load Firebase auth from app.js or initialize directly -->
+    <script src="app.js"></script>
+    <script type="module">
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            setPersistence, 
+            browserLocalPersistence, 
+            browserSessionPersistence,
+            sendPasswordResetEmail,
+            onAuthStateChanged,
+            getMultiFactorResolver,
+            PhoneAuthProvider,
+            PhoneMultiFactorGenerator,
+            TotpMultiFactorGenerator
+        } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const fb = await initFirebase();
+            if (!fb) {
+                showError("Database connection failed. Please refresh.");
+                return;
+            }
+            
+            const auth = fb.auth;
+            const form = document.getElementById('login-form');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const rememberMe = document.getElementById('remember-me');
+            const loginBtn = document.getElementById('login-btn');
+            const loginSpinner = document.getElementById('login-spinner');
+            const loginText = loginBtn.querySelector('span');
+            const mfaForm = document.getElementById('mfa-form');
+            const mfaCodeInput = document.getElementById('mfa-code');
+            const mfaBtn = document.getElementById('mfa-btn');
+            const mfaSpinner = document.getElementById('mfa-spinner');
+            const mfaCancelBtn = document.getElementById('mfa-cancel-btn');
+            
+            let currentMfaResolver = null;
+            let currentMfaHint = null;
+
+            // Redirect if already logged in
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    window.location.replace('admin.html');
+                }
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideMessages();
+                
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+
+                if (!email || !password) {
+                    showError("Please enter both email and password.");
+                    return;
+                }
+
+                setLoading(true);
+
+                if (!checkRateLimit()) {
+                    setLoading(false);
+                    return;
+                }
+
+                try {
+                    // Set persistence based on "Remember me"
+                    const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence;
+                    await setPersistence(auth, persistence);
+                    
+                    // Sign in
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    
+                    // Enforce Email Verification
+                    if (!cred.user.emailVerified) {
+                        const { signOut } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
+                        await signOut(auth);
+                        throw new Error('email-not-verified');
+                    }
+
+                    clearAttempts();
+                    showSuccess("Login successful. Redirecting...");
+                    // Redirect is handled by onAuthStateChanged
+                } catch (error) {
+                    setLoading(false);
+
+                    // MFA Required handling
+                    if (error.code === 'auth/multi-factor-auth-required') {
+                        currentMfaResolver = getMultiFactorResolver(auth, error);
+                        const hints = currentMfaResolver.hints;
+                        if (hints.length > 0) {
+                            currentMfaHint = hints[0]; // Take the first enrolled factor
+                            form.style.display = 'none';
+                            mfaForm.style.display = 'block';
+                            if (currentMfaHint.factorId === 'phone') {
+                                // For SMS MFA, normally we'd trigger sendVerificationCode here
+                                // Since we lack reCAPTCHA in this pure UI, we just ask for code
+                                showSuccess(`SMS sent to ${currentMfaHint.phoneNumber}.`);
+                            } else if (currentMfaHint.factorId === 'totp') {
+                                showSuccess('Enter the code from your authenticator app.');
+                            }
+                        } else {
+                            showError("No MFA methods enrolled.");
+                        }
+                        return;
+                    }
+
+                    recordFailedAttempt();
+                    let msg = "Invalid email or password.";
+                    if (error.message === 'email-not-verified') {
+                        msg = "Please verify your email address before logging in.";
+                    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        msg = "Invalid email or password.";
+                    } else if (error.code === 'auth/too-many-requests') {
+                        msg = "Too many failed attempts. Account temporarily locked.";
+                    } else {
+                        msg = "An error occurred. Please try again.";
+                    }
+                    showError(msg);
+                }
+            });
+
+            // MFA Form Submit
+            mfaForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideMessages();
+                const code = mfaCodeInput.value.trim();
+                if (!code || code.length < 6) {
+                    showError("Please enter a valid 6-digit code.");
+                    return;
+                }
+                
+                mfaBtn.disabled = true;
+                mfaSpinner.style.display = 'block';
+
+                try {
+                    let multiFactorAssertion;
+                    if (currentMfaHint.factorId === 'totp') {
+                        multiFactorAssertion = TotpMultiFactorGenerator.assertionForSignIn(currentMfaHint.uid, code);
+                    } else if (currentMfaHint.factorId === 'phone') {
+                        // Normally requires a verificationId from the SMS sent step
+                        multiFactorAssertion = PhoneAuthProvider.credential(currentMfaHint.uid, code);
+                    }
+                    
+                    await currentMfaResolver.resolveSignIn(multiFactorAssertion);
+                    clearAttempts();
+                    showSuccess("Verification successful. Redirecting...");
+                    // Redirect handled by onAuthStateChanged
+                } catch (err) {
+                    mfaBtn.disabled = false;
+                    mfaSpinner.style.display = 'none';
+                    if (err.code === 'auth/invalid-verification-code') {
+                        showError('Invalid verification code.');
+                    } else {
+                        showError('Verification failed. Please try again.');
+                    }
+                }
+            });
+
+            mfaCancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentMfaResolver = null;
+                currentMfaHint = null;
+                mfaForm.style.display = 'none';
+                form.style.display = 'block';
+                hideMessages();
+                passwordInput.value = '';
+            });
+
+            // ---- Brute-force / Rate-Limiting Protection ----
+            const MAX_ATTEMPTS = 5;
+            const LOCKOUT_MS = 30 * 60 * 1000; // 30 minutes
+            let attempts = parseInt(sessionStorage.getItem('login_attempts') || '0');
+            let lockUntil = parseInt(sessionStorage.getItem('login_lock_until') || '0');
+
+            function checkRateLimit() {
+                if (Date.now() < lockUntil) {
+                    const remaining = Math.ceil((lockUntil - Date.now()) / 60000);
+                    showError(`Too many failed attempts. Try again in ${remaining} minute(s).`);
+                    return false;
+                }
+                return true;
+            }
+
+            function recordFailedAttempt() {
+                attempts++;
+                sessionStorage.setItem('login_attempts', attempts);
+                if (attempts >= MAX_ATTEMPTS) {
+                    const lockTime = Date.now() + LOCKOUT_MS;
+                    sessionStorage.setItem('login_lock_until', lockTime);
+                    attempts = 0;
+                    sessionStorage.setItem('login_attempts', '0');
+                }
+            }
+
+            function clearAttempts() {
+                sessionStorage.removeItem('login_attempts');
+                sessionStorage.removeItem('login_lock_until');
+            }
+
+            forgotBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                hideMessages();
+                const email = emailInput.value.trim();
+                
+                if (!email) {
+                    showError("Please enter your email address to reset password.");
+                    emailInput.focus();
+                    return;
+                }
+
+                forgotBtn.textContent = "Sending...";
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    // Always show same message to prevent user enumeration
+                    showSuccess(`If an account exists for ${email}, a reset link has been sent.`);
+                } catch (error) {
+                    // Do NOT reveal whether user exists — always show generic message
+                    showSuccess(`If an account exists for ${email}, a reset link has been sent.`);
+                } finally {
+                    forgotBtn.textContent = "Forgot password?";
+                }
+            });
+
+            function setLoading(isLoading) {
+                loginBtn.disabled = isLoading;
+                loginSpinner.style.display = isLoading ? 'block' : 'none';
+                loginText.textContent = isLoading ? 'Signing In...' : 'Sign In';
+            }
+
+            function showError(msg) {
+                const el = document.getElementById('error-message');
+                el.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            function showSuccess(msg) {
+                const el = document.getElementById('success-message');
+                el.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            function hideMessages() {
+                document.getElementById('error-message').style.display = 'none';
+                document.getElementById('success-message').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

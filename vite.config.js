@@ -1,0 +1,23 @@
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
+
+export default defineConfig({
+  root: 'public',
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'public/index.html'),
+        admin: resolve(__dirname, 'public/admin.html'),
+        auth: resolve(__dirname, 'public/auth.html'),
+        products: resolve(__dirname, 'public/products.html'),
+        checkout: resolve(__dirname, 'public/checkout.html'),
+        myOrders: resolve(__dirname, 'public/my-orders.html'),
+        productDetail: resolve(__dirname, 'public/product-detail.html'),
+        profile: resolve(__dirname, 'public/profile.html'),
+        wishlist: resolve(__dirname, 'public/wishlist.html')
+      }
+    }
+  }
+});

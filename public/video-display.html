@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Videos – Kalyan Covering Jewellery</title>
+    <script>
+        if (!localStorage.getItem('kc_user') && !window.location.pathname.includes('auth.html')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+
+    <meta name="description"
+        content="See real customers showcasing Kalyan Covering jewellery. Authentic video reviews and sparkling demonstrations.">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ======= VIDEO DISPLAY ======= */
+        .vd-hero {
+            padding-top: 90px;
+            background: var(--black);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vd-hero-inner {
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero-video-wrap {
+            position: relative;
+            aspect-ratio: 16/9;
+            max-height: 70vh;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            background: #000;
+            cursor: pointer;
+        }
+
+        .hero-video-wrap video,
+        .hero-video-placeholder {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-video-placeholder {
+            background: linear-gradient(135deg, #0a0a0a, #111);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .play-btn-gold {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 3px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--gold);
+            transition: var(--transition);
+            box-shadow: var(--gold-glow);
+            animation: playPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes playPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        .play-btn-gold:hover {
+            transform: scale(1.12);
+            background: rgba(255, 215, 0, 0.15);
+        }
+
+        .hero-video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            padding: 2rem 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .hero-video-wrap:hover .hero-video-controls {
+            opacity: 1;
+        }
+
+        .ctrl-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.3rem;
+            transition: var(--transition);
+        }
+
+        .ctrl-btn:hover {
+            color: var(--gold-light);
+            transform: scale(1.2);
+        }
+
+        .video-progress {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .video-progress-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 2px;
+            width: 35%;
+            transition: width 0.5s linear;
+        }
+
+        .video-time {
+            font-size: 0.8rem;
+            color: var(--white-dim);
+        }
+
+        .hero-video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .hero-video-overlay .play-btn-gold {
+            pointer-events: all;
+        }
+
+        .hero-video-info {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .hero-video-badge {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .view-count {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--white-dim);
+        }
+
+        /* Hero Info Below Video */
+        .hero-meta {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-meta-left {
+            flex: 1;
+        }
+
+        .hero-meta h2 {
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .hero-meta-desc {
+            color: var(--white-dim);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .hero-meta-byline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-meta-right {
+            display: flex;
+            gap: 0.7rem;
+        }
+
+        .action-btn {
+            background: var(--black-card);
+            border: 1.5px solid var(--black-border);
+            color: var(--white-dim);
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .action-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* Video Gallery */
+        .vd-gallery-section {
+            padding: 4rem 0;
+        }
+
+        .video-gallery-grid {
+            display: flex;
+            gap: 1.2rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+            scrollbar-width: thin;
+        }
+
+        .video-gallery-grid::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .video-card {
+            flex-shrink: 0;
+            width: 240px;
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .video-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lift);
+        }
+
+        .video-thumb {
+            aspect-ratio: 16/9;
+            background: #111;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .video-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .video-card:hover .video-thumb img {
+            transform: scale(1.08);
+        }
+
+        .video-thumb-play {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        .video-card:hover .video-thumb-play {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .thumb-play-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .video-card:hover .thumb-play-icon {
+            transform: scale(1.15);
+            box-shadow: var(--gold-glow);
+        }
+
+        .video-card-body {
+            padding: 0.9rem;
+        }
+
+        .video-card-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-card-product {
+            font-size: 0.75rem;
+            color: var(--gold);
+            margin-bottom: 0.4rem;
+        }
+
+        .video-card-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .video-card-rating {
+            color: var(--gold);
+            font-size: 0.8rem;
+        }
+
+        .video-card-views {
+            font-size: 0.72rem;
+            color: #666;
+        }
+
+        .video-card-duration {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+        }
+
+        /* Lightbox Video Player */
+        .video-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 9992;
+            background: rgba(0, 0, 0, 0.96);
+            display: none;
+            flex-direction: column;
+        }
+
+        .video-lightbox.open {
+            display: flex;
+        }
+
+        .vl-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid #1a1a1a;
+            flex-shrink: 0;
+        }
+
+        .vl-title {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+        }
+
+        .vl-close {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .vl-close:hover {
+            color: var(--gold);
+        }
+
+        .vl-body {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .vl-video-side {
+            display: flex;
+            align-items: center;
+            padding: 2rem;
+            background: #000;
+        }
+
+        .vl-video-side video {
+            width: 100%;
+            border-radius: var(--radius);
+        }
+
+        .vl-info-side {
+            padding: 2rem;
+            overflow-y: auto;
+            border-left: 1px solid #1a1a1a;
+            background: var(--black-card);
+        }
+
+        /* Tabs in lightbox */
+        .vl-tabs {
+            border-bottom: 1px solid #222;
+            margin-bottom: 1.5rem;
+            display: flex;
+        }
+
+        .vl-tab {
+            background: none;
+            border: none;
+            color: #666;
+            padding: 0.7rem 1.2rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: var(--transition);
+        }
+
+        .vl-tab.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+
+        /* Product link card */
+        .video-product-card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: var(--radius);
+            padding: 1rem;
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+        }
+
+        .video-product-card:hover {
+            border-color: var(--gold);
+        }
+
+        .video-product-card img {
+            width: 60px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .star-animate {
+            display: inline-block;
+        }
+
+        .star-animate.fill {
+            animation: starFill 0.3s ease forwards;
+        }
+
+        @keyframes starFill {
+            from {
+                color: #333;
+            }
+
+            to {
+                color: var(--gold);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .vl-body {
+                grid-template-columns: 1fr;
+            }
+
+            .vl-info-side {
+                border-left: none;
+                border-top: 1px solid #1a1a1a;
+            }
+
+            .hero-meta {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .video-gallery-grid {
+                gap: 0.8rem;
+            }
+
+            .video-card {
+                width: 190px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" onerror="this.style.display='none'">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="video-display.html" class="active">Videos</a></li>
+                <li><a href="video-upload.html">Share Video</a></li>
+                <li><a href="checkout.html">Cart</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" onclick="window.location='video-upload.html'">📤</button>
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'">🛒 <span
+                        class="badge cart-count">0</span></button>
+                <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="search-modal">
+        <div class="search-modal-overlay" onclick="closeSearchModal()"></div>
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search products..."
+                        oninput="performSearch(this.value)">
+                    <button class="search-close-btn" onclick="closeSearchModal()">×</button>
+                </div>
+            </div>
+            <div class="search-results" id="search-results"></div>
+            <div class="search-modal-footer">
+                <span>Press ESC to close</span>
+                <span>Search by product name or category</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Lightbox -->
+    <div class="video-lightbox" id="video-lightbox">
+        <div class="vl-header">
+            <div class="vl-title" id="vl-title">—</div>
+            <button class="vl-close" onclick="closeLightbox()">× Close</button>
+        </div>
+        <div class="vl-body">
+            <div class="vl-video-side">
+                <video controls autoplay id="lightbox-video" style="width:100%;border-radius:var(--radius)"></video>
+            </div>
+            <div class="vl-info-side">
+                <div class="vl-tabs">
+                    <button class="vl-tab active" onclick="vlTab('desc',this)">Description</button>
+                    <button class="vl-tab" onclick="vlTab('reviews',this)">Reviews</button>
+                </div>
+                <div id="vl-desc-tab">
+                    <p style="color:var(--white-dim);font-size:0.9rem;line-height:1.8;margin-bottom:1.5rem"
+                        id="vl-desc-text">—</p>
+                    <div id="vl-product-card"></div>
+                    <div style="display:flex;gap:0.7rem;flex-wrap:wrap;margin-bottom:1.5rem" id="vl-tags"></div>
+                    <div style="display:flex;gap:0.7rem">
+                        <button class="action-btn" onclick="likeVideo(this)">👍 <span id="like-count">124</span>
+                            Likes</button>
+                        <button class="action-btn" onclick="shareVideo()">📤 Share</button>
+                    </div>
+                </div>
+                <div id="vl-reviews-tab" style="display:none">
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.2rem">
+                        <span style="font-size:2rem;color:var(--gold);font-family:var(--font-serif)"
+                            id="vl-rating">4.8</span>
+                        <div>
+                            <div id="vl-stars" style="color:var(--gold);font-size:0.9rem">★★★★★</div>
+                            <div style="font-size:0.75rem;color:#666">234 reviews</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:1rem">
+                        <div class="review-card" style="background:#0a0a0a;padding:1rem;border-radius:var(--radius)">
+                            <div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.5rem">
+                                <div class="author-avatar" style="width:32px;height:32px;font-size:0.9rem">👩</div>
+                                <div>
+                                    <div style="font-size:0.85rem;font-weight:600">Priya S.</div>
+                                    <div style="font-size:0.72rem;color:#666">Jan 2026</div>
+                                </div>
+                                <div style="margin-left:auto;color:var(--gold);font-size:0.85rem">★★★★★</div>
+                            </div>
+                            <p style="font-size:0.83rem;color:var(--white-dim)">Amazing quality! Exactly as shown in the
+                                video.</p>
+                        </div>
+                        <div class="review-card" style="background:#0a0a0a;padding:1rem;border-radius:var(--radius)">
+                            <div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.5rem">
+                                <div class="author-avatar" style="width:32px;height:32px;font-size:0.9rem">👨</div>
+                                <div>
+                                    <div style="font-size:0.85rem;font-weight:600">Rahul K.</div>
+                                    <div style="font-size:0.72rem;color:#666">Dec 2025</div>
+                                </div>
+                                <div style="margin-left:auto;color:var(--gold);font-size:0.85rem">★★★★⯨</div>
+                            </div>
+                            <p style="font-size:0.83rem;color:var(--white-dim)">Very helpful review. Bought it after
+                                watching!</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top:1rem;width:100%"
+                        onclick="window.location='product-detail.html'">Write a Review</button>
+                </div>
+
+                <!-- Order Section -->
+                <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #1a1a1a">
+                    <button class="btn btn-gold" style="width:100%" id="vl-order-btn" onclick="orderFromVideo()">
+                        🛒 Order This Product
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO VIDEO -->
+    <div class="vd-hero">
+        <div class="vd-hero-inner">
+            <div class="breadcrumb" style="margin-bottom:1rem">
+                <a href="index.html">Home</a> <span>/</span> <span class="gold">Customer Videos</span>
+            </div>
+            <div class="hero-video-wrap" id="hero-video-wrap" onclick="toggleHeroPlay()">
+                <div class="hero-video-info">
+                    <span class="hero-video-badge">🔴 FEATURED VIDEO</span>
+                    <span class="view-count">👁️ 2.4K views</span>
+                </div>
+                <div class="hero-video-placeholder" id="hero-placeholder">
+                    <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1200&h=675&fit=crop"
+                        alt="Featured Video" style="width:100%;height:100%;object-fit:cover;border-radius:0">
+                </div>
+                <div class="hero-video-overlay">
+                    <div class="play-btn-gold" id="hero-play-btn">▶</div>
+                </div>
+                <div class="hero-video-controls">
+                    <button class="ctrl-btn" id="hero-ctrl-play">⏸</button>
+                    <div class="video-progress" onclick="seekHero(event)">
+                        <div class="video-progress-fill" id="hero-progress"></div>
+                    </div>
+                    <span class="video-time" id="hero-time">0:00 / 3:45</span>
+                    <button class="ctrl-btn">🔊</button>
+                    <button class="ctrl-btn">⛶</button>
+                </div>
+            </div>
+            <div class="hero-meta">
+                <div class="hero-meta-left">
+                    <h2>Unboxing the Eternal Gold Necklace – Stunning Sparkle! ✨</h2>
+                    <div class="hero-meta-byline">
+                        <div class="author-avatar">👩‍🎨</div>
+                        <strong>Priya Sharma</strong>
+                        <span style="color:#666;font-size:0.85rem">•</span>
+                        <span style="color:#666;font-size:0.85rem">January 2026</span>
+                        <span class="badge badge-gold">FEATURED</span>
+                        <div class="stars gold" style="font-size:0.9rem">★★★★★</div>
+                    </div>
+                    <p class="hero-meta-desc" style="margin-top:0.8rem">I purchased the Eternal Gold Necklace and it
+                        is absolutely breathtaking! The gold finish and the way it catches the light is just amazing. My
+                        entire bridal party was in awe...</p>
+                </div>
+                <div class="hero-meta-right">
+                    <button class="action-btn" id="hero-like-btn" onclick="toggleHeroLike(this)">👍 <span
+                            id="hero-likes">284</span></button>
+                    <button class="action-btn" onclick="shareVideo()">📤 Share</button>
+                    <button class="btn btn-gold" onclick="orderHeroProduct()">🛒 Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIDEO GALLERY -->
+    <div class="vd-gallery-section">
+        <div class="container">
+            <div class="section-header reveal">
+                <div>
+                    <div class="section-subtitle">Community Reviews</div>
+                    <h2 class="section-title">Customer <span class="gold-text">Video Gallery</span></h2>
+                </div>
+                <div style="display:flex;gap:0.8rem;align-items:center">
+                    <select class="sort-select"
+                        style="background:var(--black-card);border:1.5px solid var(--black-border);color:white;padding:0.5rem 1.5rem 0.5rem 0.8rem;border-radius:var(--radius);outline:none;font-size:0.85rem"
+                        onchange="filterVideos(this.value)">
+                        <option value="all">All Jewellery</option>
+                        <option value="Necklaces">Necklaces</option>
+                        <option value="Rings">Rings</option>
+                        <option value="Bracelets">Bracelets</option>
+                        <option value="Bangles">Bangles</option>
+                        <option value="Earrings">Earrings</option>
+                    </select>
+                    <a href="video-upload.html" class="btn btn-gold btn-sm">📤 Upload Video</a>
+                </div>
+            </div>
+            <div class="video-gallery-grid reveal" id="video-gallery"></div>
+        </div>
+    </div>
+
+    <!-- COMMUNITY SECTION -->
+    <section class="section" style="background:var(--black-soft)">
+        <div class="container text-center reveal">
+            <div class="section-subtitle">Join the Community</div>
+            <h2 class="section-title">Share Your <span class="gold-text">Story</span></h2>
+            <div class="gold-divider"></div>
+            <p style="color:var(--white-dim);max-width:500px;margin:0 auto 2rem">Show the world how you shine with
+                Kalyan Covering. Upload your video and get featured!</p>
+            <a href="video-upload.html" class="btn btn-gold btn-lg">
+                🎬 Upload Your Video
+            </a>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <span>© 2026 Kalyan Covering. All rights reserved.</span>
+                <a href="index.html" style="color:var(--gold)">Back to Home</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        const videoData = [
+            { id: 1, title: 'Eternal Gold Necklace Review', product: 'Eternal Gold Necklace', productId: 1, category: 'Necklaces', thumb: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=225&fit=crop', views: '2.4K', rating: 4.9, duration: '0:45', desc: 'I purchased the Eternal Gold Necklace and it is absolutely breathtaking! The gold finish is exceptional.', tags: ['necklace', 'review', 'luxury', 'gold'], author: 'Priya S.' },
+            { id: 2, title: 'Diamond Ring Unboxing', product: 'Eternal Diamond Ring', productId: 2, category: 'Rings', thumb: 'https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=400&h=225&fit=crop', views: '1.8K', rating: 4.7, duration: '0:35', desc: 'Unboxing the Eternal Diamond Ring. The sparkle is amazing and the ring is so elegant!', tags: ['rings', 'unboxing', 'diamond'], author: 'Ananya R.' },
+            { id: 3, title: 'Gold Bangle Set Showcase', product: 'Traditional Gold Bangle Set', productId: 3, category: 'Bangles', thumb: 'https://images.unsplash.com/photo-1535633302703-b07034633930?w=400&h=225&fit=crop', views: '3.1K', rating: 5.0, duration: '0:50', desc: 'Showcasing the Traditional Gold Bangle Set. The craftsmanship is just beautiful!', tags: ['bangles', 'gold', 'traditional'], author: 'Rahul M.' },
+            { id: 4, title: 'Diamond Earrings – First Impressions', product: 'Exquisite Diamond Earrings', productId: 5, category: 'Earrings', thumb: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=225&fit=crop', views: '987', rating: 4.6, duration: '0:40', desc: 'First impressions of the Exquisite Diamond Earrings. The cut and shine are perfect!', tags: ['earrings', 'review', 'diamond'], author: 'Kavya L.' },
+            { id: 5, title: 'Bridal Jewellery Set – Wedding Special', product: 'Royal Bridal Jewellery Set', productId: 6, category: 'Necklaces', thumb: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=225&fit=crop&sat=50', views: '4.2K', rating: 4.8, duration: '1:10', desc: 'Got this Bridal Set for my wedding and it made me look absolutely royal!', tags: ['bridal', 'wedding', 'necklace', 'special'], author: 'Meera P.' },
+            { id: 6, title: 'Gold Bracelet Walkthrough', product: 'Elegant Gold Bracelet', productId: 4, category: 'Bracelets', thumb: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=225&fit=crop', views: '654', rating: 4.5, duration: '0:45', desc: 'A quick walkthrough of the Elegant Gold Bracelet. So easy to wear and looks amazing!', tags: ['bracelet', 'gold', 'jewelry'], author: 'Sneha K.' },
+        ];
+
+        let currentVideoData = null;
+        let heroPlaying = false;
+
+        function filterVideos(cat) {
+            const videos = (typeof KC !== 'undefined' && KC.videos && KC.videos.length > 0) ? KC.videos : videoData;
+            const filtered = cat === 'all' ? videos : videos.filter(v => v.category === cat);
+            const grid = document.getElementById('video-gallery');
+            if (grid) {
+                grid.innerHTML = filtered.map(v => `
+                    <div class="video-card" onclick="openVideoLightbox(${v.id})">
+                      ${v.rating >= 4.8 ? '<span class="ribbon">TOP RATED</span>' : ''}
+                      <div class="video-thumb">
+                        <img src="${v.thumb}" alt="${v.title}" loading="lazy">
+                        <div class="video-thumb-play">
+                          <div class="thumb-play-icon">▶</div>
+                        </div>
+                        <span class="video-card-duration">${v.duration || '2:30'}</span>
+                      </div>
+                      <div class="video-card-body">
+                        <div class="video-card-title" title="${v.title}">${v.title}</div>
+                        <div class="video-card-product">🎬 ${v.product}</div>
+                        <div class="video-card-stats">
+                          <div class="video-card-rating">★ ${v.rating}</div>
+                          <div class="video-card-views">👁️ ${v.views || '1.1K'}</div>
+                        </div>
+                      </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openVideoLightbox(id) {
+            const videos = (typeof KC !== 'undefined' && KC.videos && KC.videos.length > 0) ? KC.videos : videoData;
+            const v = videos.find(x => x.id == id);
+            if (!v) return;
+            currentVideoData = v;
+            document.getElementById('vl-title').textContent = v.title;
+            document.getElementById('lightbox-video').src = v.url || '';
+            document.getElementById('vl-desc-text').textContent = v.desc || v.title;
+            document.getElementById('vl-rating').textContent = (v.rating || 4.5).toFixed(1);
+            document.getElementById('vl-stars').textContent = '★'.repeat(Math.floor(v.rating || 4));
+
+            const prod = KC.products.find(p => p.id == v.productId);
+            document.getElementById('vl-product-card').innerHTML = prod ? `
+                <div class="video-product-card" onclick="window.location='product-detail.html?id=${prod.id}'">
+                    <img src="${prod.image}" alt="${prod.name}">
+                    <div>
+                        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.2rem">${prod.name}</div>
+                        <div style="color:var(--gold);font-size:0.85rem;font-weight:700">₹${prod.price.toLocaleString()}</div>
+                        <span class="badge badge-outline" style="font-size:0.72rem">View Product →</span>
+                    </div>
+                </div>` : '';
+
+            document.getElementById('video-lightbox').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('video-lightbox').classList.remove('open');
+            document.getElementById('lightbox-video').pause();
+            document.body.style.overflow = '';
+        }
+
+        function vlTab(tab, btn) {
+            document.querySelectorAll('.vl-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('vl-desc-tab').style.display = tab === 'desc' ? 'block' : 'none';
+            document.getElementById('vl-reviews-tab').style.display = tab === 'reviews' ? 'block' : 'none';
+        }
+
+        function likeVideo(btn) {
+            const count = document.getElementById('like-count');
+            if (count) count.textContent = parseInt(count.textContent || 0) + 1;
+            btn.style.color = 'var(--gold)';
+            btn.style.borderColor = 'var(--gold)';
+            Toast.success('Liked!', '');
+        }
+
+        function shareVideo() {
+            navigator.clipboard.writeText(window.location.href);
+            Toast.success('Link copied!', 'Share with friends');
+        }
+
+        function orderFromVideo() {
+            if (currentVideoData) {
+                const prod = KC.products.find(p => p.id == currentVideoData.productId);
+                if (prod) { Cart.add(prod); closeLightbox(); }
+                else Toast.error('Product not found');
+            }
+        }
+
+        function orderHeroProduct() {
+            if (KC.products.length > 0) {
+                Cart.add(KC.products[0]);
+                Toast.success('Added to Cart!', KC.products[0].name);
+                launchConfetti(1000);
+            }
+        }
+
+        let heroLiked = false;
+        function toggleHeroLike(btn) {
+            heroLiked = !heroLiked;
+            const count = document.getElementById('hero-likes');
+            if (count) count.textContent = heroLiked ? parseInt(count.textContent) + 1 : parseInt(count.textContent) - 1;
+            btn.style.color = heroLiked ? 'var(--gold)' : '';
+            btn.style.borderColor = heroLiked ? 'var(--gold)' : '';
+        }
+
+        let heroPlaySimInterval = null;
+        function toggleHeroPlay() {
+            heroPlaying = !heroPlaying;
+            const playBtn = document.getElementById('hero-play-btn');
+            const ctrlBtn = document.getElementById('hero-ctrl-play');
+            if (playBtn) playBtn.textContent = heroPlaying ? '⏸' : '▶';
+            if (ctrlBtn) ctrlBtn.textContent = heroPlaying ? '⏸' : '▶';
+            if (heroPlaying) {
+                if (playBtn) playBtn.style.display = 'none';
+                let pct = 0;
+                heroPlaySimInterval = setInterval(() => {
+                    pct = Math.min(100, pct + 0.5);
+                    const bar = document.getElementById('hero-progress');
+                    if (bar) bar.style.width = pct + '%';
+                }, 1000);
+            } else {
+                if (playBtn) playBtn.style.display = 'flex';
+                clearInterval(heroPlaySimInterval);
+            }
+        }
+
+        function seekHero(e) {
+            const bar = e.currentTarget;
+            const pct = (e.offsetX / bar.offsetWidth) * 100;
+            const progress = document.getElementById('hero-progress');
+            if (progress) progress.style.width = pct + '%';
+        }
+
+
+
+        document.getElementById('video-lightbox')?.addEventListener('click', e => {
+            if (e.target === document.getElementById('video-lightbox')) closeLightbox();
+        });
+    </script>
+</body>
+
+</html>

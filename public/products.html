@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products – Kalyan Covering | Shop Premium Jewellery</title>
+    <script>
+        if (!localStorage.getItem('kc_user') && !window.location.pathname.includes('auth.html')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+    <meta name="description" content="Browse Kalyan Covering's full range of necklaces, rings, bracelets, bangles, and earrings. Filter by category, price, and rating.">
+    <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            padding: 100px 0 1.5rem;
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, var(--black) 100%);
+            border-bottom: 1px solid var(--black-border);
+        }
+
+        .page-header h1 {
+            font-family: var(--font-serif);
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            margin: 0.3rem 0 0.5rem;
+        }
+
+        /* ===== INLINE SEARCH BAR ===== */
+        .products-search-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            background: var(--black-card);
+            border: 1.5px solid var(--black-border);
+            border-radius: 50px;
+            padding: 0.6rem 1.2rem;
+            margin: 1rem 0 0;
+            transition: border-color 0.3s;
+            max-width: 480px;
+        }
+
+        .products-search-bar:focus-within {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .products-search-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--white);
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+        }
+
+        .products-search-bar input::placeholder { color: #555; }
+
+        .search-clear-btn {
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            line-height: 1;
+            display: none;
+        }
+        .products-search-bar.has-text .search-clear-btn { display: block; }
+
+        /* ===== CATEGORY PILL FILTERS (scrollable on mobile) ===== */
+        .category-pills-wrap {
+            background: var(--black-card);
+            border-bottom: 1px solid var(--black-border);
+            position: sticky;
+            top: 64px;
+            z-index: 90;
+        }
+
+        .category-pills {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding: 0.7rem 1rem;
+        }
+
+        .category-pills::-webkit-scrollbar { display: none; }
+
+        .cat-pill {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: transparent;
+            border: 1.5px solid var(--black-border);
+            color: var(--white-dim);
+            border-radius: 50px;
+            padding: 0.38rem 0.9rem;
+            font-size: 0.82rem;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .cat-pill:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .cat-pill.active {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--black);
+            font-weight: 700;
+        }
+
+        .cat-pill .pill-count {
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            padding: 0 0.35rem;
+            font-size: 0.68rem;
+            line-height: 1.5;
+        }
+
+        .cat-pill.active .pill-count {
+            background: rgba(0,0,0,0.25);
+        }
+
+        /* ===== LAYOUT ===== */
+        .products-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 2rem;
+            padding: 2rem 0 5rem;
+        }
+
+        /* ===== FILTER SIDEBAR ===== */
+        .filter-sidebar {
+            position: sticky;
+            top: 110px;
+            height: calc(100vh - 130px);
+            overflow-y: auto;
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            scrollbar-width: thin;
+        }
+
+        .filter-sidebar::-webkit-scrollbar { width: 4px; }
+
+        .filter-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+        .filter-header h3 {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            color: var(--gold);
+        }
+
+        .filter-section { margin-bottom: 1.5rem; }
+
+        .filter-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--white-dim);
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+        }
+
+        .filter-section.collapsed .filter-section-title svg { transform: rotate(-90deg); }
+        .filter-section.collapsed .filter-content { display: none; }
+
+        .filter-separator { border: none; border-top: 1px solid var(--black-border); margin: 1.2rem 0; }
+
+        .filter-options { display: flex; flex-direction: column; gap: 0.6rem; }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            cursor: pointer;
+            padding: 0.15rem 0;
+            transition: var(--transition);
+            font-size: 0.86rem;
+        }
+
+        .filter-option:hover { color: var(--gold); }
+        .filter-option input { display: none; }
+
+        .filter-option .chk {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1.5px solid #444;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .filter-option input:checked + .chk {
+            background: var(--gold);
+            border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
+        }
+
+        .filter-option input:checked + .chk::after {
+            content: '✓';
+            color: var(--black);
+            font-size: 0.7rem;
+            font-weight: 900;
+        }
+
+        .filter-option .option-label { color: var(--white-dim); flex: 1; }
+        .filter-option:hover .option-label { color: var(--gold); }
+        .filter-option .option-count { font-size: 0.72rem; color: #555; }
+
+        .price-range-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--gold);
+            margin-bottom: 0.7rem;
+        }
+
+        .rating-filter { display: flex; flex-direction: column; gap: 0.5rem; }
+
+        .rating-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.35rem 0.6rem;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            font-size: 0.84rem;
+        }
+
+        .rating-option:hover, .rating-option.selected { background: var(--gold-dim); }
+        .rating-option .stars-row { color: var(--gold); font-size: 0.85rem; }
+        .rating-option .rating-count { font-size: 0.72rem; color: #666; margin-left: auto; }
+
+        /* ===== TOPBAR ===== */
+        .products-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .products-count { color: var(--white-dim); font-size: 0.88rem; }
+        .products-count span { color: var(--gold); font-weight: 700; }
+
+        .sort-controls { display: flex; align-items: center; gap: 0.7rem; }
+
+        .sort-select {
+            background: var(--black-card);
+            border: 1.5px solid var(--black-border);
+            color: var(--white);
+            padding: 0.45rem 2rem 0.45rem 0.8rem;
+            border-radius: var(--radius);
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+        }
+
+        .sort-select:focus { border-color: var(--gold); }
+        .sort-select option { background: var(--black-card); }
+
+        .view-toggle { display: flex; gap: 0.3rem; }
+
+        .view-btn {
+            background: var(--black-card);
+            border: 1.5px solid var(--black-border);
+            color: var(--white-dim);
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .view-btn.active, .view-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+        /* ===== ACTIVE FILTER TAGS ===== */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .active-filter-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: var(--gold-dim);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: var(--gold);
+            border-radius: 20px;
+            padding: 0.25rem 0.7rem;
+            font-size: 0.76rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .active-filter-tag:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* ===== SKELETON LOADING ===== */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .skeleton-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .skeleton-img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+        }
+
+        .skeleton-body { padding: 1rem; }
+
+        .skeleton-line {
+            background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px;
+            margin-bottom: 0.6rem;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ===== PRODUCTS GRID ===== */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+        }
+
+        .products-grid.list-view { grid-template-columns: 1fr; }
+
+        .products-grid.list-view .product-card {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+        }
+
+        .products-grid.list-view .card-img-wrap { aspect-ratio: unset; height: 160px; }
+        .products-grid.list-view .card-body { padding: 1.2rem 1.5rem; }
+
+        /* ===== NO RESULTS ===== */
+        .no-results {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--white-dim);
+        }
+
+        .no-results .emoji { font-size: 3.5rem; display: block; margin-bottom: 1rem; }
+
+        /* ===== FLOATING CART BAR (mobile) ===== */
+        .floating-cart-bar {
+            display: none;
+            position: fixed;
+            bottom: 1.2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            gap: 0.6rem;
+        }
+
+        .floating-cart-btn {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: var(--black);
+            border: none;
+            border-radius: 50px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.45);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            animation: floatPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .floating-filter-btn {
+            background: var(--black-card);
+            color: var(--gold);
+            border: 1.5px solid var(--gold);
+            border-radius: 50px;
+            padding: 0.75rem 1.2rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        @keyframes floatPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* ===== PAGINATION ===== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 2.5rem;
+        }
+
+        .page-btn {
+            min-width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            color: var(--white-dim);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.5rem;
+        }
+
+        .page-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+        .page-btn.active {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--black);
+            font-weight: 700;
+        }
+
+        /* ===== MOBILE FILTER OVERLAY ===== */
+        .filter-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 499;
+        }
+
+        .filter-overlay.open { display: block; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .products-layout { grid-template-columns: 1fr; }
+
+            .filter-sidebar {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                width: min(300px, 85vw);
+                z-index: 500;
+                border-radius: 0;
+                height: 100vh;
+                transform: translateX(-100%);
+                transition: transform 0.35s ease;
+            }
+
+            .filter-sidebar.open {
+                display: block;
+                transform: translateX(0);
+            }
+
+            .floating-cart-bar { display: flex; }
+
+            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+
+            .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+            .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
+            .page-header { padding: 85px 0 1rem; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
+                    onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html" class="active">Products</a></li>
+                <li><a href="checkout.html">Cart</a></li>
+                <li><a href="my-orders.html">Orders</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" onclick="openSearchModal()" aria-label="Search">🔍</button>
+                <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
+                    <a href="auth.html" class="btn btn-outline btn-sm" id="nav-login-btn">Login</a>
+                    <a href="auth.html?tab=reg" class="btn btn-gold btn-sm" id="nav-register-btn">Register</a>
+                </div>
+                <button class="nav-icon-btn" title="Account" id="nav-user-btn" onclick="window.location='profile.html'" style="display:none" aria-label="User Profile">👤</button>
+                <button class="nav-icon-btn" title="Wishlist" onclick="window.location='wishlist.html'" aria-label="Wishlist">
+                    ♥ <span class="badge" id="wishlist-count">0</span>
+                </button>
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'" aria-label="Cart">
+                    🛒 <span class="badge cart-count">0</span>
+                </button>
+                <button class="hamburger" id="hamburger" aria-label="Toggle mobile menu"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="search-modal">
+        <div class="search-modal-overlay" onclick="closeSearchModal()"></div>
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search products..."
+                        oninput="performSearch(this.value)">
+                    <button class="search-close-btn" onclick="closeSearchModal()" aria-label="Close search">×</button>
+                </div>
+            </div>
+            <div class="search-results" id="search-results"></div>
+            <div class="search-modal-footer">
+                <span>Press ESC to close</span>
+                <span>Search by product name or category</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick View Modal -->
+    <div class="quick-view-modal" id="quick-view-modal">
+        <div class="qv-overlay" onclick="closeQuickView()"></div>
+        <div class="qv-content">
+            <button class="qv-close" onclick="closeQuickView()" aria-label="Close quick view">×</button>
+            <div class="qv-grid">
+                <div>
+                    <img id="qv-img" class="qv-image" src="" alt="Product">
+                </div>
+                <div class="qv-details">
+                    <h2 class="qv-title" id="qv-title">Product Title</h2>
+                    <div class="qv-price" id="qv-price">₹0</div>
+                    <p class="qv-desc" id="qv-desc">Description</p>
+                    <button class="btn btn-gold" id="qv-add-cart" style="width:100%;font-size:1rem;padding:0.9rem">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="index.html">Home</a> <span>/</span>
+                <span class="gold">All Products</span>
+            </div>
+            <h1>Our <span class="gold-text">Collection</span></h1>
+            <p style="color:var(--white-dim);font-size:0.9rem">Discover exquisite jewellery for every occasion</p>
+            <!-- Inline Search -->
+            <div class="products-search-bar" id="products-search-bar">
+                <span style="color:#555;font-size:1rem">🔍</span>
+                <input type="text" id="inline-search" placeholder="Search rings, necklaces, bangles..."
+                    oninput="handleInlineSearch(this.value)">
+                <button class="search-clear-btn" id="inline-search-clear" onclick="clearInlineSearch()" aria-label="Clear search">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Pills (sticky) -->
+    <div class="category-pills-wrap">
+        <div class="container">
+            <div class="category-pills" id="category-pills">
+                <button class="cat-pill active" data-cat="all" onclick="selectCatPill(this, 'all')">
+                    ✨ All <span class="pill-count" id="pill-count-all">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Necklaces" onclick="selectCatPill(this, 'Necklaces')">
+                    📿 Necklaces <span class="pill-count" id="pill-count-Necklaces">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Rings" onclick="selectCatPill(this, 'Rings')">
+                    💍 Rings <span class="pill-count" id="pill-count-Rings">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Bangles" onclick="selectCatPill(this, 'Bangles')">
+                    🔮 Bangles <span class="pill-count" id="pill-count-Bangles">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Bracelets" onclick="selectCatPill(this, 'Bracelets')">
+                    ✨ Bracelets <span class="pill-count" id="pill-count-Bracelets">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Earrings" onclick="selectCatPill(this, 'Earrings')">
+                    👂 Earrings <span class="pill-count" id="pill-count-Earrings">0</span>
+                </button>
+                <button class="cat-pill" data-cat="__new__" onclick="selectCatPill(this, '__new__')">
+                    🆕 New Launches
+                </button>
+                <button class="cat-pill" data-cat="__popular__" onclick="selectCatPill(this, '__popular__')">
+                    🔥 Best Sellers
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Overlay (mobile) -->
+    <div class="filter-overlay" id="filter-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Products Layout -->
+    <div class="container">
+        <div class="products-layout">
+
+            <!-- FILTER SIDEBAR -->
+            <aside class="filter-sidebar" id="filter-sidebar">
+                <div class="filter-header">
+                    <h3>🔧 Filter</h3>
+                    <div style="display:flex;gap:0.5rem;align-items:center">
+                        <button onclick="clearAllFilters()" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:0.3rem 0.6rem">Clear All</button>
+                        <button onclick="closeSidebar()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;display:none" id="sidebar-close-btn" aria-label="Close filters">✕</button>
+                    </div>
+                </div>
+
+                <!-- Categories -->
+                <div class="filter-section" id="cat-section">
+                    <div class="filter-section-title" onclick="toggleFilterSection('cat-section')">
+                        Categories
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.3s"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="filter-content filter-options">
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Necklaces" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Necklaces</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Rings" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Rings</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Bracelets" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Bracelets</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Bangles" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Bangles</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Earrings" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Earrings</span></label>
+                    </div>
+                </div>
+                <hr class="filter-separator">
+
+                <!-- Price Range -->
+                <div class="filter-section" id="price-section">
+                    <div class="filter-section-title" onclick="toggleFilterSection('price-section')">
+                        Price Range
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.3s"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="filter-content">
+                        <div class="price-range-display">
+                            <span id="price-min-label">₹0</span>
+                            <span id="price-max-label">₹1,00,000</span>
+                        </div>
+                        <input type="range" min="0" max="100000" value="100000" step="500" id="price-max-slider" oninput="updatePriceFilter()">
+                        <div style="font-size:0.75rem;color:#555;margin-top:0.4rem">Drag to set max price</div>
+                    </div>
+                </div>
+                <hr class="filter-separator">
+
+                <!-- Stock Status -->
+                <div class="filter-section" id="stock-section">
+                    <div class="filter-section-title" onclick="toggleFilterSection('stock-section')">
+                        Availability
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.3s"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="filter-content filter-options">
+                        <label class="filter-option"><input type="checkbox" name="stock" value="in" onchange="applyFilters()"><span class="chk"></span><span class="option-label">In Stock</span><span class="stock-badge stock-in" style="margin-left:auto"><span class="dot"></span></span></label>
+                        <label class="filter-option"><input type="checkbox" name="stock" value="low" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Low Stock</span><span class="stock-badge stock-low" style="margin-left:auto"><span class="dot"></span></span></label>
+                    </div>
+                </div>
+                <hr class="filter-separator">
+
+                <!-- Rating -->
+                <div class="filter-section" id="rating-section">
+                    <div class="filter-section-title" onclick="toggleFilterSection('rating-section')">
+                        Min. Rating
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.3s"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                    <div class="filter-content rating-filter">
+                        <div class="rating-option" onclick="selectRating(4.5, this)"><span class="stars-row">★★★★★</span> <span style="font-size:0.82rem;color:var(--white-dim)">4.5+</span></div>
+                        <div class="rating-option" onclick="selectRating(4, this)"><span class="stars-row">★★★★☆</span> <span style="font-size:0.82rem;color:var(--white-dim)">4.0+</span></div>
+                        <div class="rating-option" onclick="selectRating(3, this)"><span class="stars-row">★★★☆☆</span> <span style="font-size:0.82rem;color:var(--white-dim)">3.0+</span></div>
+                    </div>
+                </div>
+                <hr class="filter-separator">
+
+                <!-- Special -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Special</div>
+                    <div class="filter-options">
+                        <label class="filter-option"><input type="checkbox" name="special" value="new" id="filter-new" onchange="applyFilters()"><span class="chk"></span><span class="option-label">New Launches</span></label>
+                        <label class="filter-option"><input type="checkbox" name="special" value="sale" onchange="applyFilters()"><span class="chk"></span><span class="option-label">On Sale</span></label>
+                        <label class="filter-option"><input type="checkbox" name="special" value="popular" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Best Sellers</span></label>
+                    </div>
+                </div>
+
+                <div style="margin-top:1.2rem">
+                    <button class="btn btn-gold" style="width:100%;font-size:0.88rem;padding:0.75rem" onclick="applyFilters();closeSidebar()">Apply Filters</button>
+                </div>
+            </aside>
+
+            <!-- MAIN PRODUCTS AREA -->
+            <main>
+                <!-- Active Filters -->
+                <div class="active-filters" id="active-filters"></div>
+
+                <!-- Topbar -->
+                <div class="products-topbar">
+                    <div class="products-count">Showing <span id="product-count">0</span> products</div>
+                    <div class="sort-controls">
+                        <select class="sort-select" id="sort-select" onchange="applyFilters()">
+                            <option value="default">Featured</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="popular">Most Popular</option>
+                            <option value="newest">Newest Arrivals</option>
+                        </select>
+                        <div class="view-toggle">
+                            <button class="view-btn active" id="grid-btn" onclick="setView('grid')" title="Grid View">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                            </button>
+                            <button class="view-btn" id="list-btn" onclick="setView('list')" title="List View">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skeleton Loading -->
+                <div class="skeleton-grid" id="skeleton-grid">
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:80%"></div><div class="skeleton-line" style="height:12px;width:50%"></div><div class="skeleton-line" style="height:18px;width:40%"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:70%"></div><div class="skeleton-line" style="height:12px;width:55%"></div><div class="skeleton-line" style="height:18px;width:35%"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:85%"></div><div class="skeleton-line" style="height:12px;width:45%"></div><div class="skeleton-line" style="height:18px;width:42%"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:60%"></div><div class="skeleton-line" style="height:12px;width:50%"></div><div class="skeleton-line" style="height:18px;width:38%"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:75%"></div><div class="skeleton-line" style="height:12px;width:55%"></div><div class="skeleton-line" style="height:18px;width:44%"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line" style="height:14px;width:80%"></div><div class="skeleton-line" style="height:12px;width:40%"></div><div class="skeleton-line" style="height:18px;width:36%"></div></div></div>
+                </div>
+
+                <!-- Grid -->
+                <div class="products-grid" id="products-grid" style="display:none"></div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Floating Cart + Filter Button (Mobile) -->
+    <div class="floating-cart-bar" id="floating-cart-bar">
+        <button class="floating-filter-btn" onclick="openSidebar()" id="floating-filter-btn">
+            ⚙ Filters
+        </button>
+        <button class="floating-cart-btn" onclick="window.location='checkout.html'" id="floating-cart-btn">
+            🛒 Cart <span id="floating-cart-count">0</span>
+        </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <span>© 2026 Kalyan Covering. All rights reserved.</span>
+                <a href="index.html" style="color:var(--gold)">Back to Home</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+    <script>
+        let minRating = 0;
+        let maxPrice = 100000;
+        let activeCatPill = 'all';
+        let inlineSearchQuery = '';
+        const ITEMS_PER_PAGE = 12;
+        let currentPage = 1;
+        let filteredProducts = [];
+
+        // On load
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('new') === 'true') {
+                document.getElementById('filter-new')?.click();
+            }
+
+            // Show close button on sidebar when on mobile
+            if (window.innerWidth <= 1024) {
+                const closeBtn = document.getElementById('sidebar-close-btn');
+                if (closeBtn) closeBtn.style.display = 'block';
+            }
+
+            // Wait for products to load
+            const checkAndRender = setInterval(() => {
+                if (typeof KC !== 'undefined' && KC.products && KC.products.length > 0) {
+                    clearInterval(checkAndRender);
+                    updateCatPillCounts();
+                    applyFilters();
+                    hideSkeleton();
+                }
+            }, 100);
+
+            // Fallback: hide skeleton after 3s even if empty
+            setTimeout(() => {
+                clearInterval(checkAndRender);
+                hideSkeleton();
+                applyFilters();
+            }, 3000);
+
+            // Update floating cart count live
+            updateFloatingCartCount();
+            setInterval(updateFloatingCartCount, 500);
+        });
+
+        function hideSkeleton() {
+            const sk = document.getElementById('skeleton-grid');
+            const grid = document.getElementById('products-grid');
+            if (sk) sk.style.display = 'none';
+            if (grid) grid.style.display = 'grid';
+        }
+
+        function updateFloatingCartCount() {
+            const count = KC.cart ? KC.cart.reduce((s, i) => s + (i.qty || 1), 0) : 0;
+            const el = document.getElementById('floating-cart-count');
+            if (el) el.textContent = count > 0 ? `(${count})` : '';
+            // Show/hide floating cart bar based on cart items
+            const bar = document.getElementById('floating-cart-bar');
+            // Always show on mobile - handled via CSS
+        }
+
+        function updateCatPillCounts() {
+            const all = KC.products || [];
+            const countEl = id => document.getElementById(id);
+            if (countEl('pill-count-all')) countEl('pill-count-all').textContent = all.length;
+            ['Necklaces','Rings','Bangles','Bracelets','Earrings'].forEach(cat => {
+                const el = countEl('pill-count-' + cat);
+                if (el) el.textContent = all.filter(p => p.category === cat).length;
+            });
+        }
+
+        function selectCatPill(el, cat) {
+            document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            activeCatPill = cat;
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function handleInlineSearch(val) {
+            // Admin Shortcut (Dynamic)
+            if (val.trim().toLowerCase() === (KC.adminKeyword || 'admin').toLowerCase()) {
+                window.location.href = 'admin.html';
+                return;
+            }
+            inlineSearchQuery = val.trim().toLowerCase();
+            const wrap = document.getElementById('products-search-bar');
+            if (inlineSearchQuery) wrap.classList.add('has-text');
+            else wrap.classList.remove('has-text');
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function clearInlineSearch() {
+            const inp = document.getElementById('inline-search');
+            if (inp) inp.value = '';
+            document.getElementById('products-search-bar').classList.remove('has-text');
+            inlineSearchQuery = '';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const catChecked = [...document.querySelectorAll('input[name="cat"]:checked')].map(i => i.value);
+            const stockChecked = [...document.querySelectorAll('input[name="stock"]:checked')].map(i => i.value);
+            const specialChecked = [...document.querySelectorAll('input[name="special"]:checked')].map(i => i.value);
+            const sortVal = document.getElementById('sort-select').value;
+            maxPrice = parseInt(document.getElementById('price-max-slider').value);
+
+            let filtered = [...(KC.products || [])];
+
+            // Category pill filter
+            if (activeCatPill === '__new__') filtered = filtered.filter(p => p.isNew);
+            else if (activeCatPill === '__popular__') filtered = filtered.filter(p => p.popular);
+            else if (activeCatPill !== 'all') filtered = filtered.filter(p => p.category === activeCatPill);
+
+            // Sidebar filters
+            if (catChecked.length) filtered = filtered.filter(p => catChecked.includes(p.category));
+            if (stockChecked.length) filtered = filtered.filter(p => stockChecked.includes(p.stock));
+            if (specialChecked.includes('new')) filtered = filtered.filter(p => p.isNew);
+            if (specialChecked.includes('sale')) filtered = filtered.filter(p => p.discount > 0);
+            if (specialChecked.includes('popular')) filtered = filtered.filter(p => p.popular);
+            if (minRating > 0) filtered = filtered.filter(p => (p.rating || 0) >= minRating);
+            filtered = filtered.filter(p => p.price <= maxPrice);
+
+            // Inline search
+            if (inlineSearchQuery) {
+                filtered = filtered.filter(p =>
+                    (p.name || '').toLowerCase().includes(inlineSearchQuery) ||
+                    (p.category || '').toLowerCase().includes(inlineSearchQuery) ||
+                    (p.tags || []).some(t => t.toLowerCase().includes(inlineSearchQuery))
+                );
+            }
+
+            // Sort
+            switch (sortVal) {
+                case 'price-low': filtered.sort((a, b) => a.price - b.price); break;
+                case 'price-high': filtered.sort((a, b) => b.price - a.price); break;
+                case 'rating': filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break;
+                case 'popular': filtered.sort((a, b) => (b.reviews || 0) - (a.reviews || 0)); break;
+                case 'newest': filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0)); break;
+            }
+
+            filteredProducts = filtered;
+            renderPage(currentPage);
+            updateActiveFilterTags(catChecked, stockChecked, specialChecked);
+        }
+
+        function renderPage(page) {
+            currentPage = page;
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const pageProducts = filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+            renderProducts(pageProducts, filteredProducts.length);
+            renderPagination(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), page);
+        }
+
+        function renderProducts(products, total) {
+            const grid = document.getElementById('products-grid');
+            document.getElementById('product-count').textContent = total || products.length;
+
+            if (products.length === 0) {
+                grid.innerHTML = `<div class="no-results">
+                    <span class="emoji">🔍</span>
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:0.5rem">No products found</h3>
+                    <p style="margin-bottom:1rem">Try different filters or search terms</p>
+                    <button onclick="clearAllFilters()" class="btn btn-outline btn-sm">Clear All Filters</button>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = products.map(p => renderProductCard(p)).join('');
+            grid.querySelectorAll('.product-card').forEach(addSparkleEffect);
+
+            // Staggered fade-in
+            grid.querySelectorAll('.product-card').forEach((card, i) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.35s ease, transform 0.35s ease, border-color 0.3s, box-shadow 0.3s';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, i * 50);
+            });
+        }
+
+        function renderPagination(totalPages, current) {
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = '';
+            if (current > 1) html += `<button class="page-btn" onclick="renderPage(${current - 1})">←</button>`;
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || Math.abs(i - current) <= 1) {
+                    html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="renderPage(${i})">${i}</button>`;
+                } else if (Math.abs(i - current) === 2) {
+                    html += `<button class="page-btn" style="pointer-events:none">…</button>`;
+                }
+            }
+            if (current < totalPages) html += `<button class="page-btn" onclick="renderPage(${current + 1})">→</button>`;
+            container.innerHTML = html;
+        }
+
+        function updateActiveFilterTags(cats, stocks, specials) {
+            const container = document.getElementById('active-filters');
+            const tags = [];
+            cats.forEach(c => tags.push({ label: c, type: 'cat' }));
+            stocks.forEach(s => tags.push({ label: s === 'in' ? 'In Stock' : 'Low Stock', type: 'stock' }));
+            specials.forEach(s => tags.push({ label: s === 'new' ? 'New' : s === 'sale' ? 'On Sale' : 'Best Sellers', type: 'special' }));
+            if (maxPrice < 100000) tags.push({ label: `Under ₹${maxPrice.toLocaleString()}`, type: 'price' });
+            if (minRating > 0) tags.push({ label: `${minRating}+ Stars`, type: 'rating' });
+            if (inlineSearchQuery) tags.push({ label: `"${inlineSearchQuery}"`, type: 'search' });
+            container.innerHTML = tags.map(t =>
+                `<div class="active-filter-tag" onclick="removeFilter('${t.type}','${t.label}')">✕ ${t.label}</div>`
+            ).join('');
+        }
+
+        function removeFilter(type, label) {
+            if (type === 'price') { document.getElementById('price-max-slider').value = 100000; updatePriceFilter(); return; }
+            if (type === 'rating') { minRating = 0; document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected')); }
+            if (type === 'search') { clearInlineSearch(); return; }
+            if (type === 'cat') {
+                document.querySelectorAll(`input[name="cat"]`).forEach(i => { if (i.value === label) i.checked = false; });
+            }
+            if (type === 'stock') {
+                const val = label === 'In Stock' ? 'in' : 'low';
+                document.querySelectorAll(`input[name="stock"]`).forEach(i => { if (i.value === val) i.checked = false; });
+            }
+            if (type === 'special') {
+                const val = label === 'New' ? 'new' : label === 'On Sale' ? 'sale' : 'popular';
+                document.querySelectorAll(`input[name="special"]`).forEach(i => { if (i.value === val) i.checked = false; });
+            }
+            applyFilters();
+        }
+
+        function clearAllFilters() {
+            document.querySelectorAll('input[name="cat"], input[name="stock"], input[name="special"]').forEach(i => i.checked = false);
+            document.getElementById('price-max-slider').value = 100000;
+            minRating = 0;
+            inlineSearchQuery = '';
+            const inp = document.getElementById('inline-search');
+            if (inp) inp.value = '';
+            document.getElementById('products-search-bar').classList.remove('has-text');
+            document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
+            document.getElementById('sort-select').value = 'default';
+            // Reset cat pill
+            activeCatPill = 'all';
+            document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+            const allPill = document.querySelector('.cat-pill[data-cat="all"]');
+            if (allPill) allPill.classList.add('active');
+            updatePriceFilter();
+            applyFilters();
+            Toast.info('Filters cleared');
+        }
+
+        function updatePriceFilter() {
+            const val = document.getElementById('price-max-slider').value;
+            maxPrice = parseInt(val);
+            document.getElementById('price-max-label').textContent = `₹${parseInt(val).toLocaleString()}`;
+            applyFilters();
+        }
+
+        function selectRating(rating, el) {
+            document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
+            if (minRating === rating) { minRating = 0; }
+            else { el.classList.add('selected'); minRating = rating; }
+            applyFilters();
+        }
+
+        function toggleFilterSection(id) {
+            document.getElementById(id).classList.toggle('collapsed');
+        }
+
+        function setView(type) {
+            const grid = document.getElementById('products-grid');
+            document.getElementById('grid-btn').classList.toggle('active', type === 'grid');
+            document.getElementById('list-btn').classList.toggle('active', type === 'list');
+            grid.classList.toggle('list-view', type === 'list');
+        }
+
+        function openSidebar() {
+            document.getElementById('filter-sidebar').classList.add('open');
+            document.getElementById('filter-overlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            document.getElementById('filter-sidebar').classList.remove('open');
+            document.getElementById('filter-overlay').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+    </script>
+</body>
+
+</html>

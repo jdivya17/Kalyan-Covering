@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Invoices | Kalyan Covering</title>
+    <meta name="description" content="View and download your tax invoices from Kalyan Covering. Get GST-compliant PDF invoices for all your jewellery orders.">
+    <script>
+        if (!localStorage.getItem('kc_user')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --inv-gold: #D4AF37;
+            --inv-gold-dim: rgba(212,175,55,0.08);
+            --inv-gold-glow: 0 0 20px rgba(212,175,55,0.15);
+            --inv-black: #050505;
+            --inv-card: #0e0e0e;
+            --inv-border: #1c1c1c;
+            --inv-text: #c8c8c8;
+            --inv-green: #2ECC71;
+            --inv-red: #E74C3C;
+            --inv-blue: #3498DB;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--inv-black);
+            color: var(--inv-text);
+            min-height: 100vh;
+        }
+
+        /* ── Page Header ── */
+        .inv-hero {
+            padding: 110px 0 50px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .inv-hero::before {
+            content: '';
+            position: absolute;
+            top: -60px; left: 50%; transform: translateX(-50%);
+            width: 600px; height: 300px;
+            background: radial-gradient(ellipse, rgba(212,175,55,0.06), transparent 70%);
+            pointer-events: none;
+        }
+        .inv-hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            color: var(--inv-gold);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+        .inv-hero p { color: #666; font-size: 0.95rem; }
+
+        /* ── Container ── */
+        .inv-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem 5rem;
+        }
+
+        /* ── Stats Row ── */
+        .inv-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .inv-stat-card {
+            background: var(--inv-card);
+            border: 1px solid var(--inv-border);
+            border-radius: 14px;
+            padding: 1.4rem 1.8rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .inv-stat-card:hover { transform: translateY(-3px); border-color: rgba(212,175,55,0.3); }
+        .inv-stat-card::before {
+            content: '';
+            position: absolute; top: -20px; right: -20px;
+            width: 80px; height: 80px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,175,55,0.08), transparent);
+        }
+        .inv-stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: #555; margin-bottom: 0.4rem; }
+        .inv-stat-val { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--inv-gold); }
+        .inv-stat-sub { font-size: 0.72rem; color: #444; margin-top: 0.2rem; }
+
+        /* ── Filter Bar ── */
+        .inv-filter-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            background: var(--inv-card);
+            border: 1px solid var(--inv-border);
+            border-radius: 12px;
+            padding: 1rem 1.4rem;
+        }
+        .inv-filter-bar input,
+        .inv-filter-bar select {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            color: #aaa;
+            border-radius: 8px;
+            padding: 0.5rem 0.9rem;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .inv-filter-bar input:focus,
+        .inv-filter-bar select:focus { border-color: rgba(212,175,55,0.4); }
+        .inv-filter-bar label { font-size: 0.8rem; color: #555; white-space: nowrap; }
+
+        /* ── Table ── */
+        .inv-table-wrap {
+            background: var(--inv-card);
+            border: 1px solid var(--inv-border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .inv-table thead tr {
+            background: #080808;
+        }
+        .inv-table th {
+            padding: 0.9rem 1.2rem;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--inv-gold);
+            border-bottom: 1px solid var(--inv-border);
+        }
+        .inv-table td {
+            padding: 1rem 1.2rem;
+            font-size: 0.85rem;
+            color: var(--inv-text);
+            border-bottom: 1px solid #0d0d0d;
+            vertical-align: middle;
+            transition: background 0.15s;
+        }
+        .inv-table tr:last-child td { border-bottom: none; }
+        .inv-table tbody tr:hover td { background: rgba(212,175,55,0.02); }
+
+        .inv-number {
+            font-family: 'Playfair Display', serif;
+            color: var(--inv-gold);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .inv-amount {
+            font-weight: 700;
+            color: var(--inv-green);
+            font-size: 0.9rem;
+        }
+        .inv-date { color: #555; font-size: 0.8rem; }
+
+        /* Status pill */
+        .inv-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .inv-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .inv-s-paid    { background: rgba(46,204,113,0.1); color: var(--inv-green); }
+        .inv-s-paid    .inv-status-dot { background: var(--inv-green); }
+        .inv-s-pending { background: rgba(212,175,55,0.1); color: var(--inv-gold); }
+        .inv-s-pending .inv-status-dot { background: var(--inv-gold); animation: invPulse 1.4s infinite; }
+        .inv-s-cancelled { background: rgba(231,76,60,0.1); color: var(--inv-red); }
+        .inv-s-cancelled .inv-status-dot { background: var(--inv-red); }
+
+        @keyframes invPulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50%       { opacity: 1;   transform: scale(1.1); }
+        }
+
+        /* Action buttons */
+        .inv-actions { display: flex; gap: 0.5rem; align-items: center; }
+        .inv-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid;
+            transition: all 0.2s;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .inv-btn-download {
+            background: rgba(212,175,55,0.08);
+            border-color: rgba(212,175,55,0.3);
+            color: var(--inv-gold);
+        }
+        .inv-btn-download:hover { background: rgba(212,175,55,0.15); border-color: var(--inv-gold); }
+        .inv-btn-email {
+            background: rgba(52,152,219,0.08);
+            border-color: rgba(52,152,219,0.3);
+            color: var(--inv-blue);
+        }
+        .inv-btn-email:hover { background: rgba(52,152,219,0.15); border-color: var(--inv-blue); }
+        .inv-btn-view {
+            background: rgba(255,255,255,0.04);
+            border-color: #222;
+            color: #888;
+        }
+        .inv-btn-view:hover { border-color: #555; color: #ccc; }
+        .inv-btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* ── Invoice Preview Modal ── */
+        .inv-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .inv-modal-overlay.open { opacity: 1; pointer-events: all; }
+        .inv-modal {
+            background: var(--inv-card);
+            border: 1px solid var(--inv-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 720px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px) scale(0.97);
+            transition: transform 0.3s;
+            scrollbar-width: thin;
+            scrollbar-color: #333 transparent;
+        }
+        .inv-modal-overlay.open .inv-modal { transform: translateY(0) scale(1); }
+
+        .inv-modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--inv-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: var(--inv-card);
+            z-index: 10;
+        }
+        .inv-modal-header h2 {
+            font-family: 'Playfair Display', serif;
+            color: var(--inv-gold);
+            font-size: 1.2rem;
+        }
+        .inv-modal-close {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #888;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .inv-modal-close:hover { background: #222; color: #fff; }
+
+        .inv-modal-body { padding: 2rem; }
+
+        /* Invoice print layout inside modal */
+        .inv-preview-header {
+            background: #111;
+            border-bottom: 3px solid var(--inv-gold);
+            padding: 1.5rem 2rem;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0;
+        }
+        .inv-preview-company h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--inv-gold);
+            font-size: 1.4rem;
+            margin-bottom: 0.2rem;
+        }
+        .inv-preview-company p { color: #777; font-size: 0.8rem; }
+        .inv-preview-badge {
+            background: var(--inv-gold);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            letter-spacing: 1px;
+        }
+
+        .inv-preview-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            background: #0a0a0a;
+            padding: 1.5rem 2rem;
+            border-radius: 0 0 10px 10px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--inv-border);
+            border-top: none;
+        }
+        .inv-meta-block { display: flex; flex-direction: column; gap: 0.5rem; }
+        .inv-meta-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--inv-gold); margin-bottom: 0.3rem; }
+        .inv-meta-row { display: flex; justify-content: space-between; font-size: 0.83rem; }
+        .inv-meta-row span:first-child { color: #555; }
+        .inv-meta-row span:last-child { color: #ccc; font-weight: 500; }
+
+        /* Items mini table */
+        .inv-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-size: 0.83rem;
+        }
+        .inv-items-table thead tr { background: #111; }
+        .inv-items-table th {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--inv-gold);
+        }
+        .inv-items-table td {
+            padding: 0.7rem 0.8rem;
+            border-bottom: 1px solid #111;
+            color: #bbb;
+        }
+        .inv-items-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+        /* Totals */
+        .inv-totals {
+            background: #0a0a0a;
+            border: 1px solid var(--inv-border);
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            max-width: 320px;
+            margin-left: auto;
+            margin-bottom: 1.5rem;
+        }
+        .inv-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            font-size: 0.85rem;
+        }
+        .inv-total-row span:first-child { color: #555; }
+        .inv-total-row span:last-child { color: #ccc; }
+        .inv-total-row.gst-row span { color: #888; font-size: 0.8rem; padding-left: 1rem; }
+        .inv-total-divider { border: none; border-top: 1px solid #1a1a1a; margin: 0.5rem 0; }
+        .inv-total-grand {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0 0;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .inv-total-grand span:first-child { color: #aaa; }
+        .inv-total-grand span:last-child { color: var(--inv-green); font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+
+        /* Modal actions */
+        .inv-modal-actions {
+            display: flex;
+            gap: 1rem;
+            padding: 1.2rem 2rem;
+            border-top: 1px solid var(--inv-border);
+            justify-content: flex-end;
+        }
+        .inv-btn-lg {
+            padding: 0.65rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .inv-btn-gold-lg {
+            background: var(--inv-gold);
+            border-color: var(--inv-gold);
+            color: #000;
+        }
+        .inv-btn-gold-lg:hover { background: #c9a227; }
+        .inv-btn-outline-lg {
+            background: transparent;
+            border-color: #333;
+            color: #aaa;
+        }
+        .inv-btn-outline-lg:hover { border-color: #666; color: #fff; }
+
+        /* Empty State */
+        .inv-empty {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: #444;
+        }
+        .inv-empty-icon { font-size: 4rem; margin-bottom: 1rem; display: block; }
+        .inv-empty h3 { color: #666; font-family: 'Playfair Display', serif; margin-bottom: 0.5rem; }
+        .inv-empty p { font-size: 0.88rem; margin-bottom: 2rem; }
+
+        /* Spinner */
+        .inv-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(212,175,55,0.1);
+            border-top-color: var(--inv-gold);
+            border-radius: 50%;
+            animation: invSpin 0.8s linear infinite;
+            margin: 4rem auto 1rem;
+        }
+        @keyframes invSpin { to { transform: rotate(360deg); } }
+
+        /* Loading overlay on buttons */
+        .inv-btn.loading::after {
+            content: '';
+            display: inline-block;
+            width: 12px; height: 12px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: invSpin 0.6s linear infinite;
+            margin-left: 4px;
+        }
+
+        /* Toast */
+        .inv-toast-wrap {
+            position: fixed;
+            bottom: 2rem; right: 2rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .inv-toast {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            background: #111;
+            border: 1px solid #222;
+            border-left: 4px solid var(--inv-gold);
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            font-size: 0.85rem;
+            color: #ccc;
+            min-width: 260px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            animation: invToastIn 0.3s ease;
+        }
+        .inv-toast.success { border-left-color: var(--inv-green); }
+        .inv-toast.error   { border-left-color: var(--inv-red); }
+        @keyframes invToastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        @media (max-width: 768px) {
+            .inv-stats { grid-template-columns: 1fr; }
+            .inv-preview-meta { grid-template-columns: 1fr; }
+            .inv-table th:nth-child(3),
+            .inv-table td:nth-child(3),
+            .inv-table th:nth-child(5),
+            .inv-table td:nth-child(5) { display: none; }
+            .inv-modal-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
+                    onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="my-orders.html">My Orders</a></li>
+                <li><a href="invoice.html" class="active">Invoices</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" onclick="window.location='profile.html'">👤</button>
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'">
+                    🛒 <span class="badge cart-count">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div class="inv-toast-wrap" id="inv-toasts"></div>
+
+    <!-- Hero -->
+    <div class="inv-hero">
+        <h1>🧾 My <span style="color:var(--inv-gold)">Invoices</span></h1>
+        <p>Download GST-compliant PDF invoices for all your orders</p>
+    </div>
+
+    <div class="inv-container">
+        <!-- Stats Row -->
+        <div class="inv-stats" id="inv-stats-row">
+            <div class="inv-stat-card">
+                <div class="inv-stat-label">Total Invoices</div>
+                <div class="inv-stat-val" id="stat-total">—</div>
+                <div class="inv-stat-sub">All time</div>
+            </div>
+            <div class="inv-stat-card">
+                <div class="inv-stat-label">Total Invoiced</div>
+                <div class="inv-stat-val" id="stat-amount">—</div>
+                <div class="inv-stat-sub">Grand total (incl. GST)</div>
+            </div>
+            <div class="inv-stat-card">
+                <div class="inv-stat-label">Total GST Paid</div>
+                <div class="inv-stat-val" id="stat-gst">—</div>
+                <div class="inv-stat-sub">CGST + SGST combined</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="inv-filter-bar">
+            <label>Search:</label>
+            <input type="text" id="inv-search" placeholder="Invoice # or Order #" oninput="filterTable()">
+            <label>Status:</label>
+            <select id="inv-status-filter" onchange="filterTable()">
+                <option value="">All Statuses</option>
+                <option value="delivered">Delivered</option>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <div class="inv-table-wrap" id="inv-table-container">
+            <div style="padding:4rem;text-align:center">
+                <div class="inv-spinner"></div>
+                <p style="color:#444;margin-top:1rem">Loading your invoices...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Preview Modal -->
+    <div class="inv-modal-overlay" id="inv-modal" onclick="closeModal(event)">
+        <div class="inv-modal" id="inv-modal-inner">
+            <div class="inv-modal-header">
+                <h2 id="modal-inv-title">Invoice Details</h2>
+                <button class="inv-modal-close" onclick="closeInvModal()">✕</button>
+            </div>
+            <div class="inv-modal-body" id="modal-inv-body">
+                <!-- filled dynamically -->
+            </div>
+            <div class="inv-modal-actions" id="modal-inv-actions">
+                <button class="inv-btn-lg inv-btn-outline-lg" onclick="closeInvModal()">Close</button>
+                <button class="inv-btn-lg inv-btn-outline-lg" id="modal-email-btn" onclick="emailFromModal()">
+                    📧 Email Invoice
+                </button>
+                <button class="inv-btn-lg inv-btn-gold-lg" id="modal-download-btn" onclick="downloadFromModal()">
+                    📄 Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script type="module">
+        import {
+            db, functions, httpsCallable,
+            collection, getDocs, query, where, orderBy
+        } from './firebase-config.js';
+
+        // ── Firebase Callables ──────────────────────────────────────────────
+        const fnGenerateInvoice = httpsCallable(functions, 'generateInvoice');
+        const fnEmailInvoice    = httpsCallable(functions, 'emailInvoice');
+        const fnGetMyInvoices   = httpsCallable(functions, 'getMyInvoices');
+
+        // ── State ───────────────────────────────────────────────────────────
+        let allInvoices   = [];
+        let currentInvoice = null;  // for modal
+        window._invFunctions = { fnGenerateInvoice, fnEmailInvoice };
+
+        // ── Boot ────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = JSON.parse(localStorage.getItem('kc_user'));
+            if (!user) { window.location.href = 'auth.html'; return; }
+
+            // Cart badge
+            const cart = JSON.parse(localStorage.getItem('kc_cart') || '[]');
+            document.querySelectorAll('.cart-count').forEach(el =>
+                el.textContent = cart.reduce((s,i) => s + (i.qty||1), 0)
+            );
+
+            await loadInvoices();
+        });
+
+        // ── Load Invoices ──────────────────────────────────────────────────
+        async function loadInvoices() {
+            const container = document.getElementById('inv-table-container');
+            try {
+                const result = await fnGetMyInvoices({ limit: 50 });
+                allInvoices  = result.data || [];
+
+                if (allInvoices.length === 0) {
+                    // Check if user has orders without invoices
+                    container.innerHTML = buildEmpty();
+                    updateStats([]);
+                    return;
+                }
+
+                updateStats(allInvoices);
+                renderTable(allInvoices);
+
+            } catch (err) {
+                console.error('[Invoice] Load error:', err);
+                // Fallback: show empty with "generate from orders" message
+                container.innerHTML = buildEmptyWithFallback();
+                updateStats([]);
+            }
+        }
+
+        // ── Stats ──────────────────────────────────────────────────────────
+        function updateStats(invoices) {
+            document.getElementById('stat-total').textContent  = invoices.length;
+            const total = invoices.reduce((s,i) => s + (i.grandTotal||0), 0);
+            const gst   = invoices.reduce((s,i) => s + (i.totalGst||0), 0);
+            document.getElementById('stat-amount').textContent = `₹${total.toLocaleString('en-IN')}`;
+            document.getElementById('stat-gst').textContent    = `₹${gst.toLocaleString('en-IN')}`;
+        }
+
+        // ── Render Table ──────────────────────────────────────────────────
+        function renderTable(invoices) {
+            const container = document.getElementById('inv-table-container');
+            if (invoices.length === 0) {
+                container.innerHTML = `<div class="inv-empty">
+                    <span class="inv-empty-icon">🔍</span>
+                    <h3>No invoices match your filter</h3>
+                    <p>Try adjusting your search terms</p>
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+            <table class="inv-table" id="inv-data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>GST (12%)</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${invoices.map(inv => buildRow(inv)).join('')}
+                </tbody>
+            </table>`;
+        }
+
+        function buildRow(inv) {
+            const date = inv.createdAt?.seconds
+                ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+                : '—';
+            const status = inv.orderStatus || 'paid';
+            const statusClass = status === 'delivered' ? 'inv-s-paid'
+                : status === 'cancelled' ? 'inv-s-cancelled' : 'inv-s-pending';
+            const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+
+            return `<tr data-inv='${JSON.stringify(inv).replace(/'/g, "&#39;")}'>
+                <td><span class="inv-number">${inv.invoiceNumber || '—'}</span></td>
+                <td style="color:#888;font-size:0.8rem">${inv.orderNumber || '—'}</td>
+                <td><span class="inv-date">${date}</span></td>
+                <td><span class="inv-amount">₹${(inv.grandTotal||0).toLocaleString('en-IN')}</span></td>
+                <td style="color:#888;font-size:0.82rem">₹${(inv.totalGst||0).toLocaleString('en-IN')}</td>
+                <td>
+                    <span class="inv-status ${statusClass}">
+                        <span class="inv-status-dot"></span>${statusLabel}
+                    </span>
+                </td>
+                <td>
+                    <div class="inv-actions">
+                        <button class="inv-btn inv-btn-view" onclick="openInvModal(this)" data-inv-id="${inv.id}" data-order-id="${inv.orderId}">
+                            🔍 View
+                        </button>
+                        <button class="inv-btn inv-btn-download" id="dl-${inv.id}" onclick="downloadInvoice('${inv.orderId}','${inv.id}', this)">
+                            📄 PDF
+                        </button>
+                        <button class="inv-btn inv-btn-email" id="em-${inv.id}" onclick="emailInvoice('${inv.orderId}','${inv.id}', this)">
+                            📧 Email
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }
+
+        // ── Filter ─────────────────────────────────────────────────────────
+        window.filterTable = function() {
+            const search = document.getElementById('inv-search').value.toLowerCase();
+            const status = document.getElementById('inv-status-filter').value.toLowerCase();
+            const filtered = allInvoices.filter(inv => {
+                const matchSearch = !search
+                    || (inv.invoiceNumber||'').toLowerCase().includes(search)
+                    || (inv.orderNumber||'').toLowerCase().includes(search);
+                const matchStatus = !status || (inv.orderStatus||'').toLowerCase() === status;
+                return matchSearch && matchStatus;
+            });
+            renderTable(filtered);
+        };
+
+        // ── Download PDF ───────────────────────────────────────────────────
+        window.downloadInvoice = async function(orderId, invoiceId, btn) {
+            if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+            try {
+                const res = await fnGenerateInvoice({ orderId });
+                const { pdfBase64, invoiceNumber, orderNumber } = res.data;
+                triggerDownload(pdfBase64, `Invoice-${invoiceNumber || orderNumber}.pdf`);
+                showToast('✅ Invoice downloaded!', 'success');
+                // Refresh list to show newly generated invoices
+                await loadInvoices();
+            } catch (err) {
+                console.error(err);
+                showToast('❌ ' + (err.message || 'Download failed'), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+            }
+        };
+
+        // ── Email Invoice ──────────────────────────────────────────────────
+        window.emailInvoice = async function(orderId, invoiceId, btn) {
+            if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+            try {
+                await fnEmailInvoice({ orderId, invoiceId });
+                showToast('📧 Invoice sent to your email!', 'success');
+            } catch (err) {
+                console.error(err);
+                const msg = err.code === 'functions/failed-precondition'
+                    ? 'No email address found for your account.'
+                    : (err.message || 'Email failed. Please try again.');
+                showToast('❌ ' + msg, 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+            }
+        };
+
+        // ── Modal ──────────────────────────────────────────────────────────
+        window.openInvModal = function(btn) {
+            const tr = btn.closest('tr');
+            try {
+                const inv = JSON.parse(tr.dataset.inv);
+                currentInvoice = inv;
+                document.getElementById('modal-inv-title').textContent = inv.invoiceNumber || 'Invoice Details';
+                document.getElementById('modal-download-btn').dataset.orderId  = inv.orderId;
+                document.getElementById('modal-download-btn').dataset.invoiceId = inv.id;
+                document.getElementById('modal-email-btn').dataset.orderId    = inv.orderId;
+                document.getElementById('modal-email-btn').dataset.invoiceId   = inv.id;
+                document.getElementById('modal-inv-body').innerHTML = buildPreviewHTML(inv);
+                document.getElementById('inv-modal').classList.add('open');
+                document.body.style.overflow = 'hidden';
+            } catch(e) { console.error(e); }
+        };
+
+        window.closeInvModal = function() {
+            document.getElementById('inv-modal').classList.remove('open');
+            document.body.style.overflow = '';
+        };
+
+        window.closeModal = function(e) {
+            if (e.target === document.getElementById('inv-modal')) closeInvModal();
+        };
+
+        window.downloadFromModal = async function() {
+            const btn = document.getElementById('modal-download-btn');
+            await window.downloadInvoice(btn.dataset.orderId, btn.dataset.invoiceId, btn);
+        };
+
+        window.emailFromModal = async function() {
+            const btn = document.getElementById('modal-email-btn');
+            await window.emailInvoice(btn.dataset.orderId, btn.dataset.invoiceId, btn);
+        };
+
+        function buildPreviewHTML(inv) {
+            const date = inv.createdAt?.seconds
+                ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' })
+                : '—';
+            const items = inv.items || [];
+            const subtotal  = inv.subtotal  || (inv.grandTotal - (inv.totalGst||0) - (inv.deliveryCharge||0));
+            const discount  = inv.discount  || 0;
+            const cgst      = inv.cgst      || 0;
+            const sgst      = inv.sgst      || 0;
+            const totalGst  = inv.totalGst  || (cgst + sgst);
+            const delivery  = inv.deliveryCharge || 0;
+            const grand     = inv.grandTotal || 0;
+
+            return `
+            <div class="inv-preview-header">
+                <div class="inv-preview-company">
+                    <h3>Kalyan Covering</h3>
+                    <p>Premium Gold Jewellery &nbsp;•&nbsp; GSTIN: PENDING REGISTRATION</p>
+                </div>
+                <span class="inv-preview-badge">TAX INVOICE</span>
+            </div>
+            <div class="inv-preview-meta">
+                <div class="inv-meta-block">
+                    <div class="inv-meta-title">Invoice Details</div>
+                    <div class="inv-meta-row"><span>Invoice No.</span><span style="color:var(--inv-gold);font-weight:600">${inv.invoiceNumber||'—'}</span></div>
+                    <div class="inv-meta-row"><span>Invoice Date</span><span>${date}</span></div>
+                    <div class="inv-meta-row"><span>Order No.</span><span>${inv.orderNumber||'—'}</span></div>
+                    <div class="inv-meta-row"><span>Payment</span><span>${(inv.paymentMethod||'razorpay').toUpperCase()}</span></div>
+                    <div class="inv-meta-row"><span>Order Status</span><span style="color:var(--inv-green)">${(inv.orderStatus||'paid').toUpperCase()}</span></div>
+                </div>
+                <div class="inv-meta-block">
+                    <div class="inv-meta-title">Bill To / Ship To</div>
+                    ${inv.shippingAddress ? `
+                    <div class="inv-meta-row"><span>Name</span><span>${inv.customerName||'—'}</span></div>
+                    <div class="inv-meta-row"><span>Address</span><span style="max-width:180px;text-align:right">${inv.shippingAddress.address||'—'}</span></div>
+                    <div class="inv-meta-row"><span>City</span><span>${inv.shippingAddress.city||'—'}, ${inv.shippingAddress.state||''}</span></div>
+                    <div class="inv-meta-row"><span>PIN</span><span>${inv.shippingAddress.pin||'—'}</span></div>
+                    <div class="inv-meta-row"><span>Phone</span><span>${inv.shippingAddress.phone||'—'}</span></div>` :
+                    `<div class="inv-meta-row"><span>Customer</span><span>${inv.customerName||'—'}</span></div>`}
+                </div>
+            </div>
+
+            ${items.length > 0 ? `
+            <table class="inv-items-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item Description</th>
+                        <th>SKU</th>
+                        <th style="text-align:center">Qty</th>
+                        <th style="text-align:right">Rate</th>
+                        <th style="text-align:right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item,i) => `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${item.name||'Product'}</td>
+                        <td style="color:#555">${item.sku||'—'}</td>
+                        <td style="text-align:center">${item.qty||1}</td>
+                        <td style="text-align:right">₹${(item.price||0).toLocaleString('en-IN')}</td>
+                        <td style="text-align:right;color:#ccc">₹${(item.lineTotal||(item.price||0)*(item.qty||1)).toLocaleString('en-IN')}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>` : '<p style="color:#444;font-size:0.85rem;margin-bottom:1.5rem">No item details available — generate PDF for full breakdown.</p>'}
+
+            <div class="inv-totals">
+                <div class="inv-total-row">
+                    <span>Subtotal</span>
+                    <span>₹${subtotal.toLocaleString('en-IN')}</span>
+                </div>
+                ${discount > 0 ? `<div class="inv-total-row">
+                    <span>Promo Discount</span>
+                    <span style="color:var(--inv-red)">-₹${discount.toLocaleString('en-IN')}</span>
+                </div>` : ''}
+                <hr class="inv-total-divider">
+                <div class="inv-total-row gst-row">
+                    <span>CGST (6%)</span>
+                    <span>₹${cgst.toLocaleString('en-IN')}</span>
+                </div>
+                <div class="inv-total-row gst-row">
+                    <span>SGST (6%)</span>
+                    <span>₹${sgst.toLocaleString('en-IN')}</span>
+                </div>
+                <div class="inv-total-row">
+                    <span>Total GST (12%)</span>
+                    <span>₹${totalGst.toLocaleString('en-IN')}</span>
+                </div>
+                ${delivery > 0 ? `<div class="inv-total-row">
+                    <span>Delivery</span><span>₹${delivery.toLocaleString('en-IN')}</span>
+                </div>` : ''}
+                <hr class="inv-total-divider">
+                <div class="inv-total-grand">
+                    <span>GRAND TOTAL</span>
+                    <span>₹${grand.toLocaleString('en-IN')}</span>
+                </div>
+            </div>
+
+            <p style="font-size:0.75rem;color:#333;text-align:center;margin-top:1rem">
+                This is a computer-generated invoice preview. Download PDF for official copy.
+            </p>`;
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────
+        function triggerDownload(base64, filename) {
+            const link = document.createElement('a');
+            link.href = `data:application/pdf;base64,${base64}`;
+            link.download = filename;
+            link.click();
+        }
+
+        function buildEmpty() {
+            return `<div class="inv-empty">
+                <span class="inv-empty-icon">🧾</span>
+                <h3>No Invoices Yet</h3>
+                <p>Your invoices will appear here after placing an order.<br>You can also generate invoices from the <a href="my-orders.html" style="color:var(--inv-gold)">My Orders</a> page.</p>
+                <a href="products.html" class="btn btn-gold" style="margin-top:1rem">Browse Products</a>
+            </div>`;
+        }
+
+        function buildEmptyWithFallback() {
+            return `<div class="inv-empty">
+                <span class="inv-empty-icon">🧾</span>
+                <h3>No Invoices Found</h3>
+                <p>Visit <a href="my-orders.html" style="color:var(--inv-gold)">My Orders</a> and click<br>"Download Invoice" on any order to generate your first invoice.</p>
+            </div>`;
+        }
+
+        window.showToast = function(msg, type = '') {
+            const wrap = document.getElementById('inv-toasts');
+            const toast = document.createElement('div');
+            toast.className = `inv-toast ${type}`;
+            toast.textContent = msg;
+            wrap.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        };
+
+        // Expose for global use
+        window.loadInvoices = loadInvoices;
+    </script>
+</body>
+</html>

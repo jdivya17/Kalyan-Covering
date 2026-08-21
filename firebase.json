@@ -1,0 +1,118 @@
+{
+    "functions": [
+        {
+            "source": "functions",
+            "codebase": "default",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log"
+            ]
+        }
+    ],
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "storage": {
+        "rules": "storage.rules"
+    },
+    "hosting": {
+        "public": "public",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "/admin/login",
+                "destination": "/admin-login.html"
+            }
+        ],
+        "headers": [
+            {
+                "source": "**",
+                "headers": [
+                    {
+                        "key": "X-Frame-Options",
+                        "value": "SAMEORIGIN"
+                    },
+                    {
+                        "key": "X-Content-Type-Options",
+                        "value": "nosniff"
+                    },
+                    {
+                        "key": "Referrer-Policy",
+                        "value": "strict-origin-when-cross-origin"
+                    },
+                    {
+                        "key": "Permissions-Policy",
+                        "value": "camera=(), microphone=(), geolocation=()"
+                    },
+                    {
+                        "key": "Strict-Transport-Security",
+                        "value": "max-age=31536000; includeSubDomains"
+                    },
+                    {
+                        "key": "Content-Security-Policy",
+                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://checkout.razorpay.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://api.razorpay.com wss://*.firebaseio.com; img-src 'self' data: blob: https://res.cloudinary.com https://firebasestorage.googleapis.com https://via.placeholder.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com;"
+                    }
+                ]
+            },
+            {
+                "source": "**/*.js",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "max-age=86400"
+                    }
+                ]
+            },
+            {
+                "source": "**/*.css",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "max-age=86400"
+                    }
+                ]
+            },
+            {
+                "source": "**/*.@(jpg|jpeg|gif|png|svg|webp)",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "max-age=604800"
+                    }
+                ]
+            },
+            {
+                "source": "admin.html",
+                "headers": [
+                    {
+                        "key": "X-Robots-Tag",
+                        "value": "noindex, nofollow"
+                    },
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, no-cache, must-revalidate"
+                    }
+                ]
+            },
+            {
+                "source": "admin-login.html",
+                "headers": [
+                    {
+                        "key": "X-Robots-Tag",
+                        "value": "noindex, nofollow"
+                    },
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, no-cache, must-revalidate"
+                    }
+                ]
+            }
+        ]
+    }
+}
