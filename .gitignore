@@ -1,0 +1,29 @@
+# Sensitive / Secret files
+functions/.env
+rzp-key.csv
+
+# Firebase local files
+.firebase/
+.firebaserc
+
+# Node modules
+node_modules/
+functions/node_modules/
+
+# Build output
+dist/
+.vite/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Logs
+*.log
+deploy-log.txt
+
+# Temp folders
+New folder/
