@@ -12,6 +12,13 @@
     </script>
     <meta name="description" content="Browse Kalyan Covering's full range of necklaces, rings, bracelets, bangles, and earrings. Filter by category, price, and rating.">
     <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     <style>
         /* ===== PAGE HEADER ===== */
@@ -531,8 +538,11 @@
 
 <body>
 
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Navigation -->
-    <nav class="nav">
+    <nav class="nav" aria-label="Main navigation">
         <div class="nav-inner">
             <a href="index.html" class="nav-logo">
                 <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
@@ -551,12 +561,12 @@
                     <a href="auth.html" class="btn btn-outline btn-sm" id="nav-login-btn">Login</a>
                     <a href="auth.html?tab=reg" class="btn btn-gold btn-sm" id="nav-register-btn">Register</a>
                 </div>
-                <button class="nav-icon-btn" title="Account" id="nav-user-btn" onclick="window.location='profile.html'" style="display:none" aria-label="User Profile">👤</button>
+                <button class="nav-icon-btn" title="Account" id="nav-user-btn" onclick="window.location='profile.html'" style="display:none" aria-label="My Profile">👤</button>
                 <button class="nav-icon-btn" title="Wishlist" onclick="window.location='wishlist.html'" aria-label="Wishlist">
-                    ♥ <span class="badge" id="wishlist-count">0</span>
+                    ♥ <span class="badge" id="wishlist-count" aria-label="Wishlist items">0</span>
                 </button>
-                <button class="nav-icon-btn" onclick="window.location='checkout.html'" aria-label="Cart">
-                    🛒 <span class="badge cart-count">0</span>
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'" aria-label="Shopping cart">
+                    🛒 <span class="badge cart-count" aria-label="Cart items">0</span>
                 </button>
                 <button class="hamburger" id="hamburger" aria-label="Toggle mobile menu"><span></span><span></span><span></span></button>
             </div>
@@ -566,19 +576,19 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Search Modal -->
-    <div class="search-modal" id="search-modal">
-        <div class="search-modal-overlay" onclick="closeSearchModal()"></div>
+    <div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label="Search products">
+        <div class="search-modal-overlay" onclick="closeSearchModal()" aria-hidden="true"></div>
         <div class="search-modal-content">
             <div class="search-modal-header">
                 <div class="search-input-wrap">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon" aria-hidden="true">🔍</span>
                     <input type="text" id="search-input" class="search-input" placeholder="Search products..."
-                        oninput="performSearch(this.value)">
+                        oninput="performSearch(this.value)" aria-label="Search products">
                     <button class="search-close-btn" onclick="closeSearchModal()" aria-label="Close search">×</button>
                 </div>
             </div>
-            <div class="search-results" id="search-results"></div>
-            <div class="search-modal-footer">
+            <div class="search-results" id="search-results" role="status" aria-live="polite"></div>
+            <div class="search-modal-footer" aria-hidden="true">
                 <span>Press ESC to close</span>
                 <span>Search by product name or category</span>
             </div>
@@ -586,17 +596,17 @@
     </div>
 
     <!-- Quick View Modal -->
-    <div class="quick-view-modal" id="quick-view-modal">
-        <div class="qv-overlay" onclick="closeQuickView()"></div>
+    <div class="quick-view-modal" id="quick-view-modal" role="dialog" aria-modal="true" aria-labelledby="qv-title">
+        <div class="qv-overlay" onclick="closeQuickView()" aria-hidden="true"></div>
         <div class="qv-content">
             <button class="qv-close" onclick="closeQuickView()" aria-label="Close quick view">×</button>
             <div class="qv-grid">
                 <div>
-                    <img id="qv-img" class="qv-image" src="" alt="Product">
+                    <img id="qv-img" class="qv-image" src="" alt="">
                 </div>
                 <div class="qv-details">
                     <h2 class="qv-title" id="qv-title">Product Title</h2>
-                    <div class="qv-price" id="qv-price">₹0</div>
+                    <div class="qv-price" id="qv-price">&#8377;0</div>
                     <p class="qv-desc" id="qv-desc">Description</p>
                     <button class="btn btn-gold" id="qv-add-cart" style="width:100%;font-size:1rem;padding:0.9rem">Add to Cart</button>
                 </div>
@@ -604,20 +614,21 @@
         </div>
     </div>
 
+    <main id="main-content">
     <!-- Page Header -->
     <div class="page-header">
         <div class="container">
-            <div class="breadcrumb">
-                <a href="index.html">Home</a> <span>/</span>
-                <span class="gold">All Products</span>
-            </div>
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="index.html">Home</a> <span aria-hidden="true">/</span>
+                <span class="gold" aria-current="page">All Products</span>
+            </nav>
             <h1>Our <span class="gold-text">Collection</span></h1>
             <p style="color:var(--white-dim);font-size:0.9rem">Discover exquisite jewellery for every occasion</p>
             <!-- Inline Search -->
             <div class="products-search-bar" id="products-search-bar">
-                <span style="color:#555;font-size:1rem">🔍</span>
+                <span style="color:#555;font-size:1rem" aria-hidden="true">🔍</span>
                 <input type="text" id="inline-search" placeholder="Search rings, necklaces, bangles..."
-                    oninput="handleInlineSearch(this.value)">
+                    oninput="handleInlineSearch(this.value)" aria-label="Search jewellery by name or category">
                 <button class="search-clear-btn" id="inline-search-clear" onclick="clearInlineSearch()" aria-label="Clear search">✕</button>
             </div>
         </div>
@@ -837,26 +848,32 @@
                 if (closeBtn) closeBtn.style.display = 'block';
             }
 
-            // Wait for products to load
-            const checkAndRender = setInterval(() => {
+            // Render products immediately when available
+            function checkAndRender() {
                 if (typeof KC !== 'undefined' && KC.products && KC.products.length > 0) {
-                    clearInterval(checkAndRender);
                     updateCatPillCounts();
                     applyFilters();
                     hideSkeleton();
+                    return true;
                 }
-            }, 100);
+                return false;
+            }
 
-            // Fallback: hide skeleton after 3s even if empty
-            setTimeout(() => {
-                clearInterval(checkAndRender);
-                hideSkeleton();
-                applyFilters();
-            }, 3000);
+            if (!checkAndRender()) {
+                window.addEventListener('kc-products-loaded', () => {
+                    checkAndRender();
+                }, { once: true });
+
+                // Safety fallback after 1.5s
+                setTimeout(() => {
+                    hideSkeleton();
+                    applyFilters();
+                }, 1500);
+            }
 
             // Update floating cart count live
             updateFloatingCartCount();
-            setInterval(updateFloatingCartCount, 500);
+            window.addEventListener('storage', updateFloatingCartCount);
         });
 
         function hideSkeleton() {

@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Wishlist | Kalyan Covering</title>
     <meta name="description" content="Your saved jewellery pieces at Kalyan Covering.">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     <style>
         .wishlist-page {
@@ -182,8 +189,11 @@
 </head>
 
 <body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Nav -->
-    <nav class="nav">
+    <nav class="nav" aria-label="Main navigation">
         <div class="nav-inner">
             <a href="index.html" class="nav-logo">
                 <img src="assets/kc_logo_new.png" alt="Kalyan Covering" class="nav-logo-img"
@@ -200,11 +210,11 @@
                 <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
                     <a href="auth.html" class="btn btn-outline btn-sm">Login</a>
                 </div>
-                <button class="nav-icon-btn" onclick="window.location='wishlist.html'" title="Wishlist">
-                    ♥ <span class="badge" id="wishlist-count" style="display:none">0</span>
+                <button class="nav-icon-btn" onclick="window.location='wishlist.html'" aria-label="Wishlist">
+                    ♥ <span class="badge" id="wishlist-count" style="display:none" aria-label="Wishlist items">0</span>
                 </button>
-                <button class="nav-icon-btn" onclick="window.location='checkout.html'">
-                    🛒 <span class="badge cart-count">0</span>
+                <button class="nav-icon-btn" onclick="window.location='checkout.html'" aria-label="Shopping cart">
+                    🛒 <span class="badge cart-count" aria-label="Cart items">0</span>
                 </button>
             </div>
         </div>
@@ -212,6 +222,7 @@
 
     <div id="toast-container" class="toast-container"></div>
 
+    <main id="main-content">
     <div class="wishlist-page container">
         <div class="wishlist-header reveal">
             <h1 class="section-title">My <span>Wishlist</span>
@@ -222,6 +233,7 @@
 
         <div id="wishlist-content"></div>
     </div>
+    </main>
 
     <!-- Footer -->
     <footer class="footer"
@@ -231,7 +243,7 @@
         </div>
     </footer>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('kc_user'));
@@ -274,7 +286,7 @@
               <div class="wish-card-price">₹${(p.price || 0).toLocaleString('en-IN')}</div>
               <div class="wish-card-actions">
                 <button class="btn btn-gold btn-sm" style="flex:1"
-                  onclick="addToCartFromWish(${JSON.stringify(p).replace(/'/g, '&#39;')})">🛒 Add to Cart</button>
+                  onclick="addToCartFromWish(${JSON.stringify(p).replace(/'/g, '&#39;')}, this)">🛒 Add to Cart</button>
                 <button class="btn btn-ghost btn-sm"
                   onclick="window.location='product-detail.html?id=${p.id}'">View</button>
               </div>
@@ -292,7 +304,7 @@
             if (window.Toast) Toast.info('Removed from Wishlist');
         }
 
-        function addToCartFromWish(product) {
+        function addToCartFromWish(product, btn) {
             if (typeof Cart !== 'undefined') {
                 Cart.add(product);
             } else {
@@ -302,6 +314,15 @@
                 else cart.push({ ...product, qty: 1 });
                 localStorage.setItem('kc_cart', JSON.stringify(cart));
                 if (window.Toast) Toast.success('Added to Cart!', product.name);
+            }
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.classList.add('is-added');
+                btn.innerHTML = '✓ Added';
+                setTimeout(() => {
+                    btn.classList.remove('is-added');
+                    btn.innerHTML = orig;
+                }, 1400);
             }
         }
     </script>

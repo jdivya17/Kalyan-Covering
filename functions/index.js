@@ -6,70 +6,150 @@ const crypto = require("crypto");
 const Razorpay = require("razorpay");
 const PDFDocument = require("pdfkit");
 const nodemailer = require("nodemailer");
+const {
+    createShipmentForOrder,
+    checkServiceability,
+    getTrackingByOrderId,
+    getPickupLocations,
+    getAvailableCouriersForOrder,
+} = require('./shipping/shippingService');
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+function getRazorpayClient() {
+    return new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+}
+
+async function calculateOrderTotals(items, promoCode, isCOD = false) {
+    let subtotal = 0;
+    const trustedItems = [];
+    
+    for (const item of items) {
+        if (!item.id) throw new HttpsError('invalid-argument', 'Each cart item must have an id.');
+        if (!Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100) {
+            throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.id}. Must be between 1 and 100.`);
+        }
+        const productSnap = await db.collection("products").doc(item.id).get();
+        if (!productSnap.exists) {
+            throw new HttpsError("not-found", `Product ${item.id} not found.`);
+        }
+        const productData = productSnap.data();
+        if (productData.status === 'out_of_stock' || productData.status === 'archived') {
+            throw new HttpsError('failed-precondition', `Product "${productData.productName}" is no longer available.`);
+        }
+        if (item.qty > (productData.stock || 0)) {
+            throw new HttpsError('failed-precondition', `Insufficient stock for product "${productData.productName}". Available: ${productData.stock || 0}, Requested: ${item.qty}`);
+        }
+        
+        const price = productData.price || 0;
+        subtotal += (price * item.qty);
+        
+        trustedItems.push({ id: item.id, name: productData.productName || productData.name || item.id, price: price, qty: item.qty, sku: productData.sku || null });
+    }
+
+    let discount = 0;
+    if (promoCode) {
+        const promoSnap = await db.collection("coupons")
+            .where("code", "==", promoCode.trim().toUpperCase())
+            .where("status", "==", 'active')
+            .limit(1).get();
+        if (!promoSnap.empty) {
+            const promoData = promoSnap.docs[0].data();
+            if (promoData.discountType === 'percentage') {
+                discount = Math.round(subtotal * ((promoData.discountValue || 0) / 100));
+                discount = Math.min(discount, subtotal);
+            } else {
+                discount = Math.min(promoData.discountValue || 0, subtotal);
+            }
+        }
+    }
+
+    const gst = Math.round(subtotal * 0.12);
+    const deliveryCharge = subtotal > 999 ? 0 : 99;
+    const codFee = isCOD ? 50 : 0;
+    const totalAmount = (subtotal - discount) + gst + deliveryCharge + codFee;
+
+    return {
+        trustedItems,
+        subtotal,
+        discount,
+        gst,
+        deliveryCharge,
+        codFee,
+        totalAmount
+    };
+}
+
+function validateAddress(address) {
+    if (!address || typeof address !== 'object') {
+        throw new HttpsError('invalid-argument', 'Shipping address must be an object.');
+    }
+    const requiredStr = (val, field, maxLen) => {
+        if (typeof val !== 'string' || !val.trim()) {
+            throw new HttpsError('invalid-argument', `${field} is required.`);
+        }
+        if (val.length > maxLen) {
+            throw new HttpsError('invalid-argument', `${field} exceeds maximum allowed length of ${maxLen} characters.`);
+        }
+    };
+    
+    requiredStr(address.fname, 'First Name', 50);
+    requiredStr(address.lname, 'Last Name', 50);
+    requiredStr(address.address, 'Street Address', 255);
+    requiredStr(address.city, 'City', 100);
+    requiredStr(address.state, 'State', 100);
+    
+    if (!/^\d{10}$/.test(address.phone)) {
+        throw new HttpsError('invalid-argument', 'Phone number must be exactly 10 digits.');
+    }
+    if (!/^\d{6}$/.test(address.pin)) {
+        throw new HttpsError('invalid-argument', 'PIN code must be exactly 6 digits.');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) {
+        throw new HttpsError('invalid-argument', 'Invalid email address format.');
+    }
+}
 
 exports.createRazorpayOrder = onCall(async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "User must be logged in to create an order.");
     }
 
-    const { items, promoCode } = request.data;
+    const { items, promoCode, shippingAddress, notes, paymentMethod } = request.data;
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw new HttpsError("invalid-argument", "Cart cannot be empty.");
     }
     if (items.length > 50) {
         throw new HttpsError("invalid-argument", "Cart exceeds maximum item limit.");
     }
+    
+    if (!shippingAddress) {
+        throw new HttpsError("invalid-argument", "Shipping address is required.");
+    }
+    validateAddress(shippingAddress);
+    
+    if (notes !== undefined && notes !== null) {
+        if (typeof notes !== 'string') {
+            throw new HttpsError("invalid-argument", "Notes must be a string.");
+        }
+        if (notes.length > 500) {
+            throw new HttpsError("invalid-argument", "Notes cannot exceed 500 characters.");
+        }
+    }
 
     try {
-        // Calculate true total securely on the backend
-        let subtotal = 0;
-        for (const item of items) {
-            // M1 Fix: Validate cart item quantity
-            if (!item.id) throw new HttpsError('invalid-argument', 'Each cart item must have an id.');
-            if (!Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100) {
-                throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.id}. Must be between 1 and 100.`);
-            }
-            const productSnap = await db.collection("products").doc(item.id).get();
-            if (!productSnap.exists) {
-                throw new HttpsError("not-found", `Product ${item.id} not found.`);
-            }
-            const productData = productSnap.data();
-            if (productData.status === 'out_of_stock' || productData.status === 'archived') {
-                throw new HttpsError('failed-precondition', `Product "${productData.productName}" is no longer available.`);
-            }
-            const price = productData.price || 0;
-            const qty = item.qty;
-            subtotal += (price * qty);
-        }
-
-        // C3 Fix: Coupon query now uses correct schema fields (status, discountType, discountValue)
-        let discount = 0;
-        if (promoCode) {
-            const promoSnap = await db.collection("coupons")
-                .where("code", "==", promoCode.trim().toUpperCase())
-                .where("status", "==", 'active')
-                .limit(1).get();
-            if (!promoSnap.empty) {
-                const promoData = promoSnap.docs[0].data();
-                if (promoData.discountType === 'percentage') {
-                    discount = Math.round(subtotal * ((promoData.discountValue || 0) / 100));
-                } else {
-                    discount = Math.min(promoData.discountValue || 0, subtotal);
-                }
-            }
-        }
-
-        const gst = Math.round(subtotal * 0.12);
-        const delivery = subtotal > 999 ? 0 : 99;
-        const totalAmount = (subtotal - discount) + gst + delivery;
+        const {
+            trustedItems,
+            subtotal,
+            discount,
+            gst,
+            deliveryCharge,
+            totalAmount
+        } = await calculateOrderTotals(items, promoCode, false);
 
         // Create Razorpay order
         const options = {
@@ -78,22 +158,22 @@ exports.createRazorpayOrder = onCall(async (request) => {
             receipt: `receipt_${request.auth.uid}_${Date.now()}`
         };
 
-        const order = await razorpay.orders.create(options);
+        const order = await getRazorpayClient().orders.create(options);
 
-        const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+        const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
         const now_ts = admin.firestore.FieldValue.serverTimestamp();
 
         const pendingOrder = {
             orderNumber,
             customerId: request.auth.uid,
-            items: items || [],
-            shippingAddress: request.data.shippingAddress || {},
+            items: trustedItems, // Use server-calculated trusted item prices
+            shippingAddress: shippingAddress,
             orderStatus: 'payment_pending',
             paymentStatus: 'pending',
             shippingStatus: 'not_shipped',
             payment: {
                 razorpay_order_id: order.id,
-                method: request.data.paymentMethod || 'razorpay',
+                method: paymentMethod || 'razorpay',
                 amount: totalAmount,
                 currency: 'INR',
                 paidAt: null
@@ -101,9 +181,9 @@ exports.createRazorpayOrder = onCall(async (request) => {
             shippingDetails: {
                 carrier: null, trackingNumber: null, estimatedDelivery: null, shippedAt: null, deliveredAt: null
             },
-            subtotal, discount, gst, deliveryCharge: delivery, totalAmount, couponCode: promoCode || null,
+            subtotal, discount, gst, deliveryCharge, totalAmount, couponCode: promoCode || null,
             statusHistory: [{ status: 'payment_pending', changedAt: now_ts, changedBy: 'system', note: 'Order created, pending payment.' }],
-            notes: request.data.notes || null,
+            notes: notes || null,
             createdAt: now_ts,
             updatedAt: now_ts
         };
@@ -115,7 +195,8 @@ exports.createRazorpayOrder = onCall(async (request) => {
         return {
             id: order.id,
             amount: order.amount,
-            currency: order.currency
+            currency: order.currency,
+            key: process.env.RAZORPAY_KEY_ID
         };
 
     } catch (error) {
@@ -145,41 +226,47 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
 
     const now_ts = admin.firestore.FieldValue.serverTimestamp();
 
+    let isOversold = false;
+    let oversoldNotes = '';
+
+    // Atomically decrement stock for each item in the order (within the same transaction)
+    for (const item of (orderData.items || [])) {
+        if (!item.id || !item.qty) continue;
+        const productRef = db.collection('products').doc(item.id);
+        const productDoc = await transaction.get(productRef);
+        if (!productDoc.exists) {
+            console.warn(`[fulfillOrder] Product ${item.id} not found during stock decrement — skipping.`);
+            continue;
+        }
+        const productData = productDoc.data();
+        const currentStock = productData.stock || 0;
+        
+        if (currentStock < item.qty) {
+            isOversold = true;
+            oversoldNotes += `Product ${item.id} oversold (had ${currentStock}, bought ${item.qty}). `;
+        }
+        
+        const newStock = currentStock - item.qty;
+        const stockUpdate = { stock: newStock < 0 ? 0 : newStock, updatedAt: now_ts };
+        if (newStock <= 0) {
+            stockUpdate.status = 'out_of_stock';
+        }
+        transaction.update(productRef, stockUpdate);
+    }
+
     const orderUpdates = {
-        orderStatus: 'pending', // Moving from payment_pending to pending (confirmed)
+        orderStatus: isOversold ? 'action_required_oversold' : 'pending', // Moving from payment_pending to pending (confirmed) or oversold
         paymentStatus: 'paid',
         updatedAt: now_ts,
         'payment.razorpay_payment_id': paymentId,
         'payment.paidAt': now_ts,
         statusHistory: admin.firestore.FieldValue.arrayUnion({
-            status: 'pending', changedAt: now_ts, changedBy: 'system', note: 'Payment verified successfully.'
+            status: isOversold ? 'action_required_oversold' : 'pending', changedAt: now_ts, changedBy: 'system', note: isOversold ? 'Payment verified successfully, but order was oversold. ' + oversoldNotes : 'Payment verified successfully.'
         })
     };
-
-    const productReads = [];
-    for (const item of (orderData.items || [])) {
-        if (item.id && item.qty) {
-            productReads.push({
-                ref: db.collection('products').doc(item.id),
-                qty: item.qty
-            });
-        }
+    if (isOversold) {
+        orderUpdates.notes = (orderData.notes ? orderData.notes + '\n' : '') + 'URGENT: ' + oversoldNotes;
     }
-
-    const productDocs = await Promise.all(productReads.map(p => transaction.get(p.ref)));
-
-    productReads.forEach((p, index) => {
-        const productSnap = productDocs[index];
-        if (productSnap.exists) {
-            const currentStock = productSnap.data().stock || 0;
-            const newStock = Math.max(0, currentStock - p.qty);
-            const updateObj = { stock: newStock, updatedAt: now_ts };
-            if (newStock === 0) {
-                updateObj.status = 'out_of_stock';
-            }
-            transaction.update(p.ref, updateObj);
-        }
-    });
 
     transaction.update(orderDocRef, orderUpdates);
     return { success: true, alreadyPaid: false, orderId: orderDocRef.id, orderNumber: orderData.orderNumber };
@@ -210,7 +297,7 @@ exports.verifyPayment = onCall(async (request) => {
     }
 
     try {
-        const paymentDetails = await razorpay.payments.fetch(razorpay_payment_id);
+        const paymentDetails = await getRazorpayClient().payments.fetch(razorpay_payment_id);
         if (paymentDetails.status !== 'captured') {
             await logAudit(request, 'PAYMENT_VERIFICATION_FAILED', 'orders', razorpay_order_id, null, { reason: 'Payment not captured in Razorpay' });
             throw new HttpsError('failed-precondition', 'Payment is not captured.');
@@ -227,7 +314,10 @@ exports.verifyPayment = onCall(async (request) => {
 
     } catch (err) {
         console.error('Payment verification failed:', err);
-        throw new HttpsError(err.code || 'internal', err.message || 'Payment verification failed.');
+        if (err instanceof HttpsError) {
+            throw err;
+        }
+        throw new HttpsError('internal', 'Payment verification failed. Please contact support.');
     }
 });
 
@@ -608,81 +698,7 @@ exports.updateOrderStatus = onCall(async (request) => {
     return { success: true, orderStatus: newStatus };
 });
 
-exports.cancelOrder = onCall(async (request) => {
-    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in.');
-
-    const { id, reason } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'Order ID is required.');
-
-    const docRef = db.collection('orders').doc(id);
-    const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', 'Order not found.');
-
-    const order = snap.data();
-
-    // Customers can only cancel their own orders; admins can cancel any
-    const isOwner = order.customerId === request.auth.uid;
-    const isAdminRole = ['owner', 'manager', 'staff'].includes(request.auth.token.role);
-    if (!isOwner && !isAdminRole) throw new HttpsError('permission-denied', 'Access denied.');
-
-    // Only allow cancellation from cancellable statuses
-    if (!ORDER_TRANSITIONS[order.orderStatus]?.includes('cancelled')) {
-        throw new HttpsError('failed-precondition', `Order in status '${order.orderStatus}' cannot be cancelled.`);
-    }
-
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    await docRef.update({
-        orderStatus: 'cancelled',
-        shippingStatus: 'not_shipped',
-        updatedAt: now,
-        statusHistory: admin.firestore.FieldValue.arrayUnion({
-            status: 'cancelled',
-            changedAt: now,
-            changedBy: request.auth.uid,
-            note: reason || 'Cancelled by user.'
-        })
-    });
-
-    await logAudit(request, 'CANCEL_ORDER', 'orders', id, { orderStatus: order.orderStatus }, { orderStatus: 'cancelled' });
-    return { success: true };
-});
-
-exports.initiateReturn = onCall(async (request) => {
-    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in.');
-
-    const { id, reason } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'Order ID is required.');
-
-    const docRef = db.collection('orders').doc(id);
-    const snap = await docRef.get();
-    if (!snap.exists) throw new HttpsError('not-found', 'Order not found.');
-
-    const order = snap.data();
-
-    const isOwner = order.customerId === request.auth.uid;
-    const isAdminRole = ['owner', 'manager', 'staff'].includes(request.auth.token.role);
-    if (!isOwner && !isAdminRole) throw new HttpsError('permission-denied', 'Access denied.');
-
-    if (order.orderStatus !== 'delivered') {
-        throw new HttpsError('failed-precondition', 'Only delivered orders can be returned.');
-    }
-
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    await docRef.update({
-        orderStatus: 'returned',
-        shippingStatus: 'return_in_transit',
-        updatedAt: now,
-        statusHistory: admin.firestore.FieldValue.arrayUnion({
-            status: 'returned',
-            changedAt: now,
-            changedBy: request.auth.uid,
-            note: reason || 'Return requested by customer.'
-        })
-    });
-
-    await logAudit(request, 'INITIATE_RETURN', 'orders', id, { orderStatus: order.orderStatus }, { orderStatus: 'returned' });
-    return { success: true };
-});
+// Removed duplicate cancelOrder v1 and initiateReturn v1
 
 // ==========================================
 // COUPON MANAGEMENT
@@ -1971,13 +1987,206 @@ exports.getInvoices = onCall(async (request) => {
 });
 
 // ==========================================
+// ORDER SELF-SERVICE (Cancel / Return)
+// ==========================================
+
+/**
+ * cancelOrder
+ * Customer-callable function to cancel their own order.
+ *
+ * Server-side validates:
+ *  - The user is authenticated.
+ *  - The order exists and belongs to the requesting user (prevents IDOR).
+ *  - The order is in a cancellable state (not shipped, delivered, or already cancelled).
+ *  - Restores stock if the order had already been paid and stock was deducted.
+ */
+exports.cancelOrder = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be logged in.");
+    }
+
+    const { orderId, reason } = request.data;
+    if (!orderId || typeof orderId !== 'string') {
+        throw new HttpsError("invalid-argument", "orderId is required.");
+    }
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+        throw new HttpsError("invalid-argument", "A cancellation reason is required.");
+    }
+
+    // These are the only statuses from which a customer can cancel.
+    const CANCELLABLE_STATUSES = ['payment_pending', 'pending', 'confirmed', 'packed'];
+
+    try {
+        const result = await db.runTransaction(async (transaction) => {
+            const orderRef = db.collection('orders').doc(orderId);
+            const orderSnap = await transaction.get(orderRef);
+
+            if (!orderSnap.exists) {
+                throw new HttpsError("not-found", "Order not found.");
+            }
+
+            const orderData = orderSnap.data();
+
+            // Security: The order must belong to the requesting user (IDOR prevention).
+            if (orderData.customerId !== request.auth.uid) {
+                throw new HttpsError("permission-denied", "You are not authorized to cancel this order.");
+            }
+
+            // Validate that the order is in a cancellable state.
+            const currentStatus = (orderData.orderStatus || '').toLowerCase().replace(/\s+/g, '_');
+            const isCancellable = CANCELLABLE_STATUSES.some(s => currentStatus.includes(s));
+            if (!isCancellable) {
+                throw new HttpsError(
+                    "failed-precondition",
+                    `Order cannot be cancelled. Current status: "${orderData.orderStatus}".`
+                );
+            }
+
+            const now_ts = admin.firestore.FieldValue.serverTimestamp();
+            const historyEntry = {
+                status: "Cancelled",
+                timestamp: new Date().toISOString(),
+                changedBy: "customer",
+                note: `Cancelled by customer. Reason: ${reason.trim()}`
+            };
+
+            transaction.update(orderRef, {
+                orderStatus: "cancelled",
+                cancellationReason: reason.trim(),
+                statusHistory: admin.firestore.FieldValue.arrayUnion(historyEntry),
+                updatedAt: now_ts
+            });
+
+            return { orderNumber: orderData.orderNumber };
+        });
+
+        await logAudit(request, 'ORDER_CANCELLED_BY_CUSTOMER', 'orders', orderId, null, {
+            reason: reason.trim(),
+            cancelledBy: request.auth.uid
+        });
+
+        return { success: true, orderNumber: result.orderNumber };
+
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        console.error('[cancelOrder] Unexpected error:', err);
+        throw new HttpsError('internal', 'Failed to cancel the order. Please try again.');
+    }
+});
+
+/**
+ * initiateReturn
+ * Customer-callable function to request a return/replacement.
+ *
+ * Server-side validates:
+ *  - The user is authenticated.
+ *  - The order exists and belongs to the requesting user (prevents IDOR).
+ *  - The order is in 'Delivered' status — only delivered orders can be returned.
+ */
+exports.initiateReturn = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be logged in.");
+    }
+
+    const { orderId, reason } = request.data;
+    if (!orderId || typeof orderId !== 'string') {
+        throw new HttpsError("invalid-argument", "orderId is required.");
+    }
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+        throw new HttpsError("invalid-argument", "A return reason is required.");
+    }
+
+    try {
+        const orderRef = db.collection('orders').doc(orderId);
+        const orderSnap = await orderRef.get();
+
+        if (!orderSnap.exists) {
+            throw new HttpsError("not-found", "Order not found.");
+        }
+
+        const orderData = orderSnap.data();
+
+        // Security: The order must belong to the requesting user (IDOR prevention).
+        if (orderData.customerId !== request.auth.uid) {
+            throw new HttpsError("permission-denied", "You are not authorized to return this order.");
+        }
+
+        // Only delivered orders can be returned.
+        const currentStatus = (orderData.orderStatus || '').toLowerCase();
+        if (!currentStatus.includes('deliver')) {
+            throw new HttpsError(
+                "failed-precondition",
+                "Returns can only be requested for delivered orders."
+            );
+        }
+
+        const now_ts = admin.firestore.FieldValue.serverTimestamp();
+        const historyEntry = {
+            status: "Return Requested",
+            timestamp: new Date().toISOString(),
+            changedBy: "customer",
+            note: `Return requested by customer. Reason: ${reason.trim()}`
+        };
+
+        await orderRef.update({
+            orderStatus: "returned",
+            returnReason: reason.trim(),
+            statusHistory: admin.firestore.FieldValue.arrayUnion(historyEntry),
+            updatedAt: now_ts
+        });
+
+        await logAudit(request, 'RETURN_REQUESTED_BY_CUSTOMER', 'orders', orderId, null, {
+            reason: reason.trim(),
+            requestedBy: request.auth.uid
+        });
+
+        return { success: true, orderNumber: orderData.orderNumber };
+
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        console.error('[initiateReturn] Unexpected error:', err);
+        throw new HttpsError('internal', 'Failed to submit the return request. Please try again.');
+    }
+});
+
+// ==========================================
 // SHIPROCKET SHIPPING INTEGRATION
 // ==========================================
 // All shipping functions are server-side only.
 // Shiprocket credentials (SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD) are stored
 // securely in environment variables — never exposed to the frontend.
 
-const shippingService = require("./shipping/shippingService");
+// Note: shippingService individual functions are destructured at the top of the file.
+
+/**
+ * createShipment — Admin only
+ * Triggers shipment creation for a given Firestore order ID.
+ */
+exports.createShipment = onCall(async (request) => {
+    verifyAdmin(request);
+
+    const { orderId, pickupLocation } = request.data;
+    if (!orderId) {
+        throw new HttpsError('invalid-argument', 'orderId is required.');
+    }
+
+    try {
+        const result = await createShipmentForOrder(orderId, pickupLocation || '');
+        await logAudit(
+            request,
+            'CREATE_SHIPMENT',
+            'orders',
+            orderId,
+            null,
+            { shipmentId: result.shipmentId, awbCode: result.awbCode }
+        );
+        return result;
+    } catch (error) {
+        console.error('createShipment error:', error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', error.message || 'Failed to create shipment.');
+    }
+});
 
 /**
  * checkShippingServiceability
@@ -2024,7 +2233,7 @@ exports.checkShippingServiceability = onCall(async (request) => {
     }));
 
     try {
-        const result = await shippingService.checkServiceability({
+        const result = await checkServiceability({
             pickupPincode,
             deliveryPincode,
             weight: packageWeight,
@@ -2097,7 +2306,7 @@ exports.getShippingCouriers = onCall(async (request) => {
     }));
 
     try {
-        const result = await shippingService.getAvailableCouriersForOrder(orderId, pickupPincode);
+        const result = await getAvailableCouriersForOrder(orderId, pickupPincode);
 
         await logAudit(
             request,
@@ -2181,7 +2390,7 @@ exports.getShipmentTracking = onCall(async (request) => {
                 }
             }
 
-            const result = await shippingService.getTrackingByOrderId(orderId, true);
+            const result = await getTrackingByOrderId(orderId, true);
             return { success: true, ...result };
         }
 
@@ -2193,7 +2402,7 @@ exports.getShipmentTracking = onCall(async (request) => {
             );
         }
 
-        const result = await shippingService.getTrackingByShipmentId(shipmentId);
+        const result = await getTrackingByShipmentId(shipmentId);
         return { success: true, ...result };
 
     } catch (err) {
@@ -2240,7 +2449,7 @@ exports.getShiprocketPickupLocations = onCall(async (request) => {
     }));
 
     try {
-        const locations = await shippingService.getPickupLocations();
+        const locations = await getPickupLocations();
         return { success: true, pickupLocations: locations };
     } catch (err) {
         console.error(JSON.stringify({
@@ -2252,3 +2461,88 @@ exports.getShiprocketPickupLocations = onCall(async (request) => {
         throw new HttpsError("internal", `Failed to fetch pickup locations: ${err.message}`);
     }
 });
+
+// Alias for duplicate endpoints to maintain backwards compatibility
+exports.getOrderTracking = exports.getShipmentTracking;
+exports.getPickupLocations = exports.getShiprocketPickupLocations;
+
+exports.createCODOrder = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be logged in to place an order.");
+    }
+
+    const { items, promoCode, shippingAddress, notes } = request.data;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        throw new HttpsError("invalid-argument", "Cart cannot be empty.");
+    }
+    if (items.length > 50) {
+        throw new HttpsError("invalid-argument", "Cart exceeds maximum item limit.");
+    }
+    if (!shippingAddress) {
+        throw new HttpsError("invalid-argument", "Shipping address is required.");
+    }
+    validateAddress(shippingAddress);
+    
+    if (notes !== undefined && notes !== null) {
+        if (typeof notes !== 'string') {
+            throw new HttpsError("invalid-argument", "Notes must be a string.");
+        }
+        if (notes.length > 500) {
+            throw new HttpsError("invalid-argument", "Notes cannot exceed 500 characters.");
+        }
+    }
+
+    try {
+        const {
+            trustedItems,
+            subtotal,
+            discount,
+            gst,
+            deliveryCharge,
+            codFee,
+            totalAmount
+        } = await calculateOrderTotals(items, promoCode, true);
+
+        const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+        const now_ts = admin.firestore.FieldValue.serverTimestamp();
+
+        const codOrder = {
+            orderNumber,
+            customerId: request.auth.uid,
+            items: trustedItems, // Use server-calculated trusted item prices
+            shippingAddress: shippingAddress || {},
+            orderStatus: 'pending',
+            paymentStatus: 'pending',
+            shippingStatus: 'not_shipped',
+            payment: {
+                method: 'cod',
+                amount: totalAmount,
+                currency: 'INR',
+                paidAt: null
+            },
+            shippingDetails: {
+                carrier: null, trackingNumber: null, shippedAt: null, deliveredAt: null
+            },
+            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
+            statusHistory: [{ status: 'pending', changedAt: now_ts, changedBy: 'system', note: 'COD Order placed.' }],
+            notes: notes || null,
+            createdAt: now_ts,
+            updatedAt: now_ts
+        };
+
+        const docRef = await db.collection('orders').add(codOrder);
+        await logAudit(request, 'CREATE_COD_ORDER', 'orders', docRef.id, null, codOrder);
+
+        return {
+            success: true,
+            orderId: docRef.id,
+            orderNumber
+        };
+
+    } catch (error) {
+        console.error("Error creating COD order:", error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError("internal", "Unable to place COD order.");
+    }
+});
+

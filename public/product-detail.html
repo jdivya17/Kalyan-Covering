@@ -12,6 +12,13 @@
     </script>
 
     <meta name="description" content="View exquisite jewellery details, customer reviews, and matching pieces at Kalyan Covering.">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     <style>
         /* ======= PRODUCT DETAIL ======= */
@@ -125,6 +132,10 @@
             border-color: var(--gold);
             box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
         }
+        
+        .pd-thumb.active {
+            border-bottom-width: 4px;
+        }
 
         .pd-thumb img, .pd-thumb video {
             width: 100%;
@@ -189,10 +200,9 @@
 
         .pd-title {
             font-family: var(--font-serif);
-            font-size: clamp(2rem, 3.5vw, 3rem);
-            line-height: 1.15;
-            margin-bottom: 1rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            line-height: 1.2;
+            margin-bottom: 0.8rem;
         }
 
         .pd-rating-row {
@@ -233,11 +243,10 @@
         }
 
         .pd-price {
-            font-size: 2.8rem;
-            font-weight: 800;
+            font-size: 2.2rem;
+            font-weight: 700;
             color: var(--gold);
             font-family: var(--font-serif);
-            text-shadow: 0 4px 15px rgba(212,175,55,0.2);
         }
 
         .pd-mrp {
@@ -715,13 +724,16 @@
 </head>
 
 <body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <!-- Navigation -->
-    <nav class="nav">
+    <nav class="nav" aria-label="Main navigation">
         <div class="nav-inner">
             <a href="index.html" class="nav-logo">
-                <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
-                    onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                <div class="nav-logo-img-wrap">
+                  <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
+                      onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                </div>
                 Kalyan Covering
             </a>
             <ul class="nav-links">
@@ -731,18 +743,24 @@
                 <li><a href="checkout.html">Cart</a></li>
             </ul>
             <div class="nav-actions">
-                <button class="nav-icon-btn" onclick="openSearchModal()" aria-label="Search">🔍</button>
+                <button class="nav-icon-btn" onclick="openSearchModal()" aria-label="Search">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
                 <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
                     <a href="auth.html" class="btn btn-outline btn-sm" id="nav-login-btn">Login</a>
                     <a href="auth.html?tab=reg" class="btn btn-gold btn-sm" id="nav-register-btn">Register</a>
                 </div>
                 <button class="nav-icon-btn" title="Account" id="nav-user-btn" onclick="window.location='profile.html'"
-                    style="display:none" aria-label="User Profile">👤</button>
+                    style="display:none" aria-label="User Profile">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </button>
                 <button class="nav-icon-btn" title="Wishlist" onclick="window.location='wishlist.html'" aria-label="Wishlist">
-                    ♥ <span class="badge" id="wishlist-count">0</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span class="badge" id="wishlist-count">0</span>
                 </button>
                 <button class="nav-icon-btn" onclick="window.location='checkout.html'" aria-label="Cart">
-                    🛒 <span class="badge cart-count">0</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    <span class="badge cart-count">0</span>
                 </button>
                 <button class="hamburger" id="hamburger" aria-label="Toggle mobile menu"><span></span><span></span><span></span></button>
             </div>
@@ -757,22 +775,44 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container pd-layout" id="pd-layout">
-        <!-- Populated by JS -->
+    <main id="main-content">
+    <div class="container" id="pd-container">
+        <div class="pd-skeleton-layout" id="pd-skeleton">
+            <div>
+                <div class="pd-skeleton-gallery skeleton-shimmer"></div>
+                <div class="pd-skeleton-thumbs">
+                    <div class="pd-skeleton-thumb skeleton-shimmer"></div>
+                    <div class="pd-skeleton-thumb skeleton-shimmer"></div>
+                    <div class="pd-skeleton-thumb skeleton-shimmer"></div>
+                    <div class="pd-skeleton-thumb skeleton-shimmer"></div>
+                </div>
+            </div>
+            <div class="pd-skeleton-info">
+                <div class="skeleton-shimmer" style="height:20px;width:30%"></div>
+                <div class="skeleton-shimmer" style="height:45px;width:80%"></div>
+                <div class="skeleton-shimmer" style="height:25px;width:40%"></div>
+                <div class="skeleton-shimmer" style="height:35px;width:50%"></div>
+                <div class="skeleton-shimmer" style="height:45px;width:100%"></div>
+                <div class="skeleton-shimmer" style="height:55px;width:100%"></div>
+            </div>
+        </div>
+        <div class="pd-layout" id="pd-layout" style="display:none">
+            <!-- Populated by JS -->
+        </div>
     </div>
 
     <!-- Tabs Section -->
     <div class="container">
         <div class="pd-tabs-section">
             <div class="tabs-wrapper">
-                <div class="tab-bar">
-                    <button class="tab-btn active" data-tab="tab-desc">📋 Description</button>
-                    <button class="tab-btn" data-tab="tab-specs">📜 Specifications</button>
-                    <button class="tab-btn" data-tab="tab-reviews">⭐ Reviews (<span id="review-count">0</span>)</button>
+                <div class="tab-bar" role="tablist" aria-label="Product information">
+                    <button class="tab-btn active" id="tab-btn-desc" role="tab" aria-selected="true" aria-controls="tab-desc" data-tab="tab-desc">Description</button>
+                    <button class="tab-btn" id="tab-btn-specs" role="tab" aria-selected="false" aria-controls="tab-specs" data-tab="tab-specs">Specifications</button>
+                    <button class="tab-btn" id="tab-btn-reviews" role="tab" aria-selected="false" aria-controls="tab-reviews" data-tab="tab-reviews">Reviews (<span id="review-count">0</span>)</button>
                 </div>
 
                 <!-- Description -->
-                <div class="tab-panel active" id="tab-desc">
+                <div class="tab-panel active" id="tab-desc" role="tabpanel" aria-labelledby="tab-btn-desc">
                     <div class="pd-description" id="pd-desc-content"></div>
                     <div id="pd-highlights">
                         <h4 style="font-family:var(--font-serif);color:var(--gold);margin-top:2rem;font-size:1.4rem;">Product Highlights</h4>
@@ -786,12 +826,12 @@
                 </div>
 
                 <!-- Specs -->
-                <div class="tab-panel" id="tab-specs">
+                <div class="tab-panel" id="tab-specs" role="tabpanel" aria-labelledby="tab-btn-specs">
                     <div class="pd-description" id="pd-specs-content"></div>
                 </div>
 
                 <!-- Reviews -->
-                <div class="tab-panel" id="tab-reviews">
+                <div class="tab-panel" id="tab-reviews" role="tabpanel" aria-labelledby="tab-btn-reviews">
                     <div class="review-summary" id="review-summary"></div>
                     <div id="reviews-list"></div>
                     
@@ -839,6 +879,7 @@
             <div class="recent-grid" id="recent-grid"></div>
         </div>
     </div>
+    </main><!-- end #main-content -->
 
     <!-- Footer -->
     <footer class="footer" style="border-top:1px solid var(--black-border); margin-top:4rem; padding:2rem 0; text-align:center;">
@@ -865,28 +906,66 @@
             const params = new URLSearchParams(window.location.search);
             const id = params.get('id');
 
-            // Import KC from app.js context via module approach, but for simplicity here we rely on window.KC if available
-            // Wait slightly for app.js to populate KC if needed
-            setTimeout(() => {
+            function tryInit() {
                 if (window.KC && window.KC.products && window.KC.products.length > 0) {
                     initPage(id);
-                } else {
-                    // fallback mock data if KC not loaded yet
-                    window.KC = window.KC || { products: [] };
-                    if(window.KC.products.length === 0) {
-                        window.KC.products = [
-                            { id: "p1", name: "Premium Gold Necklace", price: 12500, mrp: 15000, discount: 16, category: "Necklaces", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop", rating: 4.8, reviews: 124, stock: "in", isNew: true },
-                            { id: "p2", name: "Royal Diamond Ring", price: 8500, mrp: 10000, discount: 15, category: "Rings", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop", rating: 4.9, reviews: 86, stock: "in" }
-                        ];
-                    }
-                    initPage(id || "p1");
+                    return true;
                 }
-            }, 500);
+                return false;
+            }
+
+            if (!tryInit()) {
+                window.addEventListener('kc-products-loaded', () => {
+                    tryInit();
+                }, { once: true });
+
+                // Safety fallback after 1.5s
+                setTimeout(() => {
+                    if (!currentProduct) {
+                        window.KC = window.KC || { products: [] };
+                        if (window.KC.products.length === 0) {
+                            window.KC.products = [
+                                { id: "p1", name: "Premium Gold Necklace", price: 12500, mrp: 15000, discount: 16, category: "Necklaces", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop", rating: 4.8, reviews: 124, stock: "in", isNew: true },
+                                { id: "p2", name: "Royal Diamond Ring", price: 8500, mrp: 10000, discount: 15, category: "Rings", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop", rating: 4.9, reviews: 86, stock: "in" }
+                            ];
+                        }
+                        initPage(id || "p1");
+                    }
+                }, 1500);
+            }
         });
 
         function initPage(id) {
-            currentProduct = window.KC.products.find(p => p.id == id) || window.KC.products[0];
-            if (!currentProduct) { window.location = 'products.html'; return; }
+            const allProducts = window.KC ? window.KC.products : [];
+            currentProduct = id ? allProducts.find(p => p.id == id) : allProducts[0];
+            
+            const sk = document.getElementById('pd-skeleton');
+            const layout = document.getElementById('pd-layout');
+
+            if (!currentProduct) {
+                if (sk) sk.style.display = 'none';
+                if (layout) {
+                    layout.style.display = 'block';
+                    layout.innerHTML = `
+                        <div class="kc-empty-state" style="grid-column:1/-1">
+                            <span class="kc-empty-icon">💎</span>
+                            <h2 class="kc-empty-title">Product Not Found</h2>
+                            <p class="kc-empty-desc">The jewellery piece you are looking for might be out of stock, retired, or the link is invalid.</p>
+                            <div class="kc-empty-suggestions">
+                                <button onclick="window.location='products.html?cat=Necklaces'" class="kc-suggestion-chip">Necklaces</button>
+                                <button onclick="window.location='products.html?cat=Rings'" class="kc-suggestion-chip">Rings</button>
+                                <button onclick="window.location='products.html?cat=Bangles'" class="kc-suggestion-chip">Bangles</button>
+                                <button onclick="window.location='products.html'" class="kc-suggestion-chip">Explore Full Collection</button>
+                            </div>
+                            <a href="products.html" class="btn btn-gold">Browse Catalog</a>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            if (sk) sk.style.display = 'none';
+            if (layout) layout.style.display = 'grid';
 
             // Handle Recently Viewed
             let viewed = JSON.parse(localStorage.getItem('kc_recently_viewed')) || [];
@@ -1011,15 +1090,23 @@
                   
                   <div class="pd-actions">
                     <div class="pd-btn-row">
-                      <button class="btn btn-gold" onclick="pdAddToCart()" ${p.stock === 'out' ? 'disabled' : ''}>Add to Cart</button>
-                      <button class="btn btn-outline" onclick="pdBuyNow()" ${p.stock === 'out' ? 'disabled' : ''}>Buy Now</button>
+                      <button class="btn btn-outline" id="pd-add-to-cart-btn" style="flex:1;padding:1.1rem;font-size:1rem;letter-spacing:1px" onclick="pdAddToCart(null, this)" ${p.stock === 'out' ? 'disabled' : ''}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        Add to Cart
+                      </button>
+                      <button class="btn btn-gold" id="pd-buy-now-btn" style="flex:1;padding:1.1rem;font-size:1rem;letter-spacing:1px;font-weight:800" onclick="pdBuyNow(this)" ${p.stock === 'out' ? 'disabled' : ''}>
+                        Buy Now
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                      </button>
                     </div>
                     <div class="pd-icon-row">
                       <button class="pd-icon-btn ${isWishlisted ? 'active' : ''}" onclick="pdToggleWish(this)">
-                        <span>${isWishlisted ? '♥' : '♡'}</span> Wishlist
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="${isWishlisted ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        Wishlist
                       </button>
                       <button class="pd-icon-btn" onclick="pdShareProduct()">
-                        <span>📤</span> Share
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        Share
                       </button>
                     </div>
                   </div>
@@ -1171,26 +1258,42 @@
             if (input) input.value = Math.max(1, Math.min(10, parseInt(input.value) + n));
         }
 
-        function pdAddToCart(qtyOverride) {
-            const qty = qtyOverride || (parseInt(document.getElementById('qty-input').value) || 1);
+        function pdAddToCart(qtyOverride, btn) {
+            if (!currentProduct) return;
+            const qty = qtyOverride || (parseInt(document.getElementById('qty-input')?.value) || 1);
             let cart = JSON.parse(localStorage.getItem('kc_cart')) || [];
             
             const existing = cart.find(i => i.id === currentProduct.id);
             if (existing) {
                 existing.qty = (existing.qty || 1) + qty;
             } else {
-                cart.push({ ...currentProduct, qty: qty, image: productImages[0] });
+                cart.push({ ...currentProduct, qty: qty, image: productImages[0] || currentProduct.primaryImageURL || currentProduct.image });
             }
             localStorage.setItem('kc_cart', JSON.stringify(cart));
             
-            // Dispatch event to update global badge if app.js is loaded
+            // Update UI & badge
             window.dispatchEvent(new Event('storage'));
-            alert(`${currentProduct.name} added to cart!`);
+            if (window.Cart && typeof window.Cart.updateBadge === 'function') {
+                window.Cart.updateBadge();
+            }
+            if (window.Toast) {
+                window.Toast.cart(currentProduct.name);
+            }
+
+            // Visual feedback on button
+            if (btn) {
+                const origHTML = btn.innerHTML;
+                btn.classList.add('is-added');
+                btn.innerHTML = '✓ Added to Cart';
+                setTimeout(() => {
+                    btn.classList.remove('is-added');
+                    btn.innerHTML = origHTML;
+                }, 1400);
+            }
         }
 
-        function pdAddBothToCart() {
-            pdAddToCart();
-            // Add FBT product
+        function pdAddBothToCart(btn) {
+            pdAddToCart(1, btn);
             if (fbtProduct) {
                 let cart = JSON.parse(localStorage.getItem('kc_cart')) || [];
                 const existing = cart.find(i => i.id === fbtProduct.id);
@@ -1200,10 +1303,18 @@
                     cart.push({ ...fbtProduct, qty: 1, image: fbtProduct.image || fbtProduct.primaryImageURL });
                 }
                 localStorage.setItem('kc_cart', JSON.stringify(cart));
+                if (window.Toast) {
+                    window.Toast.cart(fbtProduct.name);
+                }
             }
         }
 
-        function pdBuyNow() {
+        function pdBuyNow(btn) {
+            if (!currentProduct) return;
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('is-loading');
+            }
             pdAddToCart();
             window.location = 'checkout.html';
         }
@@ -1215,17 +1326,24 @@
                 wishlist.splice(idx, 1);
                 btn.classList.remove('active');
                 btn.innerHTML = '<span>♡</span> Wishlist';
+                if (window.Toast) window.Toast.info('Removed from Wishlist', currentProduct.name);
             } else {
                 wishlist.push(currentProduct.id);
                 btn.classList.add('active');
                 btn.innerHTML = '<span>♥</span> Wishlisted';
+                if (window.Toast) window.Toast.success('Added to Wishlist!', currentProduct.name);
             }
             localStorage.setItem('kc_wishlist', JSON.stringify(wishlist));
+            if (typeof updateWishlistBadge === 'function') updateWishlistBadge();
         }
 
         function pdShareProduct() {
-            if (navigator.share) navigator.share({ title: currentProduct.name, url: window.location.href });
-            else { navigator.clipboard.writeText(window.location.href); alert('Link Copied to Clipboard!'); }
+            if (navigator.share && currentProduct) {
+                navigator.share({ title: currentProduct.name, url: window.location.href });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                if (window.Toast) window.Toast.success('Link Copied!', 'Product link copied to clipboard');
+            }
         }
 
         function renderReviews() {
@@ -1294,8 +1412,12 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const tabId = btn.dataset.tab;
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.setAttribute('aria-selected', 'false');
+                    });
                     btn.classList.add('active');
+                    btn.setAttribute('aria-selected', 'true');
                     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
                     document.getElementById(tabId).classList.add('active');
                 });

@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel – Kalyan Covering</title>
     <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -1497,7 +1504,7 @@
                 </div>
             </div>
             <div style="display:flex;gap:1rem">
-                <button class="btn btn-gold" style="flex:1" onclick="saveProduct()">Save Product</button>
+                <button class="btn btn-gold" id="btn-save-product" style="flex:1" onclick="saveProduct()">Save Product</button>
                 <button class="btn btn-ghost" onclick="closeModal('add-product-modal')">Cancel</button>
             </div>
         </div>
@@ -1777,6 +1784,7 @@
         };
 
         window.saveBranch = async function() {
+            const btn = document.querySelector('#branch-modal .btn-gold');
             const id = document.getElementById('bm-id').value;
             const data = {
                 name: document.getElementById('bm-name').value.trim(),
@@ -1790,6 +1798,7 @@
                 return;
             }
 
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
             try {
                 if (id) {
                     await updateDoc(doc(db, "branches", id), { ...data, updatedAt: serverTimestamp() });
@@ -1807,6 +1816,8 @@
                 } else {
                     Toast.error('Error saving branch');
                 }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save Branch'; }
             }
         };
 
@@ -1936,13 +1947,22 @@
         });
     </script>
     <script>
+        // ---- Admin Modal Utilities ----
+        window.openModal = function(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add('open');
+        };
+        window.closeModal = function(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('open');
+        };
+
         // ---- Admin State ----
         let adminProducts = [];
         let ordersData = [];
+        let videosMgmtData = [];
         let editingProductId = null;
         let selectedTheme = 'normal';
-
-        // showPanel is defined in the regular <script> block below
 
         // Temporary storage for uploaded media during "Add Product"
         let currentUploadedImages = [];
@@ -2060,6 +2080,7 @@
             initCounters();
             initReveal();
         }
+        window.showPanel = showPanel;
 
         // ---- Dashboard ----
         function updateDashboardStats() {
@@ -2246,73 +2267,80 @@
             const name = document.getElementById('pm-name').value.trim();
             if (!name) { Toast.error('Product name is required'); return; }
 
-            const imagesStr = document.getElementById('pm-images').value.trim();
-            const videosStr = document.getElementById('pm-videos').value.trim();
-            const imageList = imagesStr ? imagesStr.split(',').map(s => s.trim()).filter(s => s) : [];
-            const videoList = videosStr ? videosStr.split(',').map(s => s.trim()).filter(s => s) : [];
+            const saveBtn = document.getElementById('btn-save-product');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving Product...'; }
 
-            const data = {
-                name,
-                category: document.getElementById('pm-cat').value,
-                price: parseInt(document.getElementById('pm-price').value) || 0,
-                mrp: parseInt(document.getElementById('pm-mrp').value) || 0,
-                gst: parseInt(document.getElementById('pm-gst').value) || 3,
-                discount: parseInt(document.getElementById('pm-discount').value) || 0,
-                stock: document.getElementById('pm-stock').value,
-                tags: document.getElementById('pm-tags').value.split(',').map(t => t.trim()).filter(t => t),
-                isNewLaunch: document.getElementById('pm-isnew').checked,
-                featured: document.getElementById('pm-featured').checked,
-                primaryImageURL: imageList[0] || '',
-                imageURLs: imageList,
-                videoURLs: videoList,
-                // Fallbacks for older site parts
-                images: imageList,
-                videos: videoList,
-                image: imageList[0] || '',
-                isNew: document.getElementById('pm-isnew').checked,
+            try {
+                const imagesStr = document.getElementById('pm-images').value.trim();
+                const videosStr = document.getElementById('pm-videos').value.trim();
+                const imageList = imagesStr ? imagesStr.split(',').map(s => s.trim()).filter(s => s) : [];
+                const videoList = videosStr ? videosStr.split(',').map(s => s.trim()).filter(s => s) : [];
 
-                rating: 4.5,
-                reviews: 0,
-                createdAt: window.serverTimestamp(),
-                lastUpdated: window.serverTimestamp()
-            };
+                const data = {
+                    name,
+                    category: document.getElementById('pm-cat').value,
+                    price: parseInt(document.getElementById('pm-price').value) || 0,
+                    mrp: parseInt(document.getElementById('pm-mrp').value) || 0,
+                    gst: parseInt(document.getElementById('pm-gst').value) || 3,
+                    discount: parseInt(document.getElementById('pm-discount').value) || 0,
+                    stock: document.getElementById('pm-stock').value,
+                    tags: document.getElementById('pm-tags').value.split(',').map(t => t.trim()).filter(t => t),
+                    isNewLaunch: document.getElementById('pm-isnew').checked,
+                    featured: document.getElementById('pm-featured').checked,
+                    primaryImageURL: imageList[0] || '',
+                    imageURLs: imageList,
+                    videoURLs: videoList,
+                    images: imageList,
+                    videos: videoList,
+                    image: imageList[0] || '',
+                    isNew: document.getElementById('pm-isnew').checked,
+                    rating: 4.5,
+                    reviews: 0,
+                    createdAt: window.serverTimestamp(),
+                    lastUpdated: window.serverTimestamp()
+                };
 
-            // Calculate discount if MRP provided
-            if (data.mrp > data.price) {
-                data.discount = Math.round((data.mrp - data.price) / data.mrp * 100);
+                if (data.mrp > data.price) {
+                    data.discount = Math.round((data.mrp - data.price) / data.mrp * 100);
+                }
+
+                if (editingProductId) {
+                    const success = await window.updateProductInFirebase(editingProductId, data);
+                    if (success) {
+                        const idx = adminProducts.findIndex(p => p.id === editingProductId);
+                        if (idx > -1) { adminProducts[idx] = { ...adminProducts[idx], ...data }; }
+                        Toast.success('Product updated!', name);
+                    }
+                } else {
+                    if (typeof window.saveProductToFirebase !== 'function') {
+                        Toast.error('System Busy', 'Firebase is still initializing. Please wait a moment.');
+                        return;
+                    }
+                    const newId = await window.saveProductToFirebase(data);
+                    if (newId) {
+                        const newP = { ...data, id: newId };
+                        adminProducts.push(newP);
+                        Toast.success('Product added!', name);
+                        launchConfetti(1000);
+                    }
+                }
+
+                currentUploadedImages = [];
+                currentUploadedVideos = [];
+                document.getElementById('pm-images-preview').innerHTML = '';
+                document.getElementById('pm-videos-preview').innerHTML = '';
+
+                editingProductId = null;
+                document.getElementById('product-modal-title').textContent = 'Add New Product';
+                closeModal('add-product-modal');
+                renderProductsTable(adminProducts);
+                updateDashboardStats();
+            } catch (err) {
+                console.error("saveProduct error:", err);
+                Toast.error("Failed to save product", err.message || "Please check connection.");
+            } finally {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Product'; }
             }
-
-            if (editingProductId) {
-                const success = await window.updateProductInFirebase(editingProductId, data);
-                if (success) {
-                    const idx = adminProducts.findIndex(p => p.id === editingProductId);
-                    if (idx > -1) { adminProducts[idx] = { ...adminProducts[idx], ...data }; }
-                    Toast.success('Product updated!', name);
-                }
-            } else {
-                if (typeof window.saveProductToFirebase !== 'function') {
-                    Toast.error('System Busy', 'Firebase is still initializing. Please wait a moment.');
-                    return;
-                }
-                const newId = await window.saveProductToFirebase(data);
-                if (newId) {
-                    const newP = { ...data, id: newId };
-                    adminProducts.push(newP);
-                    Toast.success('Product added!', name);
-                    launchConfetti(1000);
-                }
-            }
-            // Reset temp state
-            currentUploadedImages = [];
-            currentUploadedVideos = [];
-            document.getElementById('pm-images-preview').innerHTML = '';
-            document.getElementById('pm-videos-preview').innerHTML = '';
-
-            editingProductId = null;
-            document.getElementById('product-modal-title').textContent = 'Add New Product';
-            closeModal('add-product-modal');
-            renderProductsTable(adminProducts);
-            updateDashboardStats(); // Refresh dashboard counts
         }
 
         async function deleteProduct(id) {
@@ -2333,6 +2361,14 @@
                 updateDashboardStats();
             }
         }
+
+        window.saveProduct = saveProduct;
+        window.deleteProduct = deleteProduct;
+        window.clearAllProductsFromDB = clearAllProductsFromDB;
+        window.openEditProduct = openEditProduct;
+        window.filterProducts = filterProducts;
+        window.filterOrders = filterOrders;
+        window.exportData = exportData;
 
         // ---- Orders ----
         function _getOrderStatusClass(status) {
@@ -2681,6 +2717,9 @@
             Toast.info('All notifications cleared');
         }
 
+        window.dismissNotif = dismissNotif;
+        window.clearAllNotifs = clearAllNotifs;
+
         // ---- Export ----
         function exportData(format) {
             Toast.success(`Exporting ${format.toUpperCase()}...`, 'Your report will download shortly.');
@@ -2726,7 +2765,7 @@
         };
 
         // ---- Auth Security ----
-        async function adminLogout() {
+        window.adminLogout = async function() {
             const fb = await (typeof initFirebase === 'function' ? initFirebase() : null);
             if (fb && fb.auth) {
                 const { signOut } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
@@ -2736,6 +2775,9 @@
             localStorage.clear();
             sessionStorage.clear();
             window.location.replace('admin-login.html');
+        };
+        async function adminLogout() {
+            return window.adminLogout();
         }
 
         // ---- Invoices (Admin) ----
@@ -2823,34 +2865,34 @@
                     ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})
                     : '—';
                     
-                return \`
+                return `
                 <tr>
-                    <td style="color:var(--gold);font-weight:600;font-size:0.85rem">\${inv.invoiceNumber}</td>
+                    <td style="color:var(--gold);font-weight:600;font-size:0.85rem">${inv.invoiceNumber}</td>
                     <td>
-                        <div>\${inv.customerName || '—'}</div>
-                        <div style="font-size:0.7rem;color:#666">\${inv.customerEmail || '—'}</div>
+                        <div>${inv.customerName || '—'}</div>
+                        <div style="font-size:0.7rem;color:#666">${inv.customerEmail || '—'}</div>
                     </td>
-                    <td style="color:#888;font-size:0.8rem">\${inv.orderNumber || '—'}</td>
-                    <td style="color:var(--green);font-weight:700">₹\${(inv.grandTotal||0).toLocaleString('en-IN')}</td>
-                    <td style="color:#aaa;font-size:0.85rem">₹\${(inv.cgst||0).toLocaleString('en-IN')}</td>
-                    <td style="color:#aaa;font-size:0.85rem">₹\${(inv.sgst||0).toLocaleString('en-IN')}</td>
-                    <td><span class="badge" style="background:#222;color:#ccc">\${(inv.paymentMethod||'razorpay').toUpperCase()}</span></td>
-                    <td style="color:#777;font-size:0.8rem">\${date}</td>
+                    <td style="color:#888;font-size:0.8rem">${inv.orderNumber || '—'}</td>
+                    <td style="color:var(--green);font-weight:700">₹${(inv.grandTotal||0).toLocaleString('en-IN')}</td>
+                    <td style="color:#aaa;font-size:0.85rem">₹${(inv.cgst||0).toLocaleString('en-IN')}</td>
+                    <td style="color:#aaa;font-size:0.85rem">₹${(inv.sgst||0).toLocaleString('en-IN')}</td>
+                    <td><span class="badge" style="background:#222;color:#ccc">${(inv.paymentMethod||'razorpay').toUpperCase()}</span></td>
+                    <td style="color:#777;font-size:0.8rem">${date}</td>
                     <td>
                         <div class="tbl-actions">
-                            <button class="tbl-btn edit" onclick="window.downloadAdminInvoice('\${inv.orderId}')">📄 PDF</button>
-                            <button class="tbl-btn approve" onclick="window.emailAdminInvoice('\${inv.orderId}', '\${inv.id}')">📧 Email</button>
+                            <button class="tbl-btn edit" onclick="window.downloadAdminInvoice('${inv.orderId}')">📄 PDF</button>
+                            <button class="tbl-btn approve" onclick="window.emailAdminInvoice('${inv.orderId}', '${inv.id}')">📧 Email</button>
                         </div>
                     </td>
-                </tr>\`;
+                </tr>`;
             }).join('');
             
             tbody.innerHTML = rows;
 
             // Update stats
             document.getElementById('inv-stat-total').textContent = invoices.length;
-            document.getElementById('inv-stat-revenue').textContent = \`₹\${invoiceTotalAmount.toLocaleString('en-IN')}\`;
-            document.getElementById('inv-stat-gst').textContent = \`₹\${invoiceTotalGst.toLocaleString('en-IN')}\`;
+            document.getElementById('inv-stat-revenue').textContent = `₹${invoiceTotalAmount.toLocaleString('en-IN')}`;
+            document.getElementById('inv-stat-gst').textContent = `₹${invoiceTotalGst.toLocaleString('en-IN')}`;
             document.getElementById('inv-stat-emailed').textContent = emailedToday;
         };
 
@@ -2888,8 +2930,8 @@
             try {
                 const res = await window.fnGenerateInvoice({ orderId });
                 const link = document.createElement('a');
-                link.href = \`data:application/pdf;base64,\${res.data.pdfBase64}\`;
-                link.download = \`Invoice-\${res.data.invoiceNumber}.pdf\`;
+                link.href = `data:application/pdf;base64,${res.data.pdfBase64}`;
+                link.download = `Invoice-${res.data.invoiceNumber}.pdf`;
                 link.click();
                 Toast.success('PDF Downloaded');
             } catch (err) {
@@ -2933,14 +2975,14 @@
                     inv.totalGst || 0,
                     inv.paymentMethod || '',
                     inv.orderStatus || ''
-                ].map(v => \`"\${v}"\`).join(',');
+                ].map(v => `"${v}"`).join(',');
             });
             
-            const csv = [headers.join(','), ...rows].join('\\n');
+            const csv = [headers.join(','), ...rows].join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = \`Invoices-Export-\${new Date().toISOString().slice(0,10)}.csv\`;
+            link.download = `Invoices-Export-${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
             
             Toast.success('CSV Exported');

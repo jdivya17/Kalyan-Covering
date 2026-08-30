@@ -58,9 +58,11 @@ service firebase.storage {
     }
 
     // --- Deny all other paths ---
+    // Explicit deny for any path not covered above. Without this, Firebase Storage
+    // falls back to denying by default, but having it explicit prevents future
+    // accidental rule changes from opening unintended paths.
     match /{allPaths=**} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }

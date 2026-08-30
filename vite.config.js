@@ -16,7 +16,13 @@ export default defineConfig({
         myOrders: resolve(__dirname, 'public/my-orders.html'),
         productDetail: resolve(__dirname, 'public/product-detail.html'),
         profile: resolve(__dirname, 'public/profile.html'),
-        wishlist: resolve(__dirname, 'public/wishlist.html')
+        wishlist: resolve(__dirname, 'public/wishlist.html'),
+        app: resolve(__dirname, 'public/app.js')
+      },
+      output: {
+        entryFileNames: '[name].[hash].js',
+        chunkFileNames: '[name].[hash].js',
+        assetFileNames: '[name].[hash].[ext]'
       }
     }
   }

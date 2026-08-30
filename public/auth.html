@@ -7,6 +7,13 @@
     <title>Login & Register | Kalyan Covering</title>
     <meta name="description" content="Login or create your Kalyan Covering account to shop for premium jewellery.">
     <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
 
     <!-- Early redirect: runs before page renders, avoids flash -->
@@ -601,15 +608,92 @@
                 min-height: 46px;
             }
         }
+        /* ---- Auth link buttons (look like links, work like buttons) ---- */
+        .auth-link-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-weight: 700;
+            cursor: pointer;
+            font-size: inherit;
+            font-family: inherit;
+            padding: 0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .auth-link-btn:hover {
+            text-decoration: underline;
+            color: var(--gold-light);
+        }
+
+        /* ---- Real accessible checkbox ---- */
+        .gold-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid var(--gold);
+            border-radius: 5px;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: var(--gold);
+            margin-top: 1px;
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            position: relative;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .gold-checkbox:checked {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+        .gold-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: #000;
+            font-weight: 900;
+            font-size: 12px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .gold-checkbox:focus-visible {
+            outline: 2px solid var(--gold);
+            outline-offset: 3px;
+        }
+
+        .tnc-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--white-dim);
+        }
+        .tnc-wrapper label {
+            cursor: pointer;
+            line-height: 1.6;
+        }
+
+        /* ---- Password strength screen-reader label ---- */
+        #pw-strength-label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+        }
     </style>
 </head>
 
 <body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="auth-bg" id="auth-bg"></div>
     <div id="toast-container" class="toast-container"></div>
     <script type="module" src="app.js"></script>
 
-    <div class="auth-container">
+    <main id="main-content" class="auth-container" aria-label="Authentication">
         <!-- Logo -->
         <div class="auth-logo">
             <img src="assets/kalyan_logo.png" alt="Kalyan Covering"
@@ -635,19 +719,21 @@
                 <div class="form-group">
                     <label class="form-label" for="login-email">Email address</label>
                     <input type="email" id="login-email" name="email" class="form-input" placeholder="you@example.com"
-                        autocomplete="email" inputmode="email">
+                        autocomplete="email" inputmode="email"
+                        aria-describedby="login-email-err" aria-required="true">
                     <div class="field-error" id="login-email-err">Please enter a valid email address.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="login-password">Password</label>
                     <div class="password-wrap">
                         <input type="password" id="login-password" name="password" class="form-input"
-                            placeholder="Enter your password" autocomplete="current-password">
-                        <span class="password-toggle" onclick="togglePassword('login-password', this)"
-                            title="Show/hide password">👁️</span>
+                            placeholder="Enter your password" autocomplete="current-password"
+                            aria-describedby="login-password-err" aria-required="true">
+                        <button type="button" class="password-toggle" onclick="togglePassword('login-password', this)"
+                            aria-label="Show password" aria-pressed="false">👁️</button>
                     </div>
-                    <div class="field-error" id="login-password-err">Password cannot be empty.</div>
-                    <span class="forgot-link" onclick="openForgotPassword()">Forgot password?</span>
+                    <div class="field-error" id="login-password-err" role="alert">Password cannot be empty.</div>
+                    <button type="button" class="forgot-link" onclick="openForgotPassword()" aria-haspopup="dialog">Forgot password?</button>
                 </div>
                 <button type="submit" class="btn-auth" id="btn-login-send">
                     <span class="btn-text">🔑 Login to Account</span>
@@ -655,7 +741,7 @@
                 </button>
             </form>
             <div class="auth-footer">
-                New here? <a onclick="switchTab('reg')">Create an account</a>
+                New here? <button type="button" class="auth-link-btn" onclick="switchTab('reg')">Create an account</button>
             </div>
         </div>
 
@@ -665,19 +751,20 @@
                 <div class="form-group">
                     <label class="form-label" for="reg-name">Full Name</label>
                     <input type="text" id="reg-name" name="name" class="form-input" placeholder="Priya Sharma"
-                        autocomplete="name">
+                        autocomplete="name" aria-describedby="reg-name-err" aria-required="true">
                     <div class="field-error" id="reg-name-err">Please enter your name.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-email">Email Address</label>
                     <input type="email" id="reg-email" name="email" class="form-input" placeholder="priya@example.com"
-                        autocomplete="email" inputmode="email">
+                        autocomplete="email" inputmode="email" aria-describedby="reg-email-err" aria-required="true">
                     <div class="field-error" id="reg-email-err">Please enter a valid email address.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-phone">Phone Number</label>
                     <input type="tel" id="reg-phone" name="phone" class="form-input" placeholder="9876543210"
-                        autocomplete="tel" inputmode="numeric" maxlength="10">
+                        autocomplete="tel" inputmode="numeric" maxlength="10"
+                        aria-describedby="reg-phone-err" aria-required="true">
                     <div class="field-error" id="reg-phone-err">Enter a valid 10-digit phone number.</div>
                 </div>
                 <div class="form-group">
@@ -685,9 +772,10 @@
                     <div class="password-wrap">
                         <input type="password" id="reg-password" name="password" class="form-input"
                             placeholder="Min. 8 characters" autocomplete="new-password"
-                            oninput="checkPasswordStrength(this.value)">
-                        <span class="password-toggle" onclick="togglePassword('reg-password', this)"
-                            title="Show/hide password">👁️</span>
+                            oninput="checkPasswordStrength(this.value)"
+                            aria-describedby="pw-strength-label reg-password-err" aria-required="true">
+                        <button type="button" class="password-toggle" onclick="togglePassword('reg-password', this)"
+                            aria-label="Show password" aria-pressed="false">👁️</button>
                     </div>
                     <div class="pw-strength" id="pw-strength">
                         <div class="pw-bar" id="pw-bar-1"></div>
@@ -701,19 +789,22 @@
                     <label class="form-label" for="reg-password-conf">Confirm Password</label>
                     <div class="password-wrap">
                         <input type="password" id="reg-password-conf" name="confirm-password" class="form-input"
-                            placeholder="Repeat your password" autocomplete="new-password">
-                        <span class="password-toggle" onclick="togglePassword('reg-password-conf', this)"
-                            title="Show/hide password">👁️</span>
+                            placeholder="Repeat your password" autocomplete="new-password"
+                            aria-describedby="reg-conf-err" aria-required="true">
+                        <button type="button" class="password-toggle" onclick="togglePassword('reg-password-conf', this)"
+                            aria-label="Show password" aria-pressed="false">👁️</button>
                     </div>
                     <div class="field-error" id="reg-conf-err">Passwords do not match.</div>
                 </div>
-                <div class="tnc-wrapper" onclick="document.getElementById('reg-tnc').classList.toggle('checked')">
-                    <div class="gold-check" id="reg-tnc"></div>
-                    <span>I agree to the <a href="#" onclick="event.stopPropagation()">Terms &amp; Conditions</a>
-                        and Privacy Policy of Kalyan Covering.</span>
-                </div>
-                <div class="field-error" id="reg-tnc-err" style="margin-top:-0.8rem;margin-bottom:0.8rem">
-                    Please accept the Terms &amp; Conditions.
+                <div class="form-group">
+                    <div class="tnc-wrapper">
+                        <input type="checkbox" id="reg-tnc" name="reg-tnc" class="gold-checkbox" aria-describedby="reg-tnc-err">
+                        <label for="reg-tnc">I agree to the <a href="Terms%20of%20Use.pdf" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+                            and <a href="Privacy%20Policy.pdf" target="_blank" rel="noopener">Privacy Policy</a> of Kalyan Covering.</label>
+                    </div>
+                    <div class="field-error" id="reg-tnc-err" role="alert" style="margin-top:-0.8rem;margin-bottom:0.8rem">
+                        Please accept the Terms &amp; Conditions.
+                    </div>
                 </div>
                 <button type="submit" class="btn-auth" id="btn-reg-send">
                     <span class="btn-text">✨ Create Account</span>
@@ -721,15 +812,16 @@
                 </button>
             </form>
             <div class="auth-footer">
-                Already have an account? <a onclick="switchTab('login')">Login here</a>
+                Already have an account? <button type="button" class="auth-link-btn" onclick="switchTab('login')">Login here</button>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Forgot Password Modal -->
-    <div class="forgot-modal-overlay" id="forgot-overlay" onclick="if(event.target===this)closeForgotPassword()">
+    <div class="forgot-modal-overlay" id="forgot-overlay" role="dialog" aria-modal="true" aria-labelledby="forgot-modal-title"
+        onclick="if(event.target===this)closeForgotPassword()">
         <div class="forgot-modal">
-            <h3>🔑 Reset Password</h3>
+            <h3 id="forgot-modal-title">🔑 Reset Password</h3>
             <p>Enter your email address and we'll send you a link to reset your password.</p>
             <form onsubmit="sendResetEmail(); return false;" novalidate>
                 <div class="form-group">
@@ -801,8 +893,17 @@
         // ---- Password Toggle ----
         window.togglePassword = function (id, el) {
             const inp = document.getElementById(id);
-            if (inp.type === 'password') { inp.type = 'text'; el.textContent = '🔒'; }
-            else { inp.type = 'password'; el.textContent = '👁️'; }
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                el.textContent = '🔒';
+                el.setAttribute('aria-label', 'Hide password');
+                el.setAttribute('aria-pressed', 'true');
+            } else {
+                inp.type = 'password';
+                el.textContent = '👁️';
+                el.setAttribute('aria-label', 'Show password');
+                el.setAttribute('aria-pressed', 'false');
+            }
         };
 
         // ---- Password Strength ----
@@ -823,7 +924,10 @@
         function setError(inputId, errId, show) {
             const inp = document.getElementById(inputId);
             const err = document.getElementById(errId);
-            if (inp) inp.classList.toggle('error', show);
+            if (inp) {
+                inp.classList.toggle('error', show);
+                inp.setAttribute('aria-invalid', show ? 'true' : 'false');
+            }
             if (err) err.classList.toggle('show', show);
             return !show;
         }
@@ -923,7 +1027,7 @@
             const phone = document.getElementById('reg-phone').value.trim();
             const password = document.getElementById('reg-password').value;
             const confirmPassword = document.getElementById('reg-password-conf').value;
-            const tncChecked = document.getElementById('reg-tnc').classList.contains('checked');
+            const tncChecked = document.getElementById('reg-tnc').checked;
             const btn = document.getElementById('btn-reg-send');
 
             let valid = true;

@@ -31,11 +31,15 @@ async function initFirebase() {
         // Initialize App Check
         if (typeof window !== 'undefined') {
             try {
+                const RECAPTCHA_V3_SITE_KEY = 'INSERT_YOUR_REAL_RECAPTCHA_V3_SITE_KEY_HERE';
+                if (RECAPTCHA_V3_SITE_KEY === 'INSERT_YOUR_REAL_RECAPTCHA_V3_SITE_KEY_HERE') {
+                    console.error('SECURITY WARNING: Real ReCAPTCHA v3 site key is missing. App Check will not function correctly in production.');
+                }
                 initializeAppCheck(app, {
-                    provider: new ReCaptchaV3Provider('6Lc_dummy_site_key_for_testing'), // Replace with actual ReCAPTCHA site key
+                    provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
                     isTokenAutoRefreshEnabled: true
                 });
-                console.log('App Check initialized with ReCAPTCHA v3');
+                console.log('App Check initialized');
             } catch (err) {
                 console.error('App Check init failed:', err);
             }
@@ -56,19 +60,51 @@ async function initFirebase() {
 
 // ---- Firestore Data Functions ----
 async function loadProductsFromFirebase() {
+    // ---- 5-minute sessionStorage cache: avoids re-fetch on every page navigation ----
+    const PRODUCTS_CACHE_KEY = 'kc_products_cache';
+    const PRODUCTS_CACHE_TTL = 5 * 60 * 1000;
+    try {
+        const cached = sessionStorage.getItem(PRODUCTS_CACHE_KEY);
+        if (cached) {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < PRODUCTS_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+                console.log('Products served from sessionStorage cache.');
+                KC.products = data;
+                window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: data }));
+                return data;
+            }
+        }
+    } catch (_) { sessionStorage.removeItem(PRODUCTS_CACHE_KEY); }
+
     const fb = await initFirebase();
-    if (!fb) return getDefaultProducts();
+    if (!fb) {
+        const fallback = getDefaultProducts();
+        KC.products = fallback;
+        window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: fallback }));
+        return fallback;
+    }
     try {
         const { getDocs, collection, query } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
         const q = query(collection(fb.db, "products"));
         const snapshot = await getDocs(q);
-        if (snapshot.empty) return getDefaultProducts();
+        if (snapshot.empty) {
+            const fallback = getDefaultProducts();
+            KC.products = fallback;
+            window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: fallback }));
+            return fallback;
+        }
         const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Store in sessionStorage for subsequent page navigations within this session
+        sessionStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ data: products, ts: Date.now() }));
         KC.products = products;
+        window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: products }));
         return products;
     } catch (e) {
         console.error('Error loading products:', e);
-        return getDefaultProducts();
+        const fallback = getDefaultProducts();
+        KC.products = fallback;
+        window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: fallback }));
+        return fallback;
     }
 }
 
@@ -135,48 +171,80 @@ async function saveUserToFirestore(userData) {
 }
 
 async function initThemeSync() {
-    const fb = await initFirebase();
-    if (!fb) return;
+    // Uses getDoc + 5-min sessionStorage cache instead of onSnapshot.
+    // onSnapshot for live preview is kept only in admin.html.
+    const CACHE_KEY = 'kc_theme_cache';
+    const CACHE_TTL = 5 * 60 * 1000;
     try {
-        const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        onSnapshot(doc(fb.db, "settings", "theme"), (snap) => {
-            if (snap.exists()) {
-                const theme = snap.data().value;
-                if (theme && theme !== KC.theme) {
-                    console.log('Live Theme Update:', theme);
-                    SeasonalTheme.apply(theme);
-                }
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < CACHE_TTL) {
+                if (data.value && data.value !== KC.theme) SeasonalTheme.apply(data.value);
+                return;
             }
-        });
+        }
+        const fb = await initFirebase();
+        if (!fb) return;
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+        const snap = await getDoc(doc(fb.db, "settings", "theme"));
+        if (snap.exists()) {
+            const data = snap.data();
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+            if (data.value && data.value !== KC.theme) {
+                console.log('Theme loaded:', data.value);
+                SeasonalTheme.apply(data.value);
+            }
+        }
     } catch (e) { console.error('Theme sync error:', e); }
 }
 
 async function initSocialLinks() {
-    const fb = await initFirebase();
-    if (!fb) return;
+    // Uses getDoc + 5-min sessionStorage cache instead of onSnapshot.
+    // onSnapshot for live preview is kept only in admin.html.
+    const CACHE_KEY = 'kc_social_cache';
+    const CACHE_TTL = 5 * 60 * 1000;
     try {
-        const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        onSnapshot(doc(fb.db, "config", "social"), (snap) => {
-            if (snap.exists()) {
-                applySocialLinks(snap.data());
-            }
-        });
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < CACHE_TTL) { applySocialLinks(data); return; }
+        }
+        const fb = await initFirebase();
+        if (!fb) return;
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+        const snap = await getDoc(doc(fb.db, "config", "social"));
+        if (snap.exists()) {
+            const data = snap.data();
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+            applySocialLinks(data);
+        }
     } catch (e) { console.error('Social links sync error:', e); }
 }
 
 async function initGeneralSettings() {
-    const fb = await initFirebase();
-    if (!fb) return;
+    // Uses getDocs + 5-min sessionStorage cache instead of onSnapshot.
+    // onSnapshot for live preview is kept only in admin.html.
+    const CACHE_KEY = 'kc_branches_cache';
+    const CACHE_TTL = 5 * 60 * 1000;
     try {
-        const { doc, onSnapshot, getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < CACHE_TTL) {
+                KC.branches = data;
+                renderBranches();
+                return;
+            }
+        }
+        const fb = await initFirebase();
+        if (!fb) return;
+        const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
         // Removed adminKeyword fetch from public settings for security
-
-        // Listen to branches
-        onSnapshot(collection(fb.db, "branches"), (snap) => {
-            KC.branches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderBranches();
-        });
+        const snap = await getDocs(collection(fb.db, "branches"));
+        KC.branches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: KC.branches, ts: Date.now() }));
+        renderBranches();
     } catch (e) { console.error('Settings init error:', e); }
 }
 
@@ -265,7 +333,7 @@ setInterval(() => {
 
 document.addEventListener('mousemove', resetIdleTimer);
 document.addEventListener('keypress', resetIdleTimer);
-document.addEventListener('scroll', resetIdleTimer);
+document.addEventListener('scroll', resetIdleTimer, { passive: true });
 document.addEventListener('click', resetIdleTimer);
 document.addEventListener('touchstart', resetIdleTimer);
 
@@ -285,7 +353,7 @@ window.logoutUser = async (isAuto = false) => {
     sessionStorage.clear();
     
     if (isAuto === true) {
-        alert('You have been logged out due to inactivity for security reasons.');
+        Toast.info('Session Expired', 'You have been logged out due to inactivity for security reasons.');
     }
     // Detect if on admin page and redirect accordingly
     const isAdminPage = window.location.pathname.includes('admin');
@@ -340,7 +408,11 @@ function getDefaultVideos() {
 
 // ---- Sparkle on Hover ----
 function addSparkleEffect(el) {
+    let lastSpark = 0;
     el.addEventListener('mousemove', (e) => {
+        const now = Date.now();
+        if (now - lastSpark < 83) return; // limit to ~12 events/sec
+        lastSpark = now;
         const rect = el.getBoundingClientRect();
         for (let i = 0; i < 3; i++) {
             const spark = document.createElement('span');
@@ -363,19 +435,28 @@ function addSparkleEffect(el) {
 }
 
 // ---- Cart Logic ----
+let lastCartActionTime = 0;
 const Cart = {
     add(product) {
+        if (!product || !product.id) return;
+        
+        // Throttling protection against spam clicking
+        const now = Date.now();
+        if (now - lastCartActionTime < 200) return;
+        lastCartActionTime = now;
+
         // Normalize image for cart display
         const normalizedProduct = { ...product };
         if (!normalizedProduct.image && normalizedProduct.images && normalizedProduct.images.length > 0) {
             normalizedProduct.image = normalizedProduct.images[0];
         }
 
+        const qtyToAdd = normalizedProduct.qty || 1;
         const existing = KC.cart.find(i => i.id === product.id);
         if (existing) {
-            existing.qty = (existing.qty || 1) + 1;
+            existing.qty = (existing.qty || 1) + qtyToAdd;
         } else {
-            KC.cart.push({ ...normalizedProduct, qty: 1 });
+            KC.cart.push({ ...normalizedProduct, qty: qtyToAdd });
         }
         this.save();
         this.updateBadge();
@@ -519,8 +600,10 @@ const SeasonalTheme = {
             ctx.save();
             ctx.globalAlpha = p.opacity * p.life;
             ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 15;
+            if (window.innerWidth >= 768) {
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 15;
+            }
             if (p.type === 'glow') {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -574,8 +657,10 @@ const SeasonalTheme = {
             ctx.save();
             ctx.globalAlpha = p.opacity;
             ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = '#AADDFF';
-            ctx.shadowBlur = 10;
+            if (window.innerWidth >= 768) {
+                ctx.shadowColor = '#AADDFF';
+                ctx.shadowBlur = 10;
+            }
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
@@ -647,7 +732,7 @@ function initNav() {
     if (nav) {
         window.addEventListener('scroll', () => {
             nav.classList.toggle('scrolled', window.scrollY > 50);
-        });
+        }, { passive: true });
     }
 
     if (user) {
@@ -695,7 +780,11 @@ window.toggleMobileMenu = function() {
     if(drawer && overlay) {
         drawer.classList.toggle('open');
         overlay.classList.toggle('active');
-        if(hamburger) hamburger.classList.toggle('open');
+        if(hamburger) {
+            hamburger.classList.toggle('open');
+            const isOpen = drawer.classList.contains('open');
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
         document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
     }
 };
@@ -704,7 +793,9 @@ window.toggleSearch = function() {
     const modal = document.getElementById('search-modal');
     if(modal) {
         modal.classList.toggle('active');
-        if(modal.classList.contains('active')) {
+        const isActive = modal.classList.contains('active');
+        modal.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+        if(isActive) {
             setTimeout(() => document.getElementById('smart-search-input')?.focus(), 100);
             document.body.style.overflow = 'hidden';
         } else {
@@ -721,13 +812,13 @@ window.handleSmartSearch = function(query) {
         const suggestionLabel = document.querySelector('.search-suggestions-label');
         if (!resultsContainer) return;
         
-        if (!query || query.length < 2) {
+        if (!query || query.trim().length < 2) {
             resultsContainer.innerHTML = '';
             if (suggestionLabel) suggestionLabel.style.display = 'none';
             return;
         }
 
-        const q = query.toLowerCase();
+        const q = query.trim().toLowerCase();
         const results = KC.products.filter(p => 
             p.name.toLowerCase().includes(q) || 
             (p.category && p.category.toLowerCase().includes(q))
@@ -736,19 +827,30 @@ window.handleSmartSearch = function(query) {
         if (suggestionLabel) suggestionLabel.style.display = 'block';
 
         if (results.length === 0) {
-            resultsContainer.innerHTML = `<div style="padding:1rem;color:var(--white-dim)">No products found for "${query}"</div>`;
+            resultsContainer.innerHTML = `
+                <div style="padding:2rem 1rem;text-align:center;color:var(--white-dim)">
+                    <div style="font-size:2rem;margin-bottom:0.5rem">🔍</div>
+                    <div style="font-weight:600;color:var(--gold);margin-bottom:0.3rem">No matches for "${query}"</div>
+                    <p style="font-size:0.85rem;color:#888;margin-bottom:1rem">Try searching by category or popular collections:</p>
+                    <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">
+                        <button onclick="window.location='products.html?cat=Necklaces'" class="kc-suggestion-chip">Necklaces</button>
+                        <button onclick="window.location='products.html?cat=Rings'" class="kc-suggestion-chip">Rings</button>
+                        <button onclick="window.location='products.html?cat=Bangles'" class="kc-suggestion-chip">Bangles</button>
+                        <button onclick="window.location='products.html'" class="kc-suggestion-chip">All Products</button>
+                    </div>
+                </div>`;
         } else {
             resultsContainer.innerHTML = results.slice(0, 5).map(p => `
                 <div onclick="window.location='product-detail.html?id=${p.id}'" style="display:flex;align-items:center;gap:1rem;padding:0.8rem;background:var(--black-card);border:1px solid var(--black-border);border-radius:var(--radius);cursor:pointer;transition:border-color 0.2s">
                     <img src="${p.primaryImageURL || p.image || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:4px">
                     <div>
                         <div style="font-weight:600;color:var(--gold)">${p.name}</div>
-                        <div style="font-size:0.8rem;color:var(--white-dim)">₹${p.price.toLocaleString()}</div>
+                        <div style="font-size:0.8rem;color:var(--white-dim)">₹${p.price.toLocaleString()} • ${p.category || 'Jewellery'}</div>
                     </div>
                 </div>
             `).join('');
         }
-    }, 300);
+    }, 250);
 };
 
 window.logout = function(event) {
@@ -1290,6 +1392,8 @@ function closeModal(id) {
     const m = document.getElementById(id);
     if (m) m.classList.remove('open');
 }
+window.openModal = openModal;
+window.closeModal = closeModal;
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('open');

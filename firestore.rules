@@ -40,7 +40,9 @@ service cloud.firestore {
     
     match /products/{document=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && 
+                   (!('price' in request.resource.data) || request.resource.data.price is number) &&
+                   (!('mrp' in request.resource.data) || request.resource.data.mrp is number);
     }
     
     match /brands/{document=**} {
@@ -68,16 +70,28 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    // --- Coupons: Authenticated users only (prevents unauthenticated scraping) ---
+    // Coupon validation on the frontend goes through the validateCoupon Cloud Function,
+    // which does its own server-side auth check. Direct coupon reads are limited to
+    // signed-in users only.
     match /coupons/{document=**} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if isOwnerOrManager();
     }
     
     match /reviews/{document=**} {
       allow read: if true;
-      // Create via submitReview Cloud Function only
+      // Reviews must be submitted via Cloud Function to ensure one-review-per-order validation.
       allow create: if false;
-      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      // Users can edit ONLY review content fields on their own reviews.
+      // Prevents tampering with customerId, productId, orderId, or any other metadata.
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        resource.data.customerId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rating', 'comment', 'title', 'updatedAt'])
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
     }
 
     // --- Protected User Collections ---
@@ -112,10 +126,20 @@ service cloud.firestore {
     }
     
     match /orders/{orderId} {
-      // Users can only view their own orders
+      // Users can only view their own orders; admins can view all.
       allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
-      // Orders must be created via Cloud Functions for secure payment processing
-      allow create, update, delete: if isAdmin();
+
+      // Orders are created exclusively via the createRazorpayOrder Cloud Function.
+      // No client-side order creation is permitted.
+      allow create: if false;
+
+      // Admin can update order status, tracking info, etc. from the admin panel.
+      // Customer-initiated cancel/return flow goes through cancelOrder and
+      // initiateReturn Cloud Functions (which run with Admin SDK) — not direct writes.
+      allow update: if isAdmin();
+
+      // Only owner or manager can delete orders.
+      allow delete: if isOwnerOrManager();
     }
     
     match /wishlists/{userId} {
@@ -152,7 +176,9 @@ service cloud.firestore {
       allow write: if false; // Managed exclusively by Cloud Functions
     }
 
-    // Catch-all: Deny any access to unspecified collections
+    // Catch-all: Deny all access to any unspecified collection.
+    // This is an explicit security boundary — any new collection must be
+    // explicitly added above to be accessible.
     match /{document=**} {
       allow read, write: if false;
     }

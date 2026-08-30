@@ -12,6 +12,13 @@
         }
     </script>
     <link rel="icon" type="image/png" href="assets/kalyan_logo.png">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     <style>
         /* ======= DASHBOARD LAYOUT ======= */
@@ -100,6 +107,11 @@
             transition: var(--transition);
             font-size: 0.95rem;
             font-weight: 500;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
         }
 
         .nav-item:hover {
@@ -306,8 +318,11 @@
 </head>
 
 <body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Navigation (Main App Nav) -->
-    <nav class="nav">
+    <nav class="nav" aria-label="Main navigation">
         <div class="nav-inner">
             <a href="index.html" class="nav-logo">
                 <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img">
@@ -343,36 +358,36 @@
                 </div>
             </div>
             
-            <div class="nav-menu">
-                <div class="nav-item active" onclick="switchTab('profile', this)">
-                    <span class="nav-icon">👤</span> Profile Details
-                </div>
-                <div class="nav-item" onclick="switchTab('orders', this)">
-                    <span class="nav-icon">📦</span> Order History
-                </div>
-                <div class="nav-item" onclick="switchTab('returns', this)">
-                    <span class="nav-icon">↩️</span> Returns & Refunds
-                </div>
-                <div class="nav-item" onclick="switchTab('wishlist', this)">
-                    <span class="nav-icon">❤️</span> My Wishlist
-                </div>
-                <div class="nav-item" onclick="switchTab('addresses', this)">
-                    <span class="nav-icon">📍</span> Saved Addresses
-                </div>
-                <div class="nav-item" onclick="switchTab('notifications', this)">
-                    <span class="nav-icon">🔔</span> Notifications
-                </div>
-                <div class="nav-item" onclick="switchTab('settings', this)">
-                    <span class="nav-icon">⚙️</span> Settings
-                </div>
-                <div class="nav-item logout-btn" onclick="performLogout()">
-                    <span class="nav-icon">🚪</span> Logout
-                </div>
+            <div class="nav-menu" role="tablist" aria-label="Dashboard navigation">
+                <button type="button" class="nav-item active" onclick="switchTab('profile', this)" role="tab" aria-selected="true">
+                    <span class="nav-icon" aria-hidden="true">👤</span> Profile Details
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('orders', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">📦</span> Order History
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('returns', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">↩️</span> Returns &amp; Refunds
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('wishlist', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">❤️</span> My Wishlist
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('addresses', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">📍</span> Saved Addresses
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('notifications', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">🔔</span> Notifications
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('settings', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span> Settings
+                </button>
+                <button type="button" class="nav-item logout-btn" onclick="performLogout()">
+                    <span class="nav-icon" aria-hidden="true">🚪</span> Logout
+                </button>
             </div>
         </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="main-content">
+        <main id="main-content" class="main-content">
             
             <!-- PROFILE TAB -->
             <section class="tab-content active" id="tab-profile">
@@ -544,10 +559,14 @@
 
         // Tab Switching Logic
         window.switchTab = function(tabId, el) {
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.remove('active');
+                i.setAttribute('aria-selected', 'false');
+            });
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
             el.classList.add('active');
+            el.setAttribute('aria-selected', 'true');
             document.getElementById(`tab-${tabId}`).classList.add('active');
             document.getElementById('mobile-current-tab').textContent = el.textContent.trim();
             
