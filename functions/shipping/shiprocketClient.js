@@ -77,8 +77,12 @@ async function getToken() {
 
     log("info", "Fetching new Shiprocket token");
 
-    const email = process.env.SHIPROCKET_EMAIL;
-    const password = process.env.SHIPROCKET_PASSWORD;
+    const { defineSecret } = require('firebase-functions/params');
+    const shiprocketEmail = defineSecret("SHIPROCKET_EMAIL");
+    const shiprocketPassword = defineSecret("SHIPROCKET_PASSWORD");
+
+    const email = shiprocketEmail.value();
+    const password = shiprocketPassword.value();
 
     if (!email || !password) {
         const err = new Error(

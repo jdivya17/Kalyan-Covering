@@ -6,10 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders | Kalyan Covering</title>
     <meta name="description" content="Track all your past and current jewellery orders from Kalyan Covering.">
-    <script>
-        if (!localStorage.getItem('kc_user')) {
-            window.location.replace('auth.html');
-        }
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        document.addEventListener('DOMContentLoaded', () => {
+            onAuthStateChanged(auth, (user) => {
+                if (!user && !window.location.pathname.includes('auth.html')) {
+                    window.location.replace('auth.html');
+                }
+            });
+        });
     </script>
     <!-- Performance: preconnect to critical third-party origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -396,7 +402,7 @@
         <div class="nav-inner">
             <a href="index.html" class="nav-logo">
                 <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
-                    onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                    onerror="this.src='/img-fallback.svg'">
                 Kalyan Covering
             </a>
             <ul class="nav-links">
@@ -748,9 +754,9 @@
                     <div class="order-body">
                         ${items.map(item => `
                             <div class="order-item">
-                                <img src="${item.image || item.primaryImageURL || (item.imageURLs && item.imageURLs[0]) || 'https://via.placeholder.com/100'}" 
+                                <img src="${item.image || item.primaryImageURL || (item.imageURLs && item.imageURLs[0]) || '/img-fallback.svg'}" 
                                      class="order-item-img"
-                                     onerror="this.src='https://via.placeholder.com/100'">
+                                     onerror="this.src='/img-fallback.svg'">
                                 <div class="order-item-info">
                                     <h3 class="order-item-name">${item.name || 'Jewellery Item'}</h3>
                                     <p class="order-item-meta">Qty: ${item.qty || item.quantity || 1} • Price: ₹${(item.price || 0).toLocaleString()}</p>

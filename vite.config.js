@@ -17,7 +17,12 @@ export default defineConfig({
         productDetail: resolve(__dirname, 'public/product-detail.html'),
         profile: resolve(__dirname, 'public/profile.html'),
         wishlist: resolve(__dirname, 'public/wishlist.html'),
-        app: resolve(__dirname, 'public/app.js')
+        app: resolve(__dirname, 'public/app.js'),
+        adminLogin: resolve(__dirname, 'public/admin-login.html'),
+        invoice: resolve(__dirname, 'public/invoice.html'),
+        videoDisplay: resolve(__dirname, 'public/video-display.html'),
+        videoUpload: resolve(__dirname, 'public/video-upload.html'),
+        error404: resolve(__dirname, 'public/404.html')
       },
       output: {
         entryFileNames: '[name].[hash].js',

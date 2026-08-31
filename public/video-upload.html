@@ -780,7 +780,7 @@
 
     <script src="app.js"></script>
     <script type="module">
-        import { db, collection, addDoc, serverTimestamp } from "./firebase-config.js";
+        import { functions, httpsCallable } from "./firebase-config.js";
 
         let currentStep = 1;
         let selectedFile = null;
@@ -940,32 +940,40 @@
                 return;
             }
 
+            const productId = document.getElementById('product-link').value;
+            if (!productId) {
+                Toast.error('Please select a product before submitting.');
+                return;
+            }
+
             Toast.info('Submitting...', 'Saving details to database');
 
             try {
-                const videoDoc = {
+                // Capture video duration from a temporary element if available
+                let duration = null;
+                const videoPreview = document.getElementById('video-preview');
+                if (videoPreview && isFinite(videoPreview.duration) && videoPreview.duration > 0) {
+                    duration = Math.round(videoPreview.duration);
+                }
+
+                const submitVideoReviewFn = httpsCallable(functions, 'submitVideoReview');
+                await submitVideoReviewFn({
+                    productId,
+                    videoUrl: downloadURL,
                     title: document.getElementById('video-title').value,
                     description: document.getElementById('video-desc').value,
-                    tags: tags,
-                    productId: document.getElementById('product-link').value,
-                    videoUrl: downloadURL,
+                    tags,
                     isPublic: document.getElementById('visibility-toggle').checked,
-                    status: 'pending', // Pending review
-                    likes: 0,
-                    views: 0,
-                    createdAt: serverTimestamp(),
-                    authorName: 'Guest User' // In real app, get from Auth
-                };
-
-                await addDoc(collection(db, "videos"), videoDoc);
+                    duration
+                });
 
                 document.getElementById('step3-panel').style.display = 'none';
                 document.getElementById('success-screen').classList.add('visible');
                 launchConfetti(3000);
                 Toast.success('Successfully submitted!');
             } catch (error) {
-                console.error("Firestore error:", error);
-                Toast.error('Failed to save details. Please try again.');
+                console.error('submitVideoReview error:', error);
+                Toast.error(error.message || 'Failed to save details. Please try again.');
             }
         }
 

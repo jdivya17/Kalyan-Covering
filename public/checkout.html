@@ -5,10 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout – Kalyan Covering Premium Jewellery</title>
-    <script>
-        if (!localStorage.getItem('kc_user') && !window.location.pathname.includes('auth.html')) {
-            window.location.replace('auth.html');
-        }
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        document.addEventListener('DOMContentLoaded', () => {
+            onAuthStateChanged(auth, (user) => {
+                if (!user && !window.location.pathname.includes('auth.html')) {
+                    window.location.replace('auth.html');
+                }
+            });
+        });
     </script>
 
     <meta name="description" content="Secure checkout for Kalyan Covering jewellery orders. Multiple payment options available.">
@@ -591,10 +597,42 @@
                             <div class="floating-group" style="position:relative;">
                                 <select class="floating-input" id="state" style="appearance:none; padding-top:1.2rem;" autocomplete="address-level1" aria-required="true">
                                     <option value="" disabled selected></option>
-                                    <option value="Maharashtra">Maharashtra</option>
-                                    <option value="Karnataka">Karnataka</option>
-                                    <option value="Tamil Nadu">Tamil Nadu</option>
+                                    <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                                    <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                                    <option value="Assam">Assam</option>
+                                    <option value="Bihar">Bihar</option>
+                                    <option value="Chandigarh">Chandigarh</option>
+                                    <option value="Chhattisgarh">Chhattisgarh</option>
+                                    <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
                                     <option value="Delhi">Delhi</option>
+                                    <option value="Goa">Goa</option>
+                                    <option value="Gujarat">Gujarat</option>
+                                    <option value="Haryana">Haryana</option>
+                                    <option value="Himachal Pradesh">Himachal Pradesh</option>
+                                    <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                                    <option value="Jharkhand">Jharkhand</option>
+                                    <option value="Karnataka">Karnataka</option>
+                                    <option value="Kerala">Kerala</option>
+                                    <option value="Ladakh">Ladakh</option>
+                                    <option value="Lakshadweep">Lakshadweep</option>
+                                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                    <option value="Maharashtra">Maharashtra</option>
+                                    <option value="Manipur">Manipur</option>
+                                    <option value="Meghalaya">Meghalaya</option>
+                                    <option value="Mizoram">Mizoram</option>
+                                    <option value="Nagaland">Nagaland</option>
+                                    <option value="Odisha">Odisha</option>
+                                    <option value="Puducherry">Puducherry</option>
+                                    <option value="Punjab">Punjab</option>
+                                    <option value="Rajasthan">Rajasthan</option>
+                                    <option value="Sikkim">Sikkim</option>
+                                    <option value="Tamil Nadu">Tamil Nadu</option>
+                                    <option value="Telangana">Telangana</option>
+                                    <option value="Tripura">Tripura</option>
+                                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                    <option value="Uttarakhand">Uttarakhand</option>
+                                    <option value="West Bengal">West Bengal</option>
                                 </select>
                                 <label class="floating-label" for="state" style="top:12px; font-size:0.75rem;">State *</label>
                                 <span style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--gold);" aria-hidden="true">▼</span>
@@ -804,7 +842,7 @@
 
             document.getElementById('summary-items').innerHTML = items.map(item => `
                 <div class="summary-item">
-                    <img src="${item.image || 'https://via.placeholder.com/100'}" class="summary-item-img">
+                    <img src="${item.image || '/img-fallback.svg'}" class="summary-item-img">
                     <div style="flex:1;">
                         <div style="font-weight:600; color:var(--white); font-size:0.95rem; margin-bottom:0.2rem;">${item.name}</div>
                         <div style="color:var(--gold); font-weight:700;">₹${item.price.toLocaleString()}</div>
@@ -891,7 +929,7 @@
                 }
             }
             // GST is added ON TOP of subtotal by backend (12%)
-            const gst = Math.round(subtotal * 0.12);
+            const gst = Math.round((subtotal - discount) * 0.12);
             const codFee = currentPaymentMethod === 'cod' ? 50 : 0;
             const total = (subtotal - discount) + gst + delivery + codFee;
 
@@ -1042,83 +1080,73 @@
                 pin: document.getElementById('pin').value.trim()
             };
 
-            if(currentPaymentMethod === 'cod') {
-                try {
-                    const { functions, httpsCallable, auth } = await import('./firebase-config.js');
-                    if (!auth.currentUser) {
-                        if(window.Toast) window.Toast.error('Authentication Required', 'Please log in to securely checkout.');
-                        setPaymentButtonState(false);
-                        return;
-                    }
-
-                    const createCODOrder = httpsCallable(functions, 'createCODOrder');
-                    const promoCode = promoApplied ? document.getElementById('promo-input').value.trim().toUpperCase() : null;
-                    const items = window.checkoutCart.map(item => ({ id: item.id, qty: item.qty || 1 }));
-
-                    const { data: codRes } = await createCODOrder({ items, promoCode, shippingAddress });
-                    if (codRes && codRes.success) {
-                        showSuccess(codRes.orderNumber, 'COD');
-                    } else {
-                        throw new Error("Failed to place COD order.");
-                    }
-                } catch (err) {
-                    console.error("COD Order Placement Error:", err);
-                    setPaymentButtonState(false);
-                    document.getElementById('retry-alert').style.display = 'block';
-                    
-                    let msg = err.message || "Failed to place COD order. Please try again.";
-                    if (err.code && err.code.startsWith('functions/')) {
-                        if (err.code === 'functions/internal' || err.code === 'functions/unknown') {
-                            msg = "We couldn't process your request at this time. Please try again or contact support.";
-                        }
-                    }
-                    document.getElementById('retry-msg').textContent = msg;
-                }
-                return;
-            }
-
+        if(currentPaymentMethod === 'cod') {
             try {
-                const { functions, httpsCallable, auth } = await import('./firebase-config.js');
-                
+                const { callVercelApi, auth } = await import('./firebase-config.js');
                 if (!auth.currentUser) {
                     if(window.Toast) window.Toast.error('Authentication Required', 'Please log in to securely checkout.');
                     setPaymentButtonState(false);
                     return;
                 }
 
-                // 1. Create Razorpay Order via Cloud Function
-                const createOrder = httpsCallable(functions, 'createRazorpayOrder');
                 const promoCode = promoApplied ? document.getElementById('promo-input').value.trim().toUpperCase() : null;
-                
-                // Collect cart items in required format [{id, qty}]
                 const items = window.checkoutCart.map(item => ({ id: item.id, qty: item.qty || 1 }));
-                
-                const { data: orderDataRes } = await createOrder({ items, promoCode, shippingAddress });
-                
-                if (!orderDataRes || !orderDataRes.id) {
-                    throw new Error("Failed to generate secure order ID.");
+
+                const codRes = await callVercelApi('/api/payments/create-cod-order', { items, promoCode, shippingAddress });
+                if (codRes && codRes.success) {
+                    showSuccess(codRes.orderNumber, 'COD');
+                } else {
+                    throw new Error("Failed to place COD order.");
                 }
+            } catch (err) {
+                console.error("COD Order Placement Error:", err);
+                setPaymentButtonState(false);
+                document.getElementById('retry-alert').style.display = 'block';
+                
+                let msg = err.message || "Failed to place COD order. Please try again.";
+                document.getElementById('retry-msg').textContent = msg;
+            }
+            return;
+        }
 
-                // 2. Initialize Razorpay
-                const options = {
-                    "key": orderDataRes.key,
-                    "amount": orderDataRes.amount, 
-                    "currency": orderDataRes.currency,
-                    "name": "Kalyan Covering",
-                    "description": "Premium Jewellery Purchase",
-                    "order_id": orderDataRes.id,
-                    "handler": async function (response) {
-                        try {
-                            setPaymentButtonState(true, "Verifying... ⌛");
-                            
-                            const verifyPayment = httpsCallable(functions, 'verifyPayment');
-                            const { data: verificationRes } = await verifyPayment({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature
-                            });
+        try {
+            const { callVercelApi, auth } = await import('./firebase-config.js');
+            
+            if (!auth.currentUser) {
+                if(window.Toast) window.Toast.error('Authentication Required', 'Please log in to securely checkout.');
+                setPaymentButtonState(false);
+                return;
+            }
 
-                            if (verificationRes.success) {
+            // 1. Create Razorpay Order via Vercel Serverless Function
+            const promoCode = promoApplied ? document.getElementById('promo-input').value.trim().toUpperCase() : null;
+            const items = window.checkoutCart.map(item => ({ id: item.id, qty: item.qty || 1 }));
+            
+            const orderDataRes = await callVercelApi('/api/payments/create-order', { items, promoCode, shippingAddress });
+            
+            if (!orderDataRes || !orderDataRes.id) {
+                throw new Error("Failed to generate secure order ID.");
+            }
+
+            // 2. Initialize Razorpay
+            const options = {
+                "key": orderDataRes.key,
+                "amount": orderDataRes.amount, 
+                "currency": orderDataRes.currency,
+                "name": "Kalyan Covering",
+                "description": "Premium Jewellery Purchase",
+                "order_id": orderDataRes.id,
+                "handler": async function (response) {
+                    try {
+                        setPaymentButtonState(true, "Verifying... ⌛");
+                        
+                        const verificationRes = await callVercelApi('/api/payments/verify', {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+
+                        if (verificationRes.success) {
                                 showSuccess(verificationRes.orderNumber || response.razorpay_payment_id, response.razorpay_payment_id);
                             } else {
                                 throw new Error("Payment verification failed on server.");

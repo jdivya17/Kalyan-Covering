@@ -1,7 +1,20 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const { setGlobalOptions } = require("firebase-functions/v2");
+const { defineSecret } = require("firebase-functions/params");
+
+const razorpayKeyId = defineSecret("RAZORPAY_KEY_ID");
+const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
+const shiprocketEmail = defineSecret("SHIPROCKET_EMAIL");
+const shiprocketPassword = defineSecret("SHIPROCKET_PASSWORD");
+const smtpUser = defineSecret("SMTP_USER");
+const smtpPass = defineSecret("SMTP_PASS");
+
+setGlobalOptions({
+    secrets: [razorpayKeyId, razorpayKeySecret, shiprocketEmail, shiprocketPassword, smtpUser, smtpPass]
+});
+
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
 const PDFDocument = require("pdfkit");
@@ -12,28 +25,42 @@ const {
     getTrackingByOrderId,
     getPickupLocations,
     getAvailableCouriersForOrder,
+    getTrackingByShipmentId,
 } = require('./shipping/shippingService');
 
-admin.initializeApp();
-const db = admin.firestore();
+// CHANGED: was `const admin = require("firebase-admin"); admin.initializeApp(); const db = admin.firestore();`
+// Now reuses the single shared instance from lib/admin.js — this is the
+// SAME instance shippingService.js also uses, so the app is only
+// initialized once no matter which file loads first.
+const { admin, db } = require("./lib/admin");
 
 function getRazorpayClient() {
     return new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET,
+        key_id: razorpayKeyId.value(),
+        key_secret: razorpayKeySecret.value(),
     });
 }
 
 async function calculateOrderTotals(items, promoCode, isCOD = false) {
-    let subtotal = 0;
-    const trustedItems = [];
-    
+    // Step 1: validate item shape first (no DB call needed for this part)
     for (const item of items) {
         if (!item.id) throw new HttpsError('invalid-argument', 'Each cart item must have an id.');
         if (!Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100) {
             throw new HttpsError('invalid-argument', `Invalid quantity for item ${item.id}. Must be between 1 and 100.`);
         }
-        const productSnap = await db.collection("products").doc(item.id).get();
+    }
+
+    // Step 2: fetch ALL product documents in ONE batched call
+    const productRefs = items.map(item => db.collection("products").doc(item.id));
+    const productSnaps = await db.getAll(...productRefs);
+
+    // Step 3: loop over the already-fetched results in memory (no awaits inside this loop)
+    let subtotal = 0;
+    const trustedItems = [];
+
+    productSnaps.forEach((productSnap, index) => {
+        const item = items[index]; // productSnaps is guaranteed to be in the same order as productRefs/items
+
         if (!productSnap.exists) {
             throw new HttpsError("not-found", `Product ${item.id} not found.`);
         }
@@ -44,12 +71,12 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
         if (item.qty > (productData.stock || 0)) {
             throw new HttpsError('failed-precondition', `Insufficient stock for product "${productData.productName}". Available: ${productData.stock || 0}, Requested: ${item.qty}`);
         }
-        
+
         const price = productData.price || 0;
         subtotal += (price * item.qty);
-        
+
         trustedItems.push({ id: item.id, name: productData.productName || productData.name || item.id, price: price, qty: item.qty, sku: productData.sku || null });
-    }
+    });
 
     let discount = 0;
     if (promoCode) {
@@ -68,7 +95,7 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
         }
     }
 
-    const gst = Math.round(subtotal * 0.12);
+    const gst = Math.round((subtotal - discount) * 0.12);
     const deliveryCharge = subtotal > 999 ? 0 : 99;
     const codFee = isCOD ? 50 : 0;
     const totalAmount = (subtotal - discount) + gst + deliveryCharge + codFee;
@@ -194,9 +221,9 @@ exports.createRazorpayOrder = onCall(async (request) => {
         // Return secure order ID
         return {
             id: order.id,
-            amount: order.amount,
             currency: order.currency,
-            key: process.env.RAZORPAY_KEY_ID
+            amount: order.amount,
+            key: razorpayKeyId.value()
         };
 
     } catch (error) {
@@ -284,8 +311,8 @@ exports.verifyPayment = onCall(async (request) => {
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-        .update(body.toString())
+        .createHmac("sha256", razorpayKeySecret.value())
+        .update(body)
         .digest("hex");
 
     // Fix: Timing attack prevention
@@ -326,8 +353,9 @@ exports.razorpayWebhook = onRequest(async (req, res) => {
         return res.status(405).send("Method Not Allowed");
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-    const signature = req.headers["x-razorpay-signature"];
+    // Verify the Razorpay webhook signature
+    const secret = razorpayKeySecret.value();
+    const signature = req.headers['x-razorpay-signature'];
 
     if (!signature || !secret) {
         return res.status(400).send("Missing signature or configuration");
@@ -1136,6 +1164,9 @@ exports.manageCustomer = onCall(async (request) => {
     const userRef = db.collection('users').doc(userId);
     
     if (action === 'UPDATE') {
+        if (data.role || data.status) {
+            verifyOwnerOrManager(request);
+        }
         const snap = await userRef.get();
         if (!snap.exists) throw new HttpsError('not-found', 'User not found.');
         
@@ -1461,7 +1492,7 @@ function buildInvoicePDF(order, invoiceNumber, orderId) {
         // Logo text
         doc.fillColor(GOLD).font('Helvetica-Bold').fontSize(26).text('KALYAN COVERING', L, 20);
         doc.fillColor(WHITE).font('Helvetica').fontSize(9.5).text('Premium Gold Jewellery  •  www.kalyancovering.com', L, 52);
-        doc.fillColor('#888888').fontSize(8).text('GSTIN: PENDING REGISTRATION  •  noreply@kalyancovering.com', L, 66);
+        doc.fillColor('#888888').fontSize(8).text('Tax Invoice pending GST registration  •  noreply@kalyancovering.com', L, 66);
 
         // TAX INVOICE badge (right)
         doc.rect(pageW - 145, 18, 95, 26).fill(GOLD);
@@ -1861,8 +1892,8 @@ exports.emailInvoice = onCall(async (request) => {
         port:   parseInt(process.env.SMTP_PORT || '587'),
         secure: false,
         auth: {
-            user: process.env.SMTP_USER || '',
-            pass: process.env.SMTP_PASS || ''
+            user: smtpUser.value(),
+            pass: smtpPass.value()
         }
     });
 
@@ -1892,7 +1923,7 @@ exports.emailInvoice = onCall(async (request) => {
     </div>`;
 
     await transporter.sendMail({
-        from:    `"Kalyan Covering" <${process.env.SMTP_USER || 'noreply@kalyancovering.com'}>`,
+        from:    `"Kalyan Covering" <${smtpUser.value() || 'noreply@kalyancovering.com'}>`,
         to:      toEmail,
         subject: `Your Invoice ${invoice.invoiceNumber} — Kalyan Covering`,
         html:    htmlBody,
@@ -2118,6 +2149,17 @@ exports.initiateReturn = onCall(async (request) => {
                 "failed-precondition",
                 "Returns can only be requested for delivered orders."
             );
+        }
+
+        if (orderData.shippingDetails && orderData.shippingDetails.deliveredAt) {
+            const deliveredAt = orderData.shippingDetails.deliveredAt.toDate ? orderData.shippingDetails.deliveredAt.toDate() : new Date(orderData.shippingDetails.deliveredAt);
+            const daysSinceDelivery = (new Date() - deliveredAt) / (1000 * 60 * 60 * 24);
+            if (daysSinceDelivery > 7) {
+                throw new HttpsError(
+                    "failed-precondition",
+                    "Return window has expired. Returns must be initiated within 7 days of delivery."
+                );
+            }
         }
 
         const now_ts = admin.firestore.FieldValue.serverTimestamp();
@@ -2465,6 +2507,87 @@ exports.getShiprocketPickupLocations = onCall(async (request) => {
 // Alias for duplicate endpoints to maintain backwards compatibility
 exports.getOrderTracking = exports.getShipmentTracking;
 exports.getPickupLocations = exports.getShiprocketPickupLocations;
+
+// ==========================================
+// VIDEO REVIEW SUBMISSION (Customer-facing)
+// ==========================================
+
+exports.submitVideoReview = onCall(async (request) => {
+    // Auth gate – mirrors submitReview
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Must be logged in to submit a video.');
+    }
+
+    const { productId, videoUrl, title, description, tags, isPublic, duration } = request.data;
+
+    // --- Input validation ---
+    if (!productId || typeof productId !== 'string' || !productId.trim()) {
+        throw new HttpsError('invalid-argument', 'productId is required.');
+    }
+    if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.trim()) {
+        throw new HttpsError('invalid-argument', 'videoUrl is required.');
+    }
+
+    // Only allow URLs from trusted hosts (Cloudinary used by the uploader)
+    const ALLOWED_VIDEO_HOSTS = ['res.cloudinary.com', 'firebasestorage.googleapis.com'];
+    let parsedUrl;
+    try {
+        parsedUrl = new URL(videoUrl);
+    } catch {
+        throw new HttpsError('invalid-argument', 'videoUrl is not a valid URL.');
+    }
+    if (!ALLOWED_VIDEO_HOSTS.some(host => parsedUrl.hostname === host || parsedUrl.hostname.endsWith('.' + host))) {
+        throw new HttpsError('invalid-argument', 'videoUrl must point to an approved video host.');
+    }
+
+    if (title !== undefined && title !== null) {
+        if (typeof title !== 'string' || title.length > 150) {
+            throw new HttpsError('invalid-argument', 'title must be a string of at most 150 characters.');
+        }
+    }
+    if (description !== undefined && description !== null) {
+        if (typeof description !== 'string' || description.length > 1000) {
+            throw new HttpsError('invalid-argument', 'description cannot exceed 1000 characters.');
+        }
+    }
+    if (tags !== undefined && tags !== null) {
+        if (!Array.isArray(tags) || tags.length > 10 || tags.some(t => typeof t !== 'string')) {
+            throw new HttpsError('invalid-argument', 'tags must be an array of at most 10 strings.');
+        }
+    }
+    if (duration !== undefined && duration !== null) {
+        if (typeof duration !== 'number' || duration <= 0 || duration > 600) {
+            throw new HttpsError('invalid-argument', 'duration must be a positive number (max 600 seconds).');
+        }
+    }
+
+    // Verify the referenced product actually exists
+    const productSnap = await db.collection('products').doc(productId.trim()).get();
+    if (!productSnap.exists) {
+        throw new HttpsError('not-found', 'The referenced product does not exist.');
+    }
+
+    const videoDoc = {
+        productId: productId.trim(),
+        videoUrl: videoUrl.trim(),
+        title: (title || '').trim(),
+        description: (description || '').trim(),
+        tags: Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [],
+        isPublic: isPublic === true,
+        duration: typeof duration === 'number' ? duration : null,
+        // Server-controlled fields – never trusted from the client
+        authorId: request.auth.uid,
+        authorName: request.auth.token.name || 'Customer',
+        status: 'pending',   // requires admin moderation before going live
+        likes: 0,
+        views: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const ref = await db.collection('videos').add(videoDoc);
+    return { success: true, id: ref.id };
+});
 
 exports.createCODOrder = onCall(async (request) => {
     if (!request.auth) {

@@ -732,7 +732,7 @@
             <a href="index.html" class="nav-logo">
                 <div class="nav-logo-img-wrap">
                   <img src="assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
-                      onerror="this.src='https://via.placeholder.com/60/000/ffd700?text=KC'">
+                      onerror="this.src='/img-fallback.svg'">
                 </div>
                 Kalyan Covering
             </a>
@@ -982,7 +982,7 @@
 
         function getOptimizedUrl(url, size) {
             // Mock optimizer for simplicity
-            if(!url) return 'https://via.placeholder.com/800';
+            if(!url) return '/img-fallback.svg';
             if(url.includes('unsplash')) return url + '&auto=format&fit=crop&w=' + size;
             return url;
         }
@@ -1445,7 +1445,7 @@
         }
 
         function buildProductCardHTML(pr) {
-            const img = pr.primaryImageURL || pr.image || (pr.images && pr.images[0]) || 'https://via.placeholder.com/400';
+            const img = pr.primaryImageURL || pr.image || (pr.images && pr.images[0]) || '/img-fallback.svg';
             return `
             <div class="product-card" onclick="window.location='product-detail.html?id=${pr.id}'" style="cursor:pointer; background:var(--black-card); border:1px solid var(--black-border); border-radius:var(--radius); overflow:hidden; transition:var(--transition);">
                 <div style="aspect-ratio:4/5; overflow:hidden;">
@@ -1461,10 +1461,9 @@
     
     <!-- Preserved Firebase Logic -->
     <script type="module">
-        import { db, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, updateDoc, doc } from "./firebase-config.js";
+        import { functions, httpsCallable } from "./firebase-config.js";
         
         window.submitReview = async function () {
-            const title = document.getElementById('review-title').value.trim();
             const text = document.getElementById('review-text').value.trim();
             const rating = window.reviewRating || 0;
 
@@ -1473,24 +1472,18 @@
             btn.innerHTML = 'Submitting...'; btn.disabled = true;
 
             try {
-                const userStr = localStorage.getItem('kc_user');
-                const user = userStr ? JSON.parse(userStr) : { uid: 'anonymous', name: 'Anonymous Buyer' };
-                const reviewData = {
+                const submitReviewFn = httpsCallable(functions, 'submitReview');
+                await submitReviewFn({
                     productId: window.currentProduct.id,
-                    userId: user.uid,
-                    userName: user.name,
                     rating: rating,
-                    title: title,
                     comment: text,
-                    createdAt: serverTimestamp(),
-                    helpful: 0
-                };
-                await addDoc(collection(db, 'reviews'), reviewData);
+                    images: []
+                });
                 alert('Review Posted Successfully!');
                 toggleReviewForm();
             } catch (e) {
                 console.error('Review error:', e);
-                alert('Failed to post review. Using local fallback.');
+                alert(e.message || 'Failed to post review.');
             } finally {
                 btn.innerHTML = 'Submit Review'; btn.disabled = false;
             }

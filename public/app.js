@@ -31,7 +31,7 @@ async function initFirebase() {
         // Initialize App Check
         if (typeof window !== 'undefined') {
             try {
-                const RECAPTCHA_V3_SITE_KEY = 'INSERT_YOUR_REAL_RECAPTCHA_V3_SITE_KEY_HERE';
+                const RECAPTCHA_V3_SITE_KEY = '6LdWCp0tAAAAAD0xB9blIVm3IT6A7KBC2o50SfS-';
                 if (RECAPTCHA_V3_SITE_KEY === 'INSERT_YOUR_REAL_RECAPTCHA_V3_SITE_KEY_HERE') {
                     console.error('SECURITY WARNING: Real ReCAPTCHA v3 site key is missing. App Check will not function correctly in production.');
                 }
@@ -109,43 +109,13 @@ async function loadProductsFromFirebase() {
 }
 
 async function saveProductToFirebase(product) {
-    const fb = await initFirebase();
-    if (!fb) return null;
-    try {
-        const { addDoc, setDoc, doc, collection, serverTimestamp, increment } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const docRef = await addDoc(collection(fb.db, "products"), {
-            ...product,
-            createdAt: serverTimestamp()
-        });
-        Toast.success('Product Added!', 'Product saved to database');
-        return docRef.id;
-    } catch (e) {
-        console.error('Error saving product:', e);
-        Toast.error('Error', 'Failed to save product');
-        return null;
-    }
+    console.error('_deprecated_ saveProductToFirebase called. Use Cloud Function instead.');
+    return null;
 }
 
 async function saveOrderToFirestore(orderData) {
     console.error('saveOrderToFirestore is deprecated. Orders must be created securely via Razorpay cloud functions (createRazorpayOrder, verifyPayment).');
     return null;
-}
-
-async function saveVideoToFirebase(videoData) {
-    const fb = await initFirebase();
-    if (!fb) return null;
-    try {
-        const { addDoc, setDoc, doc, collection, serverTimestamp, increment } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const docRef = await addDoc(collection(fb.db, "videos"), {
-            ...videoData,
-            status: 'pending',
-            createdAt: serverTimestamp()
-        });
-        return docRef.id;
-    } catch (e) {
-        console.error('Error saving video:', e);
-        return null;
-    }
 }
 
 async function saveUserToFirestore(userData) {

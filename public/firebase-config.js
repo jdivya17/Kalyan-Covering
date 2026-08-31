@@ -53,6 +53,31 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const functions = getFunctions(app);
 
+/**
+ * Helper to call Vercel API endpoints with Firebase Auth Token.
+ * @param {string} endpoint - The API path, e.g., '/api/payments/create-order'
+ * @param {object} data - The payload
+ */
+async function callVercelApi(endpoint, data = {}) {
+    let token = "";
+    if (auth.currentUser) {
+        token = await auth.currentUser.getIdToken();
+    }
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.message || result.error || "API Request Failed");
+    }
+    return result;
+}
+
 // ── Named exports (used by auth.html, checkout.html, etc.) ────
 export {
     app,
@@ -60,6 +85,7 @@ export {
     auth,
     functions,
     httpsCallable,
+    callVercelApi,
     // Firestore helpers
     collection,
     doc,
@@ -83,4 +109,3 @@ export {
     sendPasswordResetEmail,
     onAuthStateChanged
 };
-

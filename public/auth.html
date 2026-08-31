@@ -697,7 +697,7 @@
         <!-- Logo -->
         <div class="auth-logo">
             <img src="assets/kalyan_logo.png" alt="Kalyan Covering"
-                onerror="this.src='https://via.placeholder.com/90/000/ffd700?text=KC'">
+                onerror="this.src='/img-fallback.svg'">
             <h1>KALYAN COVERING</h1>
         </div>
 
@@ -850,12 +850,14 @@
             auth,
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword,
+            signOut,
             db,
             setDoc,
             doc as fdoc,
             serverTimestamp,
             getDoc
         } from "./firebase-config.js";
+        import { sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
         // ---- Toast ----
         const Toast = {
@@ -980,6 +982,15 @@
             try {
                 const { user } = await signInWithEmailAndPassword(auth, email, password);
 
+                // ✅ SECURITY: Block unverified email accounts from logging in
+                if (!user.emailVerified) {
+                    await signOut(auth);
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                    Toast.show('Email Not Verified 📧', 'Please verify your email before logging in. Check your inbox for the verification link.', '⚠️', 5000);
+                    return;
+                }
+
                 let userName = 'User', userPhone = '';
                 try {
                     const snap = await getDoc(fdoc(db, 'users', user.uid));
@@ -1007,7 +1018,7 @@
 
                 // User-friendly Firebase error messages
                 const msgs = {
-                    'auth/user-not-found': 'No account found with this email.',
+                    'auth/user-not-found': 'If an account exists for this email, a reset link has been sent.',
                     'auth/wrong-password': 'Incorrect password. Please try again.',
                     'auth/invalid-email': 'Please enter a valid email address.',
                     'auth/too-many-requests': 'Too many attempts. Please try again later.',
@@ -1056,12 +1067,23 @@
                     wishlist: [], orders: [], totalOrders: 0
                 }, { merge: true });
 
-                localStorage.setItem('kc_user', JSON.stringify({
-                    uid: user.uid, email: user.email, name, phone
-                }));
+                // ✅ Send email verification link
+                await sendEmailVerification(user);
 
-                Toast.success('Account Created! 🎉', `Welcome, ${name}!`);
-                setTimeout(() => { window.location.href = 'index.html'; }, 900);
+                // Sign them out immediately — they must verify first
+                await signOut(auth);
+
+                // Show success info page instead of redirecting to site
+                document.querySelector('.auth-card').innerHTML = `
+                    <div style="text-align:center; padding: 2rem 1rem;">
+                        <div style="font-size:4rem; margin-bottom:1rem;">📧</div>
+                        <h2 style="font-family:var(--font-serif); color:var(--gold); margin-bottom:1rem;">Verify Your Email</h2>
+                        <p style="color:var(--white-dim); margin-bottom:0.5rem;">A verification link has been sent to:</p>
+                        <p style="color:var(--gold); font-weight:600; margin-bottom:1.5rem;">${user.email}</p>
+                        <p style="color:#888; font-size:0.9rem; margin-bottom:2rem;">Please click the link in your email to activate your account, then come back to login.</p>
+                        <a href="auth.html" class="btn btn-gold btn-lg" style="text-decoration:none;">← Go to Login</a>
+                    </div>
+                `;
             } catch (error) {
                 console.error('Registration Error:', error);
                 btn.classList.remove('loading');
@@ -1110,7 +1132,7 @@
                 closeForgotPassword();
             } catch (e) {
                 const msgs = {
-                    'auth/user-not-found': 'No account found with this email.',
+                    'auth/user-not-found': 'If an account exists for this email, a reset link has been sent.',
                     'auth/invalid-email': 'Please enter a valid email address.',
                     'auth/too-many-requests': 'Too many attempts. Try again later.'
                 };

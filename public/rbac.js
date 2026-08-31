@@ -51,6 +51,7 @@ export const RBAC = {
             const resource = el.getAttribute('data-rbac');
             if (resource && !this.canAccess(role, resource)) {
                 el.style.display = 'none'; // Hide unauthorized element
+                el.innerHTML = ''; // Prevent rendering of sensitive data
             } else {
                 // We keep it visible, removing display none if it was hidden
                 el.style.display = '';

@@ -18,7 +18,10 @@
         "rules": "storage.rules"
     },
     "hosting": {
-        "public": "public",
+        "public": "dist",
+        "predeploy": [
+            "npm run build"
+        ],
         "ignore": [
             "firebase.json",
             "**/.*",
@@ -56,7 +59,7 @@
                     },
                     {
                         "key": "Content-Security-Policy",
-                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://checkout.razorpay.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://api.razorpay.com wss://*.firebaseio.com; img-src 'self' data: blob: https://res.cloudinary.com https://firebasestorage.googleapis.com https://via.placeholder.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com;"
+                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://api.razorpay.com wss://*.firebaseio.com; img-src 'self' data: blob: https://res.cloudinary.com https://firebasestorage.googleapis.com https://images.unsplash.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com;"
                     }
                 ]
             },

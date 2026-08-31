@@ -472,32 +472,17 @@
             <section class="tab-content" id="tab-notifications">
                 <div class="section-header">
                     <h2 class="section-title">Notifications</h2>
-                    <button class="btn btn-ghost btn-sm">Mark all as read</button>
+                    <button class="btn btn-ghost btn-sm" onclick="markAllNotifRead()">Mark all as read</button>
                 </div>
-                <div class="glass-card" style="padding:0; border:none; background:transparent;">
-                    <div class="notification-item">
-                        <div class="notif-icon promo">🎉</div>
-                        <div class="notif-content">
-                            <h4>Welcome to Premium</h4>
-                            <p>You have been upgraded to Premium Member status! Enjoy exclusive perks.</p>
-                            <span class="notif-time">Just now</span>
-                        </div>
-                    </div>
-                    <div class="notification-item">
-                        <div class="notif-icon order">📦</div>
-                        <div class="notif-content">
-                            <h4>Order Delivered</h4>
-                            <p>Your order #KC293842 has been delivered successfully. We hope you love your jewellery!</p>
-                            <span class="notif-time">2 days ago</span>
-                        </div>
-                    </div>
+                <div id="notif-list">
+                    <div style="text-align:center; padding:3rem; color:#888;">Loading notifications...</div>
                 </div>
             </section>
 
             <!-- SETTINGS TAB -->
             <section class="tab-content" id="tab-settings">
                 <div class="section-header">
-                    <h2 class="section-title">Preferences & Settings</h2>
+                    <h2 class="section-title">Preferences &amp; Settings</h2>
                 </div>
                 <div class="glass-card" style="max-width: 600px;">
                     <div class="settings-list">
@@ -506,27 +491,50 @@
                                 <div style="color:var(--white); font-weight:500;">Email Notifications</div>
                                 <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive order updates and promotions via email</div>
                             </div>
-                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            <label class="switch"><input type="checkbox" id="pref-email" checked onchange="savePreferences()"><span class="slider"></span></label>
                         </div>
                         <div class="setting-item">
                             <div>
                                 <div style="color:var(--white); font-weight:500;">SMS Alerts</div>
                                 <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive delivery updates via SMS</div>
                             </div>
-                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            <label class="switch"><input type="checkbox" id="pref-sms" checked onchange="savePreferences()"><span class="slider"></span></label>
                         </div>
                         <div class="setting-item">
                             <div>
-                                <div style="color:var(--white); font-weight:500;">Two-Factor Authentication</div>
-                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Add an extra layer of security</div>
+                                <div style="color:var(--white); font-weight:500;">WhatsApp Updates</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive order status on WhatsApp</div>
                             </div>
-                            <button class="btn btn-outline btn-sm">Enable</button>
+                            <label class="switch"><input type="checkbox" id="pref-whatsapp" onchange="savePreferences()"><span class="slider"></span></label>
                         </div>
+                        <div id="pref-save-status" style="color:var(--gold); font-size:0.85rem; text-align:right; margin-top:0.5rem; min-height:1.2em;"></div>
                     </div>
                 </div>
             </section>
 
         </main>
+    </div>
+
+    <!-- Add Address Modal -->
+    <div id="address-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+        <div class="glass-card" style="max-width:480px; width:90%; margin:auto; position:relative;">
+            <button onclick="closeAddressModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:#888;font-size:1.5rem;cursor:pointer;">✕</button>
+            <h3 style="color:var(--gold);font-family:var(--font-serif);margin-bottom:1.5rem;">Add New Address</h3>
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="addr-name" placeholder="Recipient name"></div>
+            <div class="form-group"><label class="form-label">Address Line</label><input type="text" class="form-input" id="addr-line" placeholder="Street / Flat / Area"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" id="addr-city"></div>
+                <div class="form-group"><label class="form-label">State</label><input type="text" class="form-input" id="addr-state"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group"><label class="form-label">PIN Code</label><input type="text" class="form-input" id="addr-pin" maxlength="6"></div>
+                <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="addr-phone"></div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1rem;">
+                <button class="btn btn-gold" style="flex:1" onclick="submitNewAddress()">Save Address</button>
+                <button class="btn btn-outline" onclick="closeAddressModal()">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase -->
@@ -601,46 +609,62 @@
             }
         };
 
-        window.saveProfile = function() {
-            alert('Profile updated successfully!');
-            toggleEditProfile();
-            // Update localstorage
+        window.saveProfile = async function() {
+            const btn = document.getElementById('save-profile-btn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
             const u = JSON.parse(localStorage.getItem('kc_user'));
-            u.name = document.getElementById('profile-name-input').value;
-            u.phone = document.getElementById('profile-phone-input').value;
-            localStorage.setItem('kc_user', JSON.stringify(u));
-            document.getElementById('sidebar-name').textContent = u.name;
+            const newName = document.getElementById('profile-name-input').value.trim();
+            const newPhone = document.getElementById('profile-phone-input').value.trim();
+            try {
+                const { db, doc, updateDoc } = await import('./firebase-config.js');
+                await updateDoc(doc(db, 'users', u.uid), { name: newName, phone: newPhone });
+                u.name = newName;
+                u.phone = newPhone;
+                localStorage.setItem('kc_user', JSON.stringify(u));
+                document.getElementById('sidebar-name').textContent = newName;
+                document.getElementById('sidebar-initials').textContent = newName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                if (window.Toast) Toast.success('Profile Updated', 'Your changes have been saved.');
+                else alert('Profile updated successfully!');
+                toggleEditProfile();
+            } catch(err) {
+                console.error('saveProfile error:', err);
+                if (window.Toast) Toast.error('Save Failed', 'Please try again.');
+                else alert('Failed to save. Please try again.');
+            } finally {
+                btn.textContent = 'Save Changes';
+                btn.disabled = false;
+            }
         };
 
-        // Load Addresses
-        function loadAddresses() {
+        // Load Addresses from Firestore
+        async function loadAddresses() {
             const grid = document.getElementById('address-grid');
             const u = JSON.parse(localStorage.getItem('kc_user'));
-            
-            let html = `
-                <div class="address-card address-add-btn" onclick="alert('Add new address modal opens')">
-                    <div style="font-size:2rem;">+</div>
-                    <div>Add New Address</div>
-                </div>
-            `;
-
-            if(u.address) {
-                html += `
-                    <div class="address-card">
-                        <div class="address-tag">Default</div>
-                        <h4 style="color:var(--white); margin-bottom:0.5rem; font-size:1.1rem;">${u.name}</h4>
-                        <p style="color:#888; font-size:0.9rem; line-height:1.5;">
-                            ${u.address}<br>
-                            ${u.city||''}, ${u.state||''} - ${u.pin||''}<br>
-                            Phone: ${u.phone||''}
-                        </p>
-                        <div class="address-actions">
-                            <button class="btn btn-outline btn-sm" style="flex:1;">Edit</button>
-                            <button class="btn btn-ghost btn-sm" style="color:var(--red);">Delete</button>
-                        </div>
-                    </div>
-                `;
+            if (!u) return;
+            let addrs = [];
+            try {
+                const { db, collection, getDocs } = await import('./firebase-config.js');
+                const snap = await getDocs(collection(db, 'users', u.uid, 'addresses'));
+                addrs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch(e) {
+                console.log('Address load error:', e);
             }
+
+            let html = `<div class="address-card address-add-btn" onclick="openAddressModal()">
+                <div style="font-size:2rem;">+</div><div>Add New Address</div></div>`;
+
+            addrs.forEach(addr => {
+                html += `<div class="address-card">
+                    ${addr.isDefault ? '<div class="address-tag">Default</div>' : ''}
+                    <h4 style="color:var(--white); margin-bottom:0.5rem; font-size:1.1rem;">${addr.name}</h4>
+                    <p style="color:#888; font-size:0.9rem; line-height:1.5;">
+                        ${addr.line}<br>${addr.city}, ${addr.state} - ${addr.pin}<br>Phone: ${addr.phone}
+                    </p>
+                    <div class="address-actions">
+                        <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteAddress('${addr.id}')">Delete</button>
+                    </div></div>`;
+            });
             grid.innerHTML = html;
         }
 
@@ -663,7 +687,7 @@
             container.innerHTML = `<div class="wishlist-grid">
                 ${wishlist.map(p => `
                     <div class="wishlist-item">
-                        <img src="${p.image||p.primaryImageURL||'https://via.placeholder.com/300'}" class="wishlist-item-img">
+                        <img src="${p.image||p.primaryImageURL||'/img-fallback.svg'}" class="wishlist-item-img">
                         <div class="wishlist-item-body">
                             <h4 style="color:var(--white); font-size:0.95rem; margin-bottom:0.3rem;">${p.name}</h4>
                             <div style="color:var(--gold); font-weight:bold; margin-bottom:1rem;">₹${(p.price||0).toLocaleString()}</div>
@@ -775,7 +799,7 @@
                             <div class="order-body">
                                 ${(order.items||[]).slice(0,3).map(i => `
                                     <div class="order-item">
-                                        <img src="${i.image||i.primaryImageURL||'https://via.placeholder.com/80'}" class="order-item-img" onerror="this.src='https://via.placeholder.com/80'">
+                                        <img src="${i.image||i.primaryImageURL||'/img-fallback.svg'}" class="order-item-img" onerror="this.src='/img-fallback.svg'">
                                         <div class="order-item-info">
                                             <h4 style="color:var(--white); font-size:1rem; margin-bottom:0.2rem;">${i.name}</h4>
                                             <div style="color:#888; font-size:0.85rem;">Qty: ${i.qty||1} | ₹${(i.price||0).toLocaleString('en-IN')}</div>
@@ -819,10 +843,133 @@
 
         window.performLogout = async function() {
             if(confirm("Logout from Dashboard?")) {
+                try {
+                    const { signOut, auth } = await import('./firebase-config.js');
+                    await signOut(auth);
+                } catch(e) { console.log('signOut error', e); }
                 localStorage.removeItem('kc_user');
+                localStorage.removeItem('kc_wishlist');
                 window.location.replace('auth.html');
             }
         };
+
+        // Address modal helpers
+        window.openAddressModal = function() {
+            document.getElementById('address-modal').style.display = 'flex';
+        };
+        window.closeAddressModal = function() {
+            document.getElementById('address-modal').style.display = 'none';
+        };
+        window.submitNewAddress = async function() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            const addr = {
+                name: document.getElementById('addr-name').value.trim(),
+                line: document.getElementById('addr-line').value.trim(),
+                city: document.getElementById('addr-city').value.trim(),
+                state: document.getElementById('addr-state').value.trim(),
+                pin: document.getElementById('addr-pin').value.trim(),
+                phone: document.getElementById('addr-phone').value.trim(),
+                isDefault: false
+            };
+            if (!addr.name || !addr.line || !addr.city || !addr.pin) {
+                alert('Please fill in all required fields.'); return;
+            }
+            try {
+                const { db, collection, addDoc, serverTimestamp } = await import('./firebase-config.js');
+                await addDoc(collection(db, 'users', u.uid, 'addresses'), { ...addr, createdAt: serverTimestamp() });
+                closeAddressModal();
+                loadAddresses();
+                if (window.Toast) Toast.success('Address Saved!', addr.line);
+            } catch(err) {
+                console.error('submitNewAddress error:', err);
+                alert('Failed to save address. Please try again.');
+            }
+        };
+        window.deleteAddress = async function(addrId) {
+            if (!confirm('Delete this address?')) return;
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            try {
+                const { db, doc, deleteDoc } = await import('./firebase-config.js');
+                await deleteDoc(doc(db, 'users', u.uid, 'addresses', addrId));
+                loadAddresses();
+                if (window.Toast) Toast.info('Address deleted');
+            } catch(err) { console.error(err); }
+        };
+
+        // Notifications: build from order history
+        window.markAllNotifRead = function() {
+            document.querySelectorAll('.notif-unread').forEach(el => el.classList.remove('notif-unread'));
+            if (window.Toast) Toast.info('All notifications marked as read');
+        };
+        async function loadNotifications() {
+            const list = document.getElementById('notif-list');
+            if (!list) return;
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            try {
+                const { db, collection, query, where, orderBy, getDocs } = await import('./firebase-config.js');
+                const q = query(collection(db, 'orders'), where('customerId', '==', u.uid), orderBy('createdAt', 'desc'));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    list.innerHTML = `<div class="glass-card" style="text-align:center;padding:3rem 2rem;">
+                        <span style="font-size:2.5rem;">🔔</span>
+                        <p style="color:#888;margin-top:1rem;">No notifications yet.</p></div>`;
+                    return;
+                }
+                const STATUS_ICON = { pending:'⏳', confirmed:'✅', packed:'📦', shipped:'🚚', delivered:'🎉', cancelled:'❌' };
+                list.innerHTML = snap.docs.map(d => {
+                    const o = d.data();
+                    const date = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
+                    const icon = STATUS_ICON[o.orderStatus] || '📋';
+                    return `<div class="notification-item">
+                        <div class="notif-icon order">${icon}</div>
+                        <div class="notif-content">
+                            <h4>Order #${o.orderNumber || d.id} — ${(o.orderStatus||'').toUpperCase()}</h4>
+                            <p>Total: ₹${(o.totalAmount||0).toLocaleString('en-IN')}</p>
+                            <span class="notif-time">${date}</span>
+                        </div></div>`;
+                }).join('');
+            } catch(err) {
+                console.error('loadNotifications error:', err);
+                list.innerHTML = `<div style="color:#888;text-align:center;padding:2rem;">Could not load notifications.</div>`;
+            }
+        }
+
+        // Save preferences to Firestore
+        window.savePreferences = async function() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            const prefs = {
+                emailNotif: document.getElementById('pref-email')?.checked ?? true,
+                smsNotif: document.getElementById('pref-sms')?.checked ?? true,
+                whatsappNotif: document.getElementById('pref-whatsapp')?.checked ?? false
+            };
+            const status = document.getElementById('pref-save-status');
+            try {
+                const { db, doc, updateDoc } = await import('./firebase-config.js');
+                await updateDoc(doc(db, 'users', u.uid), { preferences: prefs });
+                if (status) { status.textContent = '✓ Saved'; setTimeout(()=>{ if(status) status.textContent=''; }, 2000); }
+            } catch(err) {
+                console.error('savePreferences error:', err);
+                if (status) status.textContent = '✗ Failed to save';
+            }
+        };
+        // Load preferences from Firestore
+        async function loadPreferences() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            try {
+                const { db, doc, getDoc } = await import('./firebase-config.js');
+                const snap = await getDoc(doc(db, 'users', u.uid));
+                if (snap.exists() && snap.data().preferences) {
+                    const p = snap.data().preferences;
+                    if (document.getElementById('pref-email')) document.getElementById('pref-email').checked = p.emailNotif ?? true;
+                    if (document.getElementById('pref-sms')) document.getElementById('pref-sms').checked = p.smsNotif ?? true;
+                    if (document.getElementById('pref-whatsapp')) document.getElementById('pref-whatsapp').checked = p.whatsappNotif ?? false;
+                }
+            } catch(err) { console.log('loadPreferences skip:', err.code); }
+        }
 
         function updateCartCount() {
             const cart = JSON.parse(localStorage.getItem('kc_cart') || '[]');

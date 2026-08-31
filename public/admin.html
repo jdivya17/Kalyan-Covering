@@ -2188,7 +2188,7 @@
             tbody.innerHTML = sorted.map(p => `
     <tr>
       <td><div style="display:flex;align-items:center;gap:.7rem">
-        <img src="${p.primaryImageURL || p.images?.[0] || p.image || 'https://via.placeholder.com/100'}" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
+        <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
         <span>${p.name}</span>
       </div></td>
       <td style="color:var(--gold)">${p.reviews || 0}</td>
@@ -2206,7 +2206,7 @@
             tbody.innerHTML = products.map(p => {
                 const sName = DOMPurify.sanitize(p.name || 'Unnamed');
                 const sCat = DOMPurify.sanitize(p.category || 'Unknown');
-                const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || 'https://via.placeholder.com/400';
+                const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
                 return `
     <tr>
       <td><div style="display:flex;align-items:center;gap:.8rem">
@@ -2512,26 +2512,25 @@
             if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
 
             try {
+                const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js");
+                const updateOrderStatusFn = httpsCallable(getFunctions(), 'updateOrderStatus');
+                await updateOrderStatusFn({
+                    id: orderId,
+                    newStatus: newStatus,
+                    note: note || `Status updated to ${newStatus}`,
+                    shippingDetails: {
+                        carrier: carrier || null,
+                        trackingNumber: trackingNo || null,
+                        estimatedDelivery: estDelivery || null
+                    }
+                });
+
                 const historyEntry = {
                     status: newStatus,
                     timestamp: new Date().toISOString(),
                     updatedBy: 'admin',
                     note: note || `Status updated to ${newStatus}`
                 };
-
-                const updatePayload = {
-                    orderStatus: newStatus,
-                    status: newStatus,
-                    statusHistory: window.arrayUnion(historyEntry),
-                    updatedAt: window.serverTimestamp()
-                };
-
-                if (carrier)     updatePayload.carrier          = carrier;
-                if (trackingNo)  updatePayload.trackingNumber   = trackingNo;
-                if (estDelivery) updatePayload.estimatedDelivery = estDelivery;
-
-                const orderRef = window.doc(window.db, 'orders', orderId);
-                await window.updateDoc(orderRef, updatePayload);
 
                 // Update local cache so the table reflects it immediately
                 const localOrder = (window.adminData.orders || []).find(x => x.id === orderId);
@@ -2544,18 +2543,6 @@
                     if (!Array.isArray(localOrder.statusHistory)) localOrder.statusHistory = [];
                     localOrder.statusHistory.push(historyEntry);
                 }
-
-                // Log to audit
-                try {
-                    await window.addDoc(window.collection(window.db, 'auditLogs'), {
-                        action: 'UPDATE_ORDER_STATUS',
-                        resource: 'orders',
-                        resourceId: orderId,
-                        details: `Status → ${newStatus}. ${note}`,
-                        adminId: (window.currentAdminUser?.uid || 'admin'),
-                        timestamp: window.serverTimestamp()
-                    });
-                } catch(e) { /* audit logging is non-critical */ }
 
                 Toast.success('✅ Order Updated!', `Status set to "${newStatus}" and customer sees it live.`);
                 closeModal('admin-order-modal');
@@ -2573,26 +2560,34 @@
             const o = ordersData.find(x => x.id === id);
             if (o) {
                 try {
-                    const orderRef = window.doc(window.db, 'orders', id);
+                    const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js");
+                    const updateOrderStatusFn = httpsCallable(getFunctions(), 'updateOrderStatus');
+                    await updateOrderStatusFn({
+                        id: id,
+                        newStatus: status,
+                        note: `Quick-updated to ${status}`,
+                        shippingDetails: {
+                            carrier: o.carrier || null,
+                            trackingNumber: o.trackingNumber || o.trackingId || null,
+                            estimatedDelivery: o.estimatedDelivery || null
+                        }
+                    });
+
                     const historyEntry = {
                         status: status,
                         timestamp: new Date().toISOString(),
                         updatedBy: 'admin',
                         note: `Quick-updated to ${status}`
                     };
-                    await window.updateDoc(orderRef, {
-                        orderStatus: status,
-                        status: status,
-                        statusHistory: window.arrayUnion(historyEntry),
-                        updatedAt: window.serverTimestamp()
-                    });
                     o.status = status;
                     o.orderStatus = status;
+                    if (!Array.isArray(o.statusHistory)) o.statusHistory = [];
+                    o.statusHistory.push(historyEntry);
                     renderOrdersTable(ordersData);
                     Toast.success('Order updated!', `${id.substring(0,10)} → ${status}`);
                 } catch (e) {
                     console.error('Error updating order:', e);
-                    Toast.error('Error', 'Failed to update order status');
+                    Toast.error('Error', e.message || 'Failed to update order status');
                 }
             }
         }

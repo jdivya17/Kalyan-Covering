@@ -176,6 +176,18 @@ service cloud.firestore {
       allow write: if false; // Managed exclusively by Cloud Functions
     }
 
+
+    match /shipment_staging/{orderId} {
+      // Idempotency staging records used exclusively by Cloud Functions (shippingService).
+      // No direct client access is permitted.
+      allow read, write: if false;
+    }
+
+    match /webhook_events/{id} {
+      allow read, write: if false;
+    }
+
+
     // Catch-all: Deny all access to any unspecified collection.
     // This is an explicit security boundary — any new collection must be
     // explicitly added above to be accessible.

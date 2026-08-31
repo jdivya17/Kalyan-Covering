@@ -21,7 +21,15 @@
 
 "use strict";
 
-const admin = require("firebase-admin");
+// ── CHANGED ──────────────────────────────────────────────────────────────
+// Was: const admin = require("firebase-admin"); ... const db = admin.firestore();
+// This re-initialized (or attempted to re-initialize) the Firebase app
+// separately from index.js, which can throw "The default Firebase app
+// already exists" when both modules are loaded in the same process.
+// Now: reuse the single shared instance from lib/admin.js.
+const { admin, db } = require("../lib/admin");
+// ────────────────────────────────────────────────────────────────────────
+
 const { shiprocketRequest } = require("./shiprocketClient");
 const {
     sanitizePincode,
@@ -29,8 +37,6 @@ const {
     formatAddressForShiprocket,
     calculateDimensions,
 } = require("./shippingUtils");
-
-const db = admin.firestore();
 
 // ─── Logger helper ────────────────────────────────────────────────────────────
 
@@ -174,7 +180,7 @@ async function getAvailableCouriersForOrder(orderId, pickupPincode) {
         pickupPincode: pickupPincode,
         deliveryPincode: shippingAddress.pin || shippingAddress.pincode,
         weight: dims.weight,
-        isCOD: false, // currently all orders are prepaid via Razorpay
+        isCOD: order.payment?.method === 'cod', // dynamically check for COD
     });
 
     // Cache result on the order document for reference
@@ -391,7 +397,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "") {
     // 1. Fetch order from Firestore
     const orderRef = db.collection("orders").doc(orderId);
     const orderSnap = await orderRef.get();
-    
+
     if (!orderSnap.exists) {
         throw new Error(`Order ${orderId} not found.`);
     }
@@ -416,7 +422,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "") {
     }
 
     const dims = calculateDimensions(order.items || []);
-    
+
     // Map items to Shiprocket format
     const orderItems = (order.items || []).map(item => ({
         name: item.name || "Jewellery Item",
@@ -460,12 +466,44 @@ async function createShipmentForOrder(orderId, pickupLocation = "") {
     };
 
     // 5. API Call
-    log("info", "Calling Shiprocket Create Order API", { orderNumber: order.orderNumber });
+    // NOTE: was `admin.firestore().collection(...)` — using the shared `db`
+    // (already an admin.firestore() instance from lib/admin.js) is equivalent
+    // and avoids calling admin.firestore() redundantly.
+    const stagingRef = db.collection('shipment_staging').doc(orderId);
+    const stagingDoc = await stagingRef.get();
+
     let result;
-    try {
-        result = await shiprocketRequest("POST", "/orders/create/adhoc", payload);
-    } catch (err) {
-        throw new Error(`Shiprocket API failed: ${err.message}`);
+    if (stagingDoc.exists && stagingDoc.data().shipmentId) {
+        log("info", "Shipment already created according to staging doc, recovering.", { shipmentId: stagingDoc.data().shipmentId });
+        // Proceed to update the order with the existing shipment data to recover from prior failure
+        result = {
+            shipment_id: stagingDoc.data().shipmentId,
+            order_id: stagingDoc.data().sOrderId,
+            awb_code: stagingDoc.data().awbCode,
+            courier_company_id: stagingDoc.data().courierCompanyId
+        };
+    } else {
+        await stagingRef.set({
+            status: 'pending_api_call',
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        log("info", "Calling Shiprocket Create Order API", { orderNumber: order.orderNumber });
+        try {
+            result = await shiprocketRequest("POST", "/orders/create/adhoc", payload);
+            // Save the successful result to the staging document immediately
+            await stagingRef.update({
+                status: 'api_success',
+                shipmentId: result.shipment_id,
+                sOrderId: result.order_id,
+                awbCode: result.awb_code || null,
+                courierCompanyId: result.courier_company_id || null,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (err) {
+            await stagingRef.update({ status: 'api_failed', error: err.message });
+            throw new Error(`Shiprocket API failed: ${err.message}`);
+        }
     }
 
     const shipmentId = result.shipment_id;
@@ -474,7 +512,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "") {
     const courierCompanyId = result.courier_company_id || null;
 
     if (!shipmentId) {
-         throw new Error("Shiprocket API returned success but no shipment_id was found.");
+        throw new Error("Shiprocket API returned success but no shipment_id was found.");
     }
 
     log("info", "Shipment created successfully via API", { shipmentId, awbCode });
