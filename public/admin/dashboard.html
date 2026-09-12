@@ -2252,12 +2252,27 @@
                 const cachedRole = sessionStorage.getItem('kc_admin_role');
                 if (!cachedRole && authChecked) {
                     const loaderText = document.getElementById('admin-loader-text');
+                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                    if (bounces > 2) {
+                        sessionStorage.removeItem('admin_auth_bounces');
+                        if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
+                        return;
+                    }
+                    sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
                     if (loaderText) loaderText.textContent = "Not signed in. Redirecting to login...";
                     setTimeout(() => window.location.replace('/admin/admin-login.html'), 600);
                 } else {
                     authChecked = true;
                     setTimeout(() => {
                         if (!auth.currentUser && !sessionStorage.getItem('kc_admin_role')) {
+                            const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                            if (bounces > 2) {
+                                sessionStorage.removeItem('admin_auth_bounces');
+                                const loaderText = document.getElementById('admin-loader-text');
+                                if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
+                                return;
+                            }
+                            sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
                             window.location.replace('/admin/admin-login.html');
                         }
                     }, 1500);
@@ -2269,6 +2284,7 @@
 
             try {
                 const role = await RBAC.getUserRole(user);
+                console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role });
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
                 if (!role || !validRoles.includes(role.toLowerCase())) {
                     sessionStorage.removeItem('kc_admin_role');
@@ -2277,9 +2293,19 @@
                     if (loaderText) loaderText.textContent = "Unauthorized: No admin role assigned. Redirecting...";
                     if (window.Toast) Toast.error("Unauthorized", "No role assigned to this account.");
                     await signOut(auth);
+                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                    if (bounces > 2) {
+                        sessionStorage.removeItem('admin_auth_bounces');
+                        if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
+                        return;
+                    }
+                    sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
                     setTimeout(() => window.location.replace('/admin/admin-login.html'), 2000);
                     return;
                 }
+
+                // Successful, non-redirecting dashboard load -> CLEAR BOUNCES COUNTER!
+                sessionStorage.removeItem('admin_auth_bounces');
 
                 const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role;
                 sessionStorage.setItem('kc_admin_role', displayRole);

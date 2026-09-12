@@ -146,8 +146,16 @@
                 if (!user) return;
                 try {
                     const role = await RBAC.getUserRole(user);
+                    console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     if (role && validRoles.includes(role.toLowerCase())) {
+                        const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                        if (bounces > 2) {
+                            sessionStorage.removeItem('admin_auth_bounces');
+                            showError('Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.');
+                            return;
+                        }
+                        sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
                         const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role;
                         sessionStorage.setItem('kc_admin_role', displayRole);
                         window.location.replace('/admin/dashboard.html');
@@ -182,6 +190,7 @@
 
                     const cred = await signInWithEmailAndPassword(auth, email, password);
                     const role = await RBAC.getUserRole(cred.user);
+                    console.log('[admin-login.html form submit]', { uid: cred.user.uid, role });
 
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

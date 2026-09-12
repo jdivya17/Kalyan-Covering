@@ -22,9 +22,11 @@ export const RBAC = {
         // 1. Try Firebase Custom Claims (Primary - with fallback force refresh)
         try {
             let idTokenResult = await user.getIdTokenResult(false);
+            console.log('[RBAC.getUserRole] raw idTokenResult.claims:', idTokenResult ? idTokenResult.claims : null);
             if (!idTokenResult.claims || !idTokenResult.claims.role) {
                 // Force refresh token to get newly assigned claims
                 idTokenResult = await user.getIdTokenResult(true);
+                console.log('[RBAC.getUserRole force-refreshed] raw idTokenResult.claims:', idTokenResult ? idTokenResult.claims : null);
             }
             if (idTokenResult.claims && idTokenResult.claims.role) {
                 let r = idTokenResult.claims.role.toLowerCase();
