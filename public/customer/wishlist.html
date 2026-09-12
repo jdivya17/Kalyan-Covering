@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Wishlist | Kalyan Covering</title>
+    <meta name="description" content="Your saved jewellery pieces at Kalyan Covering.">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/customer.css">
+    <style>
+        .wishlist-page {
+            padding-top: 100px;
+            padding-bottom: 5rem;
+            min-height: 80vh;
+        }
+
+        .wishlist-header {
+            margin-bottom: 3rem;
+        }
+
+        .wishlist-header h1 span {
+            color: var(--gold);
+        }
+
+        .wishlist-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gold-dim);
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            padding: 0.3rem 1rem;
+            color: var(--gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-left: 1rem;
+            vertical-align: middle;
+        }
+
+        .wishlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 2rem;
+        }
+
+        .wish-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .wish-card:hover {
+            border-color: var(--gold);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.1);
+            transform: translateY(-6px);
+        }
+
+        .wish-card-img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .wish-card:hover .wish-card-img {
+            transform: scale(1.06);
+        }
+
+        .wish-card-img-wrap {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .wish-remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 50, 50, 0.4);
+            color: #ff6666;
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+            backdrop-filter: blur(4px);
+        }
+
+        .wish-remove-btn:hover {
+            background: rgba(255, 50, 50, 0.2);
+            border-color: #ff4444;
+            transform: scale(1.1);
+        }
+
+        .wish-card-body {
+            padding: 1.2rem;
+        }
+
+        .wish-card-name {
+            font-family: var(--font-serif);
+            font-size: 1.05rem;
+            color: var(--white);
+            margin-bottom: 0.4rem;
+        }
+
+        .wish-card-cat {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.6rem;
+        }
+
+        .wish-card-price {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .wish-card-actions {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .empty-wishlist {
+            text-align: center;
+            padding: 6rem 2rem;
+        }
+
+        .empty-wishlist .heart-icon {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 1.5rem;
+            animation: heartBeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes heartBeat {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            14% {
+                transform: scale(1.15);
+            }
+
+            28% {
+                transform: scale(1);
+            }
+
+            42% {
+                transform: scale(1.1);
+            }
+
+            70% {
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .wishlist-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .wishlist-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- ===== NAV ===== -->
+    <nav class="nav" id="main-nav" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <img src="../assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img"
+                    onerror="this.style.display='none'">
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="wishlist.html" class="active">Wishlist</a></li>
+                <li><a href="cart.html">Cart</a></li>
+                <li><a href="my-orders.html">Orders</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn keep-mobile" onclick="toggleSearch()" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
+                    <a href="auth.html" class="btn btn-outline btn-sm">Login</a>
+                </div>
+                <button id="nav-user-btn" class="nav-icon-btn" style="display:none" aria-label="User Profile"></button>
+                <button class="nav-icon-btn keep-mobile" onclick="window.location='wishlist.html'" aria-label="Wishlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span class="badge" id="wishlist-count" style="display:none" aria-label="Wishlist items">0</span>
+                </button>
+                <button class="nav-icon-btn keep-mobile" onclick="window.location='cart.html'" aria-label="Shopping cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    <span class="badge cart-count" aria-label="Cart items">0</span>
+                </button>
+                <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-drawer">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile drawer overlay -->
+    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
+    <div class="mobile-drawer" id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div class="drawer-header">
+            <div class="nav-logo" style="font-size:1.2rem;">
+                <img src="../assets/kalyan_logo.png" alt="Logo" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--gold);">
+                Kalyan Covering
+            </div>
+            <button class="drawer-close-btn" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
+        </div>
+        <ul class="drawer-nav">
+            <li><a href="index.html">🏠 Home</a></li>
+            <li><a href="products.html">💎 Products</a></li>
+            <li><a href="wishlist.html">♥ Wishlist</a></li>
+            <li><a href="cart.html">🛒 Cart</a></li>
+            <li><a href="my-orders.html">📦 My Orders</a></li>
+            <li><a href="profile.html">👤 Profile</a></li>
+        </ul>
+    </div>
+
+    <!-- Search modal -->
+    <div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label="Product search" aria-hidden="true">
+        <div class="search-inner">
+            <div class="search-input-wrap">
+                <input type="text" id="smart-search-input" placeholder="Search jewellery..." autocomplete="off" aria-label="Search products">
+                <button class="search-close-btn" onclick="toggleSearch()" aria-label="Close search">×</button>
+            </div>
+            <div id="smart-search-results"></div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <main id="main-content">
+    <div class="wishlist-page container">
+        <div class="wishlist-header reveal">
+            <h1 class="section-title">My <span>Wishlist</span>
+                <span class="wishlist-count-badge" id="wish-badge">0 items</span>
+            </h1>
+            <div class="gold-divider" style="margin:1rem 0"></div>
+        </div>
+
+        <div id="wishlist-content"></div>
+    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" style="background:var(--black-card);padding:4rem 0 2rem;border-top:1px solid var(--black-border);margin-top:auto">
+        <div class="container">
+            <div class="footer-main">
+                <div>
+                    <img src="../assets/kalyan_logo.png" class="footer-brand-img" alt="Kalyan Covering" onerror="this.style.display='none'">
+                    <h3 style="color:var(--gold);font-family:var(--font-serif);font-size:1.4rem;margin-bottom:0.75rem">Kalyan Covering</h3>
+                    <p style="color:var(--white-dim);font-size:0.85rem;line-height:1.8;max-width:260px">Since 2000, crafting premium gold-covering jewellery for every special occasion.</p>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="products.html">Products</a></li>
+                        <li><a href="wishlist.html">Wishlist</a></li>
+                        <li><a href="my-orders.html">My Orders</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Customer Care</h4>
+                    <ul class="footer-links">
+                        <li><a href="auth.html">My Account</a></li>
+                        <li><a href="my-orders.html">Track Orders</a></li>
+                        <li><a href="../Terms of Use.pdf" target="_blank">Terms of Use</a></li>
+                        <li><a href="../Privacy Policy.pdf" target="_blank">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Contact</h4>
+                    <ul class="footer-links" style="line-height:2">
+                        <li style="color:var(--white-dim);font-size:0.85rem">📍 Erode, Tamil Nadu</li>
+                        <li><a href="tel:+919876543210">📞 +91 98765 43210</a></li>
+                        <li><a href="mailto:info@kalyancovering.com">✉️ info@kalyancovering.com</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="border-top:1px solid #222;padding-top:1.5rem;margin-top:2.5rem;text-align:center">
+                <p style="color:#666;font-size:0.8rem">© 2026 Kalyan Covering. All Rights Reserved. | Made with 💛 in Tamil Nadu</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="../js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('kc_user'));
+            if (user) {
+                document.getElementById('nav-auth-btns').innerHTML =
+                    `<a href="profile.html" class="btn btn-outline btn-sm">👤 ${(user.name || 'Profile').split(' ')[0]}</a>`;
+            }
+            renderWishlist();
+        });
+
+        function renderWishlist() {
+            const wishlist = JSON.parse(localStorage.getItem('kc_wishlist') || '[]');
+            const badge = document.getElementById('wish-badge');
+            const content = document.getElementById('wishlist-content');
+            if (badge) badge.textContent = wishlist.length + ' item' + (wishlist.length !== 1 ? 's' : '');
+
+            if (wishlist.length === 0) {
+                content.innerHTML = `
+          <div class="empty-wishlist reveal">
+            <span class="heart-icon">🤍</span>
+            <h2 class="section-title" style="font-size:2rem">Your Wishlist is Empty</h2>
+            <p style="color:var(--white-dim);margin:1rem 0 2rem">Save products you love by clicking the ♡ on any jewellery piece.</p>
+            <a href="products.html" class="btn btn-gold btn-lg">✨ Explore Collection</a>
+          </div>`;
+                return;
+            }
+
+            content.innerHTML = `<div class="wishlist-grid">
+        ${wishlist.map(p => `
+          <div class="wish-card reveal">
+            <div class="wish-card-img-wrap">
+              <img class="wish-card-img"
+                src="${p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=400'}"
+                alt="${p.name}" onerror="this.src='https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=400'">
+              <button class="wish-remove-btn" onclick="removeFromWishlist('${p.id}')" title="Remove">✕</button>
+            </div>
+            <div class="wish-card-body">
+              <div class="wish-card-cat">${p.category || 'Jewellery'}</div>
+              <div class="wish-card-name">${p.name}</div>
+              <div class="wish-card-price">₹${(p.price || 0).toLocaleString('en-IN')}</div>
+              <div class="wish-card-actions">
+                <button class="btn btn-gold btn-sm" style="flex:1"
+                  onclick="addToCartFromWish(${JSON.stringify(p).replace(/'/g, '&#39;')}, this)">🛒 Add to Cart</button>
+                <button class="btn btn-ghost btn-sm"
+                  onclick="window.location='product-detail.html?id=${p.id}'">View</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+        }
+
+        function removeFromWishlist(id) {
+            let wl = JSON.parse(localStorage.getItem('kc_wishlist') || '[]');
+            wl = wl.filter(p => p.id !== id);
+            localStorage.setItem('kc_wishlist', JSON.stringify(wl));
+            if (typeof updateWishlistBadge === 'function') updateWishlistBadge();
+            renderWishlist();
+            if (window.Toast) Toast.info('Removed from Wishlist');
+        }
+
+        function addToCartFromWish(product, btn) {
+            if (typeof Cart !== 'undefined') {
+                Cart.add(product);
+            } else {
+                let cart = JSON.parse(localStorage.getItem('kc_cart') || '[]');
+                const ex = cart.find(i => i.id === product.id);
+                if (ex) ex.qty = (ex.qty || 1) + 1;
+                else cart.push({ ...product, qty: 1 });
+                localStorage.setItem('kc_cart', JSON.stringify(cart));
+                if (window.Toast) Toast.success('Added to Cart!', product.name);
+            }
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.classList.add('is-added');
+                btn.innerHTML = '✓ Added';
+                setTimeout(() => {
+                    btn.classList.remove('is-added');
+                    btn.innerHTML = orig;
+                }, 1400);
+            }
+        }
+    </script>
+</body>
+
+</html>

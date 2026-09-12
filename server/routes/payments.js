@@ -57,9 +57,13 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
         const promoSnap = await db.collection("coupons").where("code", "==", promoCode.trim().toUpperCase()).where("status", "==", "active").limit(1).get();
         if (!promoSnap.empty) {
             const pd = promoSnap.docs[0].data();
-            discount = pd.discountType === "percentage"
-                ? Math.min(Math.round(subtotal * (pd.discountValue / 100)), subtotal)
-                : Math.min(pd.discountValue || 0, subtotal);
+            const isExpired = pd.expiryDate && new Date(pd.expiryDate) < new Date();
+            const meetsMin = !pd.minPurchase || subtotal >= pd.minPurchase;
+            if (!isExpired && meetsMin) {
+                discount = pd.discountType === "percentage"
+                    ? Math.min(Math.round(subtotal * (pd.discountValue / 100)), subtotal)
+                    : Math.min(pd.discountValue || 0, subtotal);
+            }
         }
     }
 
@@ -117,7 +121,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
         if (!shippingAddress) return sendError(res, 400, "invalid-argument", "Shipping address is required.");
         validateAddress(shippingAddress);
 
-        const { trustedItems, subtotal, discount, gst, deliveryCharge, totalAmount } = await calculateOrderTotals(items, promoCode, false);
+        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, promoCode, false);
         const order = await getRazorpayClient().orders.create({ amount: totalAmount * 100, currency: "INR", receipt: `rcpt_${req.user.uid}_${Date.now()}` });
         const orderNumber = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
         const now = admin.firestore.FieldValue.serverTimestamp();
@@ -127,7 +131,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
             orderStatus: "payment_pending", paymentStatus: "pending", shippingStatus: "not_shipped",
             payment: { razorpay_order_id: order.id, method: paymentMethod || "razorpay", amount: totalAmount, currency: "INR", paidAt: null },
             shippingDetails: { carrier: null, trackingNumber: null, estimatedDelivery: null, shippedAt: null, deliveredAt: null },
-            subtotal, discount, gst, deliveryCharge, totalAmount, couponCode: promoCode || null,
+            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
             statusHistory: [{ status: "payment_pending", changedAt: now, changedBy: "system", note: "Order created, pending payment." }],
             notes: notes || null, createdAt: now, updatedAt: now
         });
@@ -170,12 +174,13 @@ router.post("/verify", authMiddleware, async (req, res) => {
 // ── POST /api/payments/webhook (Razorpay webhook — no auth) ──────────────────
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     try {
-        const rawBody = req.body; // raw Buffer from express.raw()
+        const rawBody = req.rawBody || req.body;
         const signature = req.headers["x-razorpay-signature"];
         const secret = process.env.RAZORPAY_KEY_SECRET;
         if (!signature || !secret) return res.status(400).send("Missing signature or configuration");
 
-        const expectedSig = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+        const payloadBuffer = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody));
+        const expectedSig = crypto.createHmac("sha256", secret).update(payloadBuffer).digest("hex");
         const sigBuf = Buffer.from(signature, "hex");
         const expBuf = Buffer.from(expectedSig, "hex");
         if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
@@ -183,7 +188,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             return res.status(400).send("Invalid signature");
         }
 
-        const parsed = JSON.parse(rawBody.toString());
+        const parsed = typeof rawBody === "object" && !Buffer.isBuffer(rawBody) ? rawBody : JSON.parse(payloadBuffer.toString());
         const event = parsed.event;
         const paymentData = parsed.payload?.payment?.entity;
         const eventId = req.headers["x-razorpay-event-id"];
@@ -236,19 +241,42 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
         const orderNumber = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
         const now = admin.firestore.FieldValue.serverTimestamp();
 
-        const codOrder = {
-            orderNumber, customerId: req.user.uid, items: trustedItems, shippingAddress,
-            orderStatus: "pending", paymentStatus: "pending", shippingStatus: "not_shipped",
-            payment: { method: "cod", amount: totalAmount, currency: "INR", paidAt: null },
-            shippingDetails: { carrier: null, trackingNumber: null, shippedAt: null, deliveredAt: null },
-            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
-            statusHistory: [{ status: "pending", changedAt: now, changedBy: "system", note: "COD Order placed." }],
-            notes: notes || null, createdAt: now, updatedAt: now
-        };
+        let docRefId = null;
+        await db.runTransaction(async (transaction) => {
+            // Verify stock and deduct for each item
+            for (const item of trustedItems) {
+                const productRef = db.collection("products").doc(item.id);
+                const productDoc = await transaction.get(productRef);
+                if (!productDoc.exists) throw { code: 404, message: `Product ${item.id} not found.` };
+                const pd = productDoc.data();
+                const currentStock = typeof pd.stock === "number" ? pd.stock : (parseInt(pd.stock, 10) || 0);
+                if (currentStock < item.qty) {
+                    throw { code: 400, message: `Insufficient stock for "${pd.productName || pd.name || item.id}".` };
+                }
+                const newStock = Math.max(0, currentStock - item.qty);
+                transaction.update(productRef, {
+                    stock: newStock,
+                    ...(newStock <= 0 ? { status: "out_of_stock" } : {}),
+                    updatedAt: now
+                });
+            }
 
-        const docRef = await db.collection("orders").add(codOrder);
-        await logAudit(req, "CREATE_COD_ORDER", "orders", docRef.id, null, codOrder);
-        return res.json({ success: true, orderId: docRef.id, orderNumber });
+            const codOrderRef = db.collection("orders").doc();
+            docRefId = codOrderRef.id;
+            const codOrder = {
+                orderNumber, customerId: req.user.uid, items: trustedItems, shippingAddress,
+                orderStatus: "pending", paymentStatus: "pending", shippingStatus: "not_shipped",
+                payment: { method: "cod", amount: totalAmount, currency: "INR", paidAt: null },
+                shippingDetails: { carrier: null, trackingNumber: null, shippedAt: null, deliveredAt: null },
+                subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
+                statusHistory: [{ status: "pending", changedAt: now, changedBy: "system", note: "COD Order placed." }],
+                notes: notes || null, createdAt: now, updatedAt: now
+            };
+            transaction.set(codOrderRef, codOrder);
+        });
+
+        await logAudit(req, "CREATE_COD_ORDER", "orders", docRefId, null, { orderNumber, totalAmount });
+        return res.json({ success: true, orderId: docRefId, orderNumber });
     } catch (err) {
         if (err.code && err.message) return sendError(res, err.code, "invalid-argument", err.message);
         console.error("[payments/create-cod-order]", err);

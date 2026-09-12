@@ -2,6 +2,11 @@
 functions/.env
 functions/.secret.local
 rzp-key.csv
+*.csv
+scripts/*.csv
+scripts/serviceAccount*.json
+firebase-debug*.log
+deploy-log.txt
 
 # Firebase local files
 .firebase/
@@ -21,3 +26,7 @@ Thumbs.db
 
 # VS Code settings
 .vscode/
+
+.vercel
+.env*
+{

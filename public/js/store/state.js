@@ -1,8 +1,17 @@
+/** Safely parse a localStorage JSON value; returns fallback on any error */
+function safeParse(key, fallback) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    } catch {
+        return fallback;
+    }
+}
+
 export const KC = {
-    user: JSON.parse(localStorage.getItem('kc_user') || 'null'),
-    cart: JSON.parse(localStorage.getItem('kc_cart') || '[]'),
-    wishlist: JSON.parse(localStorage.getItem('kc_wishlist') || '[]'),
-    theme: localStorage.getItem('kc_theme') || 'normal', // normal | diwali | christmas
+    user: safeParse('kc_user', null),
+    cart: safeParse('kc_cart', []),
+    wishlist: safeParse('kc_wishlist', []),
+    theme: safeParse('kc_theme', 'normal') || 'normal', // normal | diwali | christmas
     products: [],
     videos: [],
     adminKeyword: 'admin',

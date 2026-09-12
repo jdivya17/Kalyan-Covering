@@ -18,6 +18,7 @@
         "rules": "storage.rules"
     },
     "hosting": {
+        "site": "kalyancoveringstore-c53e4",
         "public": "dist",
         "predeploy": [
             "npm run build"
@@ -30,7 +31,31 @@
         "rewrites": [
             {
                 "source": "/admin/login",
-                "destination": "/admin-login.html"
+                "destination": "/admin/admin-login.html"
+            },
+            {
+                "source": "/admin",
+                "destination": "/admin/dashboard.html"
+            },
+            {
+                "source": "/admin/dashboard",
+                "destination": "/admin/dashboard.html"
+            },
+            {
+                "source": "/admin/products",
+                "destination": "/admin/products.html"
+            },
+            {
+                "source": "/admin/orders",
+                "destination": "/admin/orders.html"
+            },
+            {
+                "source": "/customer/cart",
+                "destination": "/customer/cart.html"
+            },
+            {
+                "source": "/customer/checkout",
+                "destination": "/customer/checkout.html"
             }
         ],
         "headers": [
@@ -91,20 +116,7 @@
                 ]
             },
             {
-                "source": "admin.html",
-                "headers": [
-                    {
-                        "key": "X-Robots-Tag",
-                        "value": "noindex, nofollow"
-                    },
-                    {
-                        "key": "Cache-Control",
-                        "value": "no-store, no-cache, must-revalidate"
-                    }
-                ]
-            },
-            {
-                "source": "admin-login.html",
+                "source": "admin/**",
                 "headers": [
                     {
                         "key": "X-Robots-Tag",
@@ -118,4 +130,4 @@
             }
         ]
     }
-}
+}

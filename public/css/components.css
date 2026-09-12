@@ -1,0 +1,118 @@
+/* ============================================================
+   KALYAN COVERING – UI Components (supplementary overrides)
+   Core styles now live in design-system.css
+   ============================================================ */
+
+/* Any page-level overrides that need to stack on top of the design system */
+
+/* ---- Cart item card ---- */
+.cart-item-card {
+  display: flex;
+  gap: 1.2rem;
+  background: var(--black-card);
+  border: 1px solid var(--black-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: var(--transition);
+  align-items: flex-start;
+}
+.cart-item-card:hover { border-color: var(--gold-dark); }
+.cart-item-img {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  border: 1px solid var(--black-border);
+}
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name { font-family: var(--font-serif); font-size: 1.05rem; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cart-item-cat  { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.6rem; }
+.cart-item-price { color: var(--gold); font-weight: 700; font-size: 1rem; }
+.qty-control { display: flex; align-items: center; gap: 0; border: 1px solid var(--black-border); border-radius: var(--radius-sm); overflow: hidden; width: fit-content; margin-top: 0.75rem; }
+.qty-btn { background: var(--black-card); border: none; color: var(--white-dim); width: 32px; height: 32px; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); }
+.qty-btn:hover { background: var(--gold-dim); color: var(--gold); }
+.qty-value { width: 40px; text-align: center; font-size: 0.9rem; background: transparent; border: none; border-left: 1px solid var(--black-border); border-right: 1px solid var(--black-border); color: var(--white); padding: 0.25rem 0; }
+.cart-item-remove { background: none; border: none; color: #555; font-size: 1rem; cursor: pointer; padding: 0.25rem; transition: var(--transition); flex-shrink: 0; }
+.cart-item-remove:hover { color: var(--red); }
+
+/* ---- Order card (my-orders) ---- */
+.order-card {
+  background: var(--black-card);
+  border: 1px solid var(--black-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition: var(--transition);
+  margin-bottom: 1.2rem;
+}
+.order-card:hover { border-color: var(--gold-dark); }
+.order-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.order-number { font-family: var(--font-serif); font-size: 1.05rem; color: var(--gold); }
+.order-date { color: #666; font-size: 0.82rem; }
+.order-items-thumb { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0; }
+.order-item-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--black-border); }
+.order-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid var(--black-border); padding-top: 1rem; margin-top: 1rem; }
+.order-total { color: var(--gold); font-weight: 700; font-size: 1.1rem; }
+
+/* ---- Tracking Timeline ---- */
+.tracking-timeline { position: relative; padding-left: 2rem; margin-top: 1.5rem; }
+.tracking-timeline::before { content: ''; position: absolute; left: 10px; top: 6px; bottom: 0; width: 2px; background: var(--black-border); }
+.timeline-step { position: relative; margin-bottom: 1.5rem; }
+.timeline-step:last-child { margin-bottom: 0; }
+.timeline-dot {
+  position: absolute; left: -2rem; top: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--black-border); border: 2px solid var(--black-border);
+  z-index: 1;
+}
+.timeline-step.done .timeline-dot { background: var(--gold); border-color: var(--gold); }
+.timeline-step.active .timeline-dot { background: transparent; border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-dim); }
+.timeline-label { font-weight: 600; font-size: 0.9rem; color: var(--white-dim); }
+.timeline-step.done .timeline-label, .timeline-step.active .timeline-label { color: var(--white); }
+.timeline-time { font-size: 0.78rem; color: #555; margin-top: 0.2rem; }
+
+/* ---- Profile Tabs ---- */
+.profile-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--black-border); margin-bottom: 2rem; overflow-x: auto; }
+.profile-tab-btn {
+  background: none; border: none; color: var(--white-dim);
+  padding: 0.85rem 1.5rem; font-size: 0.88rem; font-weight: 500;
+  cursor: pointer; border-bottom: 2px solid transparent; transition: var(--transition);
+  white-space: nowrap; font-family: var(--font-sans);
+}
+.profile-tab-btn:hover { color: var(--gold); }
+.profile-tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+.profile-tab-panel { display: none; }
+.profile-tab-panel.active { display: block; }
+
+/* ---- Empty State ---- */
+.empty-state {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: var(--black-card);
+  border: 1px solid var(--black-border);
+  border-radius: var(--radius);
+}
+.empty-state-icon { font-size: 4rem; display: block; margin-bottom: 1.5rem; opacity: 0.6; }
+.empty-state h2 { font-size: 1.6rem; margin-bottom: 0.75rem; }
+.empty-state p { color: var(--white-dim); font-size: 0.95rem; margin-bottom: 2rem; max-width: 360px; margin-left: auto; margin-right: auto; }
+
+/* ---- Promo / Coupon Input ---- */
+.coupon-wrap { display: flex; gap: 0.5rem; }
+.coupon-wrap .form-input { flex: 1; }
+.coupon-wrap .btn { flex-shrink: 0; }
+
+/* ---- Rating Stars ---- */
+.star-rating { display: flex; gap: 0.2rem; }
+.star { font-size: 1.2rem; cursor: pointer; color: #555; transition: var(--transition); }
+.star.filled, .star:hover ~ .star.filled { color: var(--gold); }
+.star:hover { color: var(--gold); }
+.star:hover ~ .star { color: #555; }
+
+/* ---- Responsive fixes ---- */
+@media (max-width: 768px) {
+  .cart-item-card { flex-wrap: wrap; }
+  .cart-item-img { width: 70px; height: 70px; }
+  .order-card-header { flex-direction: column; }
+  .profile-tab-btn { padding: 0.7rem 1rem; font-size: 0.82rem; }
+  .coupon-wrap { flex-direction: column; }
+}

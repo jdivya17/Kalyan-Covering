@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | Kalyan Covering</title>
+    <meta name="description" content="Manage your Kalyan Covering profile, view wishlist, orders, and account settings.">
+    <script>
+        if (!localStorage.getItem('kc_user')) {
+            window.location.replace('auth.html');
+        }
+    </script>
+    <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
+    <!-- Performance: preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/customer.css">
+    <style>
+        /* ======= DASHBOARD LAYOUT ======= */
+        body { background: var(--black); }
+        
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 70px);
+            padding-top: 70px; /* offset for nav */
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 850px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            .sidebar {
+                position: relative;
+                top: 0;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--black-border);
+            }
+            .main-content {
+                padding: 1.5rem 1rem;
+            }
+            .profile-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* ---- SIDEBAR ---- */
+        .sidebar {
+            background: var(--black-card);
+            border-right: 1px solid var(--black-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: sticky;
+            top: 70px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+
+        .user-quick-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px dashed var(--black-border);
+        }
+
+        .sidebar-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--gold);
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .sidebar-user-info h3 {
+            font-size: 1rem;
+            color: var(--white);
+            font-family: var(--font-serif);
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .sidebar-user-info span {
+            font-size: 0.75rem;
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: var(--radius-sm);
+            color: #aaa;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--white);
+        }
+
+        .nav-item.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border-left: 3px solid var(--gold);
+        }
+
+        .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+        
+        .logout-btn {
+            margin-top: auto;
+            color: #ff5555;
+            background: rgba(255, 85, 85, 0.1);
+            border: 1px solid rgba(255, 85, 85, 0.2);
+        }
+        .logout-btn:hover { background: rgba(255, 85, 85, 0.2); color: #ff6666; }
+
+        /* ---- MAIN CONTENT AREA ---- */
+        .main-content {
+            padding: 2.5rem 3rem;
+            overflow-y: auto;
+            background: var(--black);
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        
+        .section-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--black-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            color: var(--gold);
+        }
+
+        /* ---- PROFILE TAB ---- */
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .glass-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .form-group { margin-bottom: 1.2rem; }
+        .form-label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 1px;}
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            border-radius: var(--radius-sm);
+            color: var(--white);
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .form-input:focus { border-color: var(--gold); outline: none; }
+        .form-input:disabled { background: transparent; border-color: transparent; padding-left: 0; color: #ccc; }
+
+        /* ---- ADDRESS TAB ---- */
+        .address-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .address-card {
+            background: var(--black-card);
+            border: 1px dashed #444;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            position: relative;
+            transition: 0.3s;
+        }
+        .address-card:hover { border-color: var(--gold); }
+        .address-tag { position: absolute; top: 1rem; right: 1rem; background: rgba(212,175,55,0.1); color: var(--gold); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+        .address-actions { display: flex; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; }
+        .address-add-btn {
+            border: 1px dashed var(--gold);
+            background: rgba(212,175,55,0.02);
+            color: var(--gold);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            min-height: 160px;
+        }
+
+        /* ---- SETTINGS TAB ---- */
+        .settings-list { display: flex; flex-direction: column; gap: 1rem; }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: var(--radius-sm);
+        }
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* ---- NOTIFICATIONS TAB ---- */
+        .notification-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid #222;
+        }
+        .notif-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+        }
+        .notif-icon.order { background: rgba(212,175,55,0.1); color: var(--gold); }
+        .notif-icon.promo { background: rgba(46,204,113,0.1); color: #2ecc71; }
+        .notif-content h4 { margin-bottom: 0.3rem; color: var(--white); font-size: 1rem; }
+        .notif-content p { color: #888; font-size: 0.9rem; }
+        .notif-time { color: #555; font-size: 0.75rem; margin-top: 0.5rem; display: block; }
+
+        /* ---- ORDER HISTORY ---- */
+        .order-card {
+            background: var(--black-card);
+            border: 1px solid var(--black-border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .order-header {
+            padding: 1.2rem 1.5rem;
+            background: rgba(212, 175, 55, 0.05);
+            border-bottom: 1px solid var(--black-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .order-id { color: var(--gold); font-weight: 700; font-family: var(--font-sans); }
+        .order-date { color: #888; font-size: 0.85rem; margin-top: 0.2rem; }
+        .order-actions { display: flex; gap: 0.8rem; }
+        
+        .order-body { padding: 1.5rem; }
+        .order-item {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed #333;
+        }
+        .order-item:last-child { border: none; margin: 0; padding: 0; }
+        .order-item-img { width: 70px; height: 70px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid #333; }
+        .order-item-info { flex: 1; }
+        
+        /* Status Badge */
+        .status-badge {
+            padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 0.4rem;
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-delivered { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+        .status-delivered .status-dot { background: #2ecc71; }
+        .status-processing { background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid rgba(212, 175, 55, 0.3); }
+        .status-processing .status-dot { background: var(--gold); animation: pulse 1.5s infinite; }
+
+        /* ---- WISHLIST GRID ---- */
+        .wishlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+        .wishlist-item {
+            background: var(--black-card); border: 1px solid #333; border-radius: var(--radius); overflow: hidden;
+        }
+        .wishlist-item-img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+        .wishlist-item-body { padding: 1rem; }
+
+        /* Responsive */
+        .mobile-nav-toggle { display: none; }
+        @media (max-width: 900px) {
+            .dashboard-container { grid-template-columns: 1fr; padding-top: 120px; }
+            .sidebar {
+                position: fixed; top: 70px; left: -100%; width: 280px; z-index: 100;
+                transition: 0.3s ease; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+            }
+            .sidebar.open { left: 0; }
+            .mobile-nav-toggle {
+                display: flex; position: fixed; top: 70px; left: 0; right: 0; background: var(--black-card);
+                padding: 1rem; border-bottom: 1px solid var(--gold); z-index: 99; justify-content: space-between; align-items: center;
+            }
+            .main-content { padding: 1.5rem; }
+            .profile-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== SKIP TO MAIN CONTENT (Accessibility) ===== -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- ===== NAV ===== -->
+    <nav class="nav" id="main-nav" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-img-wrap">
+                  <img src="../assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img" onerror="this.style.display='none'">
+                </div>
+                Kalyan Covering
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="wishlist.html">Wishlist</a></li>
+                <li><a href="cart.html">Cart</a></li>
+                <li><a href="my-orders.html">Orders</a></li>
+                <li><a href="profile.html" class="active">Profile</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="nav-icon-btn keep-mobile" onclick="toggleSearch()" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
+                    <a href="auth.html" class="btn btn-outline btn-sm">Login</a>
+                </div>
+                <button id="nav-user-btn" class="nav-icon-btn" style="display:none" aria-label="User Profile"></button>
+                <button class="nav-icon-btn keep-mobile" onclick="window.location='wishlist.html'" aria-label="Wishlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span class="badge" id="wishlist-count" style="display:none">0</span>
+                </button>
+                <button class="nav-icon-btn keep-mobile" onclick="window.location='cart.html'" aria-label="Shopping cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    <span class="badge cart-count" id="nav-cart-count">0</span>
+                </button>
+                <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-drawer">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile drawer overlay -->
+    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
+    <div class="mobile-drawer" id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div class="drawer-header">
+            <div class="nav-logo" style="font-size:1.2rem;">
+                <img src="../assets/kalyan_logo.png" alt="Logo" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--gold);">
+                Kalyan Covering
+            </div>
+            <button class="drawer-close-btn" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
+        </div>
+        <ul class="drawer-nav">
+            <li><a href="index.html">🏠 Home</a></li>
+            <li><a href="products.html">💎 Products</a></li>
+            <li><a href="wishlist.html">♥ Wishlist</a></li>
+            <li><a href="cart.html">🛒 Cart</a></li>
+            <li><a href="my-orders.html">📦 My Orders</a></li>
+            <li><a href="profile.html">👤 Profile</a></li>
+        </ul>
+    </div>
+
+    <!-- Search modal -->
+    <div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label="Product search" aria-hidden="true">
+        <div class="search-inner">
+            <div class="search-input-wrap">
+                <input type="text" id="smart-search-input" placeholder="Search jewellery..." autocomplete="off" aria-label="Search products">
+                <button class="search-close-btn" onclick="toggleSearch()" aria-label="Close search">×</button>
+            </div>
+            <div id="smart-search-results"></div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Mobile Dashboard Header -->
+    <div class="mobile-nav-toggle">
+        <div style="font-family:var(--font-serif); color:var(--gold); font-size:1.2rem;" id="mobile-current-tab">Profile</div>
+        <button class="btn btn-outline btn-sm" onclick="toggleSidebar()">☰ Menu</button>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="dashboard-sidebar">
+            <div class="user-quick-profile">
+                <div class="sidebar-avatar" id="sidebar-initials">U</div>
+                <div class="sidebar-user-info">
+                    <h3 id="sidebar-name">User Name</h3>
+                    <span>Premium Member</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu" role="tablist" aria-label="Dashboard navigation">
+                <button type="button" class="nav-item active" onclick="switchTab('profile', this)" role="tab" aria-selected="true">
+                    <span class="nav-icon" aria-hidden="true">👤</span> Profile Details
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('orders', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">📦</span> Order History
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('returns', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">↩️</span> Returns &amp; Refunds
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('wishlist', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">❤️</span> My Wishlist
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('addresses', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">📍</span> Saved Addresses
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('notifications', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">🔔</span> Notifications
+                </button>
+                <button type="button" class="nav-item" onclick="switchTab('settings', this)" role="tab" aria-selected="false">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span> Settings
+                </button>
+                <button type="button" class="nav-item logout-btn" onclick="performLogout()">
+                    <span class="nav-icon" aria-hidden="true">🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main id="main-content" class="main-content">
+            
+            <!-- PROFILE TAB -->
+            <section class="tab-content active" id="tab-profile">
+                <div class="section-header">
+                    <h2 class="section-title">Profile Details</h2>
+                    <button class="btn btn-gold btn-sm" id="edit-profile-btn" onclick="toggleEditProfile()">Edit Profile</button>
+                </div>
+                
+                <div class="profile-grid">
+                    <div class="glass-card">
+                        <h3 style="color:var(--white); margin-bottom:1.5rem; font-family:var(--font-sans); font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">Personal Information</h3>
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="profile-name-input" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-input" id="profile-email-input" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-input" id="profile-phone-input" disabled>
+                        </div>
+                        <button class="btn btn-gold" id="save-profile-btn" style="display:none; width:100%; margin-top:1rem;" onclick="saveProfile()">Save Changes</button>
+                    </div>
+                    
+                    <div class="glass-card">
+                        <h3 style="color:var(--white); margin-bottom:1.5rem; font-family:var(--font-sans); font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">Account Security</h3>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-input" value="********" disabled>
+                        </div>
+                        <button class="btn btn-outline btn-sm">Change Password</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ORDERS TAB -->
+            <section class="tab-content" id="tab-orders">
+                <div class="section-header">
+                    <h2 class="section-title">Order History</h2>
+                </div>
+                <div id="orders-container">
+                    <!-- Populated via JS -->
+                    <div style="text-align:center; padding:3rem; color:#888;">Loading orders...</div>
+                </div>
+            </section>
+
+            <!-- RETURNS TAB -->
+            <section class="tab-content" id="tab-returns">
+                <div class="section-header">
+                    <h2 class="section-title">Returns & Refunds</h2>
+                </div>
+                <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                    <div style="font-size:3rem; margin-bottom:1rem; opacity:0.5;">↩️</div>
+                    <h3 style="color:var(--white); margin-bottom:0.5rem;">No Active Returns</h3>
+                    <p style="color:#888; font-size:0.9rem;">You don't have any return requests at the moment. You can initiate a return from the Order History page for eligible items.</p>
+                </div>
+            </section>
+
+            <!-- ADDRESSES TAB -->
+            <section class="tab-content" id="tab-addresses">
+                <div class="section-header">
+                    <h2 class="section-title">Saved Addresses</h2>
+                </div>
+                <div class="address-grid" id="address-grid">
+                    <!-- Populated via JS -->
+                </div>
+            </section>
+
+            <!-- WISHLIST TAB -->
+            <section class="tab-content" id="tab-wishlist">
+                <div class="section-header">
+                    <h2 class="section-title">My Wishlist</h2>
+                </div>
+                <div id="wishlist-container">
+                    <!-- Populated via JS -->
+                </div>
+            </section>
+
+            <!-- NOTIFICATIONS TAB -->
+            <section class="tab-content" id="tab-notifications">
+                <div class="section-header">
+                    <h2 class="section-title">Notifications</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="markAllNotifRead()">Mark all as read</button>
+                </div>
+                <div id="notif-list">
+                    <div style="text-align:center; padding:3rem; color:#888;">Loading notifications...</div>
+                </div>
+            </section>
+
+            <!-- SETTINGS TAB -->
+            <section class="tab-content" id="tab-settings">
+                <div class="section-header">
+                    <h2 class="section-title">Preferences &amp; Settings</h2>
+                </div>
+                <div class="glass-card" style="max-width: 600px;">
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">Email Notifications</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive order updates and promotions via email</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="pref-email" checked onchange="savePreferences()"><span class="slider"></span></label>
+                        </div>
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">SMS Alerts</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive delivery updates via SMS</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="pref-sms" checked onchange="savePreferences()"><span class="slider"></span></label>
+                        </div>
+                        <div class="setting-item">
+                            <div>
+                                <div style="color:var(--white); font-weight:500;">WhatsApp Updates</div>
+                                <div style="color:#888; font-size:0.8rem; margin-top:0.2rem;">Receive order status on WhatsApp</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="pref-whatsapp" onchange="savePreferences()"><span class="slider"></span></label>
+                        </div>
+                        <div id="pref-save-status" style="color:var(--gold); font-size:0.85rem; text-align:right; margin-top:0.5rem; min-height:1.2em;"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Add Address Modal -->
+    <div id="address-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+        <div class="glass-card" style="max-width:480px; width:90%; margin:auto; position:relative;">
+            <button onclick="closeAddressModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:#888;font-size:1.5rem;cursor:pointer;">✕</button>
+            <h3 style="color:var(--gold);font-family:var(--font-serif);margin-bottom:1.5rem;">Add New Address</h3>
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="addr-name" placeholder="Recipient name"></div>
+            <div class="form-group"><label class="form-label">Address Line</label><input type="text" class="form-input" id="addr-line" placeholder="Street / Flat / Area"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" id="addr-city"></div>
+                <div class="form-group"><label class="form-label">State</label><input type="text" class="form-input" id="addr-state"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group"><label class="form-label">PIN Code</label><input type="text" class="form-input" id="addr-pin" maxlength="6"></div>
+                <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="addr-phone"></div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1rem;">
+                <button class="btn btn-gold" style="flex:1" onclick="submitNewAddress()">Save Address</button>
+                <button class="btn btn-outline" onclick="closeAddressModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="../js/app.js" type="module"></script>
+    <script type="module">
+        import { db, auth, collection, getDocs, query, where, doc, getDoc } from '../js/firebase-config.js';
+
+        const user = JSON.parse(localStorage.getItem('kc_user'));
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate Initial Profile Data
+            const uName = user.name || 'Customer';
+            document.getElementById('sidebar-name').textContent = uName;
+            document.getElementById('sidebar-initials').textContent = uName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+            
+            document.getElementById('profile-name-input').value = uName;
+            document.getElementById('profile-email-input').value = user.email || '';
+            document.getElementById('profile-phone-input').value = user.phone || '';
+
+            loadAddresses();
+            loadWishlist();
+            loadMockOrders(); // In a real app, query Firebase
+            updateCartCount();
+        });
+
+        // Toggle Mobile Sidebar
+        window.toggleSidebar = function() {
+            document.getElementById('dashboard-sidebar').classList.toggle('open');
+        };
+
+        // Tab Switching Logic
+        window.switchTab = function(tabId, el) {
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.remove('active');
+                i.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            el.classList.add('active');
+            el.setAttribute('aria-selected', 'true');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById('mobile-current-tab').textContent = el.textContent.trim();
+            
+            // Close sidebar on mobile after selection
+            if(window.innerWidth <= 900) {
+                document.getElementById('dashboard-sidebar').classList.remove('open');
+            }
+        };
+
+        // Profile Edit Logic
+        window.toggleEditProfile = function() {
+            const inputs = ['profile-name-input', 'profile-phone-input'];
+            const isEditing = !document.getElementById('profile-name-input').disabled;
+            
+            if(isEditing) {
+                // Cancel
+                inputs.forEach(id => {
+                    document.getElementById(id).disabled = true;
+                    document.getElementById(id).style.borderColor = 'transparent';
+                });
+                document.getElementById('edit-profile-btn').textContent = 'Edit Profile';
+                document.getElementById('save-profile-btn').style.display = 'none';
+            } else {
+                // Edit
+                inputs.forEach(id => {
+                    document.getElementById(id).disabled = false;
+                    document.getElementById(id).style.borderColor = '#333';
+                });
+                document.getElementById('profile-name-input').focus();
+                document.getElementById('edit-profile-btn').textContent = 'Cancel';
+                document.getElementById('save-profile-btn').style.display = 'block';
+            }
+        };
+
+        window.saveProfile = async function() {
+            const btn = document.getElementById('save-profile-btn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            const newName = document.getElementById('profile-name-input').value.trim();
+            const newPhone = document.getElementById('profile-phone-input').value.trim();
+            try {
+                const { db, doc, updateDoc } = await import('../js/firebase-config.js');
+                await updateDoc(doc(db, 'users', u.uid), { name: newName, phone: newPhone });
+                u.name = newName;
+                u.phone = newPhone;
+                localStorage.setItem('kc_user', JSON.stringify(u));
+                document.getElementById('sidebar-name').textContent = newName;
+                document.getElementById('sidebar-initials').textContent = newName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                if (window.Toast) Toast.success('Profile Updated', 'Your changes have been saved.');
+                else alert('Profile updated successfully!');
+                toggleEditProfile();
+            } catch(err) {
+                console.error('saveProfile error:', err);
+                if (window.Toast) Toast.error('Save Failed', 'Please try again.');
+                else alert('Failed to save. Please try again.');
+            } finally {
+                btn.textContent = 'Save Changes';
+                btn.disabled = false;
+            }
+        };
+
+        // Load Addresses from Firestore
+        async function loadAddresses() {
+            const grid = document.getElementById('address-grid');
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            let addrs = [];
+            try {
+                const { db, collection, getDocs } = await import('../js/firebase-config.js');
+                const snap = await getDocs(collection(db, 'users', u.uid, 'addresses'));
+                addrs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch(e) {
+                console.log('Address load error:', e);
+            }
+
+            let html = `<div class="address-card address-add-btn" onclick="openAddressModal()">
+                <div style="font-size:2rem;">+</div><div>Add New Address</div></div>`;
+
+            addrs.forEach(addr => {
+                html += `<div class="address-card">
+                    ${addr.isDefault ? '<div class="address-tag">Default</div>' : ''}
+                    <h4 style="color:var(--white); margin-bottom:0.5rem; font-size:1.1rem;">${addr.name}</h4>
+                    <p style="color:#888; font-size:0.9rem; line-height:1.5;">
+                        ${addr.line}<br>${addr.city}, ${addr.state} - ${addr.pin}<br>Phone: ${addr.phone}
+                    </p>
+                    <div class="address-actions">
+                        <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteAddress('${addr.id}')">Delete</button>
+                    </div></div>`;
+            });
+            grid.innerHTML = html;
+        }
+
+        // Load Wishlist
+        function loadWishlist() {
+            const container = document.getElementById('wishlist-container');
+            const wishlist = JSON.parse(localStorage.getItem('kc_wishlist') || '[]');
+            
+            if(wishlist.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                        <span style="font-size:3rem; opacity:0.5;">❤️</span>
+                        <h3 style="color:var(--white); margin:1rem 0 0.5rem;">Wishlist Empty</h3>
+                        <p style="color:#888; margin-bottom:1.5rem;">Save your favorite pieces for later.</p>
+                        <a href="products.html" class="btn btn-gold">Explore Collection</a>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `<div class="wishlist-grid">
+                ${wishlist.map(p => `
+                    <div class="wishlist-item">
+                        <img src="${p.image||p.primaryImageURL||'/img-fallback.svg'}" class="wishlist-item-img">
+                        <div class="wishlist-item-body">
+                            <h4 style="color:var(--white); font-size:0.95rem; margin-bottom:0.3rem;">${p.name}</h4>
+                            <div style="color:var(--gold); font-weight:bold; margin-bottom:1rem;">₹${(p.price||0).toLocaleString()}</div>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button class="btn btn-gold btn-sm" style="flex:1;" onclick="window.location='product-detail.html?id=${p.id}'">View</button>
+                                <button class="btn btn-outline btn-sm" onclick="removeWish('${p.id}')">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+
+        window.removeWish = function(id) {
+            let w = JSON.parse(localStorage.getItem('kc_wishlist')||'[]');
+            w = w.filter(i => i.id !== id);
+            localStorage.setItem('kc_wishlist', JSON.stringify(w));
+            loadWishlist();
+        };
+
+        // Download Invoice via Cloud Function
+        window.downloadInvoice = async function(orderId, orderNumber) {
+            const btn = document.getElementById('inv-btn-' + orderId);
+            if (btn) { btn.textContent = '⌛ Generating...'; btn.disabled = true; }
+            try {
+                const { functions, httpsCallable } = await import('../js/firebase-config.js');
+                const genInvoice = httpsCallable(functions, 'generateInvoice');
+                const { data } = await genInvoice({ orderId });
+                if (data.pdfBase64) {
+                    // Convert base64 → Blob → download
+                    const byteChars = atob(data.pdfBase64);
+                    const byteArray = new Uint8Array(byteChars.length);
+                    for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Invoice-${data.orderNumber || orderId}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch(err) {
+                console.error('Invoice error:', err);
+                alert('Failed to generate invoice: ' + (err.message || 'Unknown error'));
+            } finally {
+                if (btn) { btn.textContent = '⬇ Download Invoice'; btn.disabled = false; }
+            }
+        };
+
+        // Load Real Orders from Firestore
+        async function loadRealOrders() {
+            const container = document.getElementById('orders-container');
+            try {
+                const { db, auth, collection, query, where, orderBy, getDocs } = await import('../js/firebase-config.js');
+                const user = auth.currentUser;
+                if (!user) {
+                    container.innerHTML = `<div style="text-align:center;padding:3rem;color:#888;">Please log in to view your orders.</div>`;
+                    return;
+                }
+
+                const q = query(
+                    collection(db, 'orders'),
+                    where('customerId', '==', user.uid),
+                    orderBy('createdAt', 'desc')
+                );
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    container.innerHTML = `
+                        <div class="glass-card" style="text-align:center; padding:4rem 2rem;">
+                            <span style="font-size:3rem; opacity:0.5;">📦</span>
+                            <h3 style="color:var(--white); margin:1rem 0 0.5rem;">No Orders Yet</h3>
+                            <p style="color:#888; margin-bottom:1.5rem;">You haven't placed any orders yet. Start exploring our collection!</p>
+                            <a href="products.html" class="btn btn-gold">Shop Now</a>
+                        </div>`;
+                    return;
+                }
+
+                const STATUS_COLORS = {
+                    pending: 'status-pending', confirmed: 'status-confirmed', packed: 'status-packed',
+                    shipped: 'status-shipped', out_for_delivery: 'status-shipped',
+                    delivered: 'status-delivered', cancelled: 'status-cancelled',
+                    returned: 'status-cancelled', refunded: 'status-cancelled'
+                };
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const order = doc.data();
+                    const orderId = doc.id;
+                    const date = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : 'N/A';
+                    const statusClass = STATUS_COLORS[order.orderStatus] || 'status-pending';
+                    const tracking = order.shippingDetails?.trackingNumber;
+                    const carrier = order.shippingDetails?.carrier;
+
+                    return `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <div>
+                                    <div class="order-id">Order #${order.orderNumber || orderId}</div>
+                                    <div class="order-date">Placed on ${date}</div>
+                                    ${tracking ? `<div style="color:var(--gold); font-size:0.82rem; margin-top:0.3rem;">🚚 ${carrier || ''} · Tracking: <strong>${tracking}</strong></div>` : ''}
+                                </div>
+                                <div style="text-align:right;">
+                                    <span class="status-badge ${statusClass}">
+                                        <span class="status-dot"></span>${(order.orderStatus||'').replace('_',' ').toUpperCase()}
+                                    </span>
+                                    <div style="color:var(--gold); font-family:var(--font-serif); font-size:1.2rem; font-weight:bold; margin-top:0.5rem;">₹${(order.totalAmount||0).toLocaleString('en-IN')}</div>
+                                </div>
+                            </div>
+                            <div class="order-body">
+                                ${(order.items||[]).slice(0,3).map(i => `
+                                    <div class="order-item">
+                                        <img src="${i.image||i.primaryImageURL||'/img-fallback.svg'}" class="order-item-img" onerror="this.src='/img-fallback.svg'">
+                                        <div class="order-item-info">
+                                            <h4 style="color:var(--white); font-size:1rem; margin-bottom:0.2rem;">${i.name}</h4>
+                                            <div style="color:#888; font-size:0.85rem;">Qty: ${i.qty||1} | ₹${(i.price||0).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div style="color:var(--gold); font-weight:bold; font-size:1.1rem;">₹${((i.qty||1)*(i.price||0)).toLocaleString('en-IN')}</div>
+                                    </div>
+                                `).join('')}
+                                ${(order.items||[]).length > 3 ? `<div style="color:#888; font-size:0.85rem; text-align:center; padding:0.5rem;">+${order.items.length - 3} more items</div>` : ''}
+
+                                <div class="order-actions" style="margin-top:1.5rem; justify-content:flex-end;">
+                                    ${order.orderStatus === 'delivered' || order.orderStatus === 'shipped' || order.paymentStatus === 'paid' ? `
+                                        <button class="btn btn-gold btn-sm" id="inv-btn-${orderId}" onclick="downloadInvoice('${orderId}', '${order.orderNumber||orderId}')">⬇ Download Invoice</button>
+                                    ` : ''}
+                                    ${order.orderStatus === 'delivered' ? `
+                                        <button class="btn btn-outline btn-sm" onclick="handleCustomerReturn('${orderId}')">↩ Request Return</button>
+                                    ` : ''}
+                                    ${['pending','confirmed','packed'].includes(order.orderStatus) ? `
+                                        <button class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red);" onclick="handleCustomerCancel('${orderId}')">✕ Cancel</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch(err) {
+                console.error('Orders load error:', err);
+                container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--red);">Failed to load orders. Please refresh.</div>`;
+            }
+        }
+
+        window.handleCustomerCancel = async function(orderId) {
+            const reason = prompt('Please enter a reason for cancellation:');
+            if (reason === null) return;
+            try {
+                const { cancelOrder } = await import('../js/services/orderService.js');
+                const res = await cancelOrder(orderId, reason);
+                if (res.success) loadRealOrders();
+            } catch(e) { console.error(e); }
+        };
+
+        window.handleCustomerReturn = async function(orderId) {
+            const reason = prompt('Please enter a reason for returning this order:');
+            if (!reason) return;
+            try {
+                const { initiateReturn } = await import('../js/services/orderService.js');
+                const res = await initiateReturn(orderId, reason);
+                if (res.success) loadRealOrders();
+            } catch(e) { console.error(e); }
+        };
+
+        // Override the tab switch for orders to load real data
+        const _origSwitch = window.switchTab;
+        window.switchTab = function(tab) {
+            if (typeof _origSwitch === 'function') _origSwitch(tab);
+            if (tab === 'orders') loadRealOrders();
+        };
+        // Preload if orders tab is default
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRealOrders();
+        });
+
+        window.performLogout = async function() {
+            if(confirm("Logout from Dashboard?")) {
+                try {
+                    const { signOut, auth } = await import('../js/firebase-config.js');
+                    await signOut(auth);
+                } catch(e) { console.log('signOut error', e); }
+                localStorage.removeItem('kc_user');
+                localStorage.removeItem('kc_wishlist');
+                window.location.replace('auth.html');
+            }
+        };
+
+        // Address modal helpers
+        window.openAddressModal = function() {
+            document.getElementById('address-modal').style.display = 'flex';
+        };
+        window.closeAddressModal = function() {
+            document.getElementById('address-modal').style.display = 'none';
+        };
+        window.submitNewAddress = async function() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            const addr = {
+                name: document.getElementById('addr-name').value.trim(),
+                line: document.getElementById('addr-line').value.trim(),
+                city: document.getElementById('addr-city').value.trim(),
+                state: document.getElementById('addr-state').value.trim(),
+                pin: document.getElementById('addr-pin').value.trim(),
+                phone: document.getElementById('addr-phone').value.trim(),
+                isDefault: false
+            };
+            if (!addr.name || !addr.line || !addr.city || !addr.pin) {
+                alert('Please fill in all required fields.'); return;
+            }
+            try {
+                const { db, collection, addDoc, serverTimestamp } = await import('../js/firebase-config.js');
+                await addDoc(collection(db, 'users', u.uid, 'addresses'), { ...addr, createdAt: serverTimestamp() });
+                closeAddressModal();
+                loadAddresses();
+                if (window.Toast) Toast.success('Address Saved!', addr.line);
+            } catch(err) {
+                console.error('submitNewAddress error:', err);
+                alert('Failed to save address. Please try again.');
+            }
+        };
+        window.deleteAddress = async function(addrId) {
+            if (!confirm('Delete this address?')) return;
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            try {
+                const { db, doc, deleteDoc } = await import('../js/firebase-config.js');
+                await deleteDoc(doc(db, 'users', u.uid, 'addresses', addrId));
+                loadAddresses();
+                if (window.Toast) Toast.info('Address deleted');
+            } catch(err) { console.error(err); }
+        };
+
+        // Notifications: build from order history
+        window.markAllNotifRead = function() {
+            document.querySelectorAll('.notif-unread').forEach(el => el.classList.remove('notif-unread'));
+            if (window.Toast) Toast.info('All notifications marked as read');
+        };
+        async function loadNotifications() {
+            const list = document.getElementById('notif-list');
+            if (!list) return;
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            try {
+                const { db, collection, query, where, orderBy, getDocs } = await import('../js/firebase-config.js');
+                const q = query(collection(db, 'orders'), where('customerId', '==', u.uid), orderBy('createdAt', 'desc'));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    list.innerHTML = `<div class="glass-card" style="text-align:center;padding:3rem 2rem;">
+                        <span style="font-size:2.5rem;">🔔</span>
+                        <p style="color:#888;margin-top:1rem;">No notifications yet.</p></div>`;
+                    return;
+                }
+                const STATUS_ICON = { pending:'⏳', confirmed:'✅', packed:'📦', shipped:'🚚', delivered:'🎉', cancelled:'❌' };
+                list.innerHTML = snap.docs.map(d => {
+                    const o = d.data();
+                    const date = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
+                    const icon = STATUS_ICON[o.orderStatus] || '📋';
+                    return `<div class="notification-item">
+                        <div class="notif-icon order">${icon}</div>
+                        <div class="notif-content">
+                            <h4>Order #${o.orderNumber || d.id} — ${(o.orderStatus||'').toUpperCase()}</h4>
+                            <p>Total: ₹${(o.totalAmount||0).toLocaleString('en-IN')}</p>
+                            <span class="notif-time">${date}</span>
+                        </div></div>`;
+                }).join('');
+            } catch(err) {
+                console.error('loadNotifications error:', err);
+                list.innerHTML = `<div style="color:#888;text-align:center;padding:2rem;">Could not load notifications.</div>`;
+            }
+        }
+
+        // Save preferences to Firestore
+        window.savePreferences = async function() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            const prefs = {
+                emailNotif: document.getElementById('pref-email')?.checked ?? true,
+                smsNotif: document.getElementById('pref-sms')?.checked ?? true,
+                whatsappNotif: document.getElementById('pref-whatsapp')?.checked ?? false
+            };
+            const status = document.getElementById('pref-save-status');
+            try {
+                const { db, doc, updateDoc } = await import('../js/firebase-config.js');
+                await updateDoc(doc(db, 'users', u.uid), { preferences: prefs });
+                if (status) { status.textContent = '✓ Saved'; setTimeout(()=>{ if(status) status.textContent=''; }, 2000); }
+            } catch(err) {
+                console.error('savePreferences error:', err);
+                if (status) status.textContent = '✗ Failed to save';
+            }
+        };
+        // Load preferences from Firestore
+        async function loadPreferences() {
+            const u = JSON.parse(localStorage.getItem('kc_user'));
+            if (!u) return;
+            try {
+                const { db, doc, getDoc } = await import('../js/firebase-config.js');
+                const snap = await getDoc(doc(db, 'users', u.uid));
+                if (snap.exists() && snap.data().preferences) {
+                    const p = snap.data().preferences;
+                    if (document.getElementById('pref-email')) document.getElementById('pref-email').checked = p.emailNotif ?? true;
+                    if (document.getElementById('pref-sms')) document.getElementById('pref-sms').checked = p.smsNotif ?? true;
+                    if (document.getElementById('pref-whatsapp')) document.getElementById('pref-whatsapp').checked = p.whatsappNotif ?? false;
+                }
+            } catch(err) { console.log('loadPreferences skip:', err.code); }
+        }
+    </script>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer" style="background:var(--black-card);padding:4rem 0 2rem;border-top:1px solid var(--black-border);margin-top:auto">
+        <div class="container">
+            <div class="footer-main">
+                <div>
+                    <img src="../assets/kalyan_logo.png" class="footer-brand-img" alt="Kalyan Covering" onerror="this.style.display='none'">
+                    <h3 style="color:var(--gold);font-family:var(--font-serif);font-size:1.4rem;margin-bottom:0.75rem">Kalyan Covering</h3>
+                    <p style="color:var(--white-dim);font-size:0.85rem;line-height:1.8;max-width:260px">Since 2000, crafting premium gold-covering jewellery for every special occasion.</p>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="products.html">Products</a></li>
+                        <li><a href="wishlist.html">Wishlist</a></li>
+                        <li><a href="my-orders.html">My Orders</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Customer Care</h4>
+                    <ul class="footer-links">
+                        <li><a href="auth.html">My Account</a></li>
+                        <li><a href="my-orders.html">Track Orders</a></li>
+                        <li><a href="../Terms of Use.pdf" target="_blank">Terms of Use</a></li>
+                        <li><a href="../Privacy Policy.pdf" target="_blank">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Contact</h4>
+                    <ul class="footer-links" style="line-height:2">
+                        <li style="color:var(--white-dim);font-size:0.85rem">📍 Erode, Tamil Nadu</li>
+                        <li><a href="tel:+919876543210">📞 +91 98765 43210</a></li>
+                        <li><a href="mailto:info@kalyancovering.com">✉️ info@kalyancovering.com</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="border-top:1px solid #222;padding-top:1.5rem;margin-top:2.5rem;text-align:center">
+                <p style="color:#666;font-size:0.8rem">© 2026 Kalyan Covering. All Rights Reserved. | Made with 💛 in Tamil Nadu</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="../js/app.js"></script>
+    <script>
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('kc_cart') || '[]');
+            document.getElementById('nav-cart-count').textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
+        }
+    </script>
+</body>
+</html>

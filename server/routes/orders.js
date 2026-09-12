@@ -2,123 +2,124 @@
 const express = require("express");
 const { admin, db } = require("../lib/admin");
 const { logAudit, sendError } = require("../lib/utils");
-const { authMiddleware, requireAdmin, requireOwnerOrManager } = require("../middleware/auth");
+const { authMiddleware, requireAdmin } = require("../middleware/auth");
+const { createShipmentForOrder } = require("../shipping/shippingService");
 
 const router = express.Router();
 
 const ORDER_TRANSITIONS = {
-    pending: ["confirmed", "cancelled"], confirmed: ["packed", "cancelled"],
-    packed: ["shipped", "cancelled"], shipped: ["out_for_delivery"],
-    out_for_delivery: ["delivered"], delivered: ["returned"], returned: ["refunded"],
-    cancelled: [], refunded: []
-};
-const SHIPPING_STATUS_MAP = {
-    pending: "not_shipped", confirmed: "not_shipped", packed: "not_shipped",
-    shipped: "shipped", out_for_delivery: "out_for_delivery", delivered: "delivered",
-    returned: "return_in_transit", refunded: "returned", cancelled: "not_shipped"
+    "Order Placed": ["Confirmed", "Cancelled"],
+    "Confirmed": ["Packed", "Cancelled"],
+    "Packed": ["Shipped", "Cancelled"],
+    "Shipped": ["Out for Delivery", "Returned"],
+    "Out for Delivery": ["Delivered", "Returned"],
+    "Delivered": ["Returned"],
+    "Cancelled": [],
+    "Returned": []
 };
 
-// POST /api/orders/update-status (Admin)
+// ── POST /api/orders/update-status (Admin only) ─────────────────────────────
 router.post("/update-status", authMiddleware, requireAdmin, async (req, res) => {
     try {
         const { id, newStatus, note, shippingDetails } = req.body;
-        if (!id || !newStatus) return sendError(res, 400, "invalid-argument", "Order ID and newStatus are required.");
-        const validStatuses = Object.keys(ORDER_TRANSITIONS);
-        if (!validStatuses.includes(newStatus)) return sendError(res, 400, "invalid-argument", `Invalid status: ${newStatus}.`);
+        if (!id || !newStatus) return sendError(res, 400, "invalid-argument", "id and newStatus are required.");
 
-        const docRef = db.collection("orders").doc(id);
-        const snap = await docRef.get();
+        const ref = db.collection("orders").doc(id);
+        const snap = await ref.get();
         if (!snap.exists) return sendError(res, 404, "not-found", "Order not found.");
-
         const order = snap.data();
-        const currentStatus = order.orderStatus;
+        const currentStatus = order.orderStatus || "Order Placed";
+
         const allowed = ORDER_TRANSITIONS[currentStatus] || [];
-        if (!allowed.includes(newStatus)) return sendError(res, 400, "failed-precondition", `Cannot move from '${currentStatus}' to '${newStatus}'. Allowed: [${allowed.join(", ")}]`);
+        if (currentStatus !== newStatus && !allowed.includes(newStatus)) {
+            return sendError(res, 400, "failed-precondition", `Cannot move order from "${currentStatus}" to "${newStatus}".`);
+        }
 
         const now = admin.firestore.FieldValue.serverTimestamp();
-        const historyEntry = { status: newStatus, changedAt: now, changedBy: req.user.uid, note: note || null };
-        const updatePayload = {
-            orderStatus: newStatus, shippingStatus: SHIPPING_STATUS_MAP[newStatus] || "unknown",
-            updatedAt: now, statusHistory: admin.firestore.FieldValue.arrayUnion(historyEntry)
+        const historyEntry = {
+            status: newStatus,
+            changedAt: now,
+            changedBy: req.user.uid,
+            note: note || `Status updated to ${newStatus}`
         };
-        if (newStatus === "shipped") {
-            if (!shippingDetails?.carrier || !shippingDetails?.trackingNumber) return sendError(res, 400, "failed-precondition", "Shipping carrier and tracking number are required.");
-            updatePayload["shippingDetails.carrier"] = shippingDetails.carrier;
-            updatePayload["shippingDetails.trackingNumber"] = shippingDetails.trackingNumber;
-            updatePayload["shippingDetails.estimatedDelivery"] = shippingDetails.estimatedDelivery || null;
-            updatePayload["shippingDetails.shippedAt"] = now;
+
+        const updates = {
+            orderStatus: newStatus,
+            updatedAt: now,
+            statusHistory: admin.firestore.FieldValue.arrayUnion(historyEntry)
+        };
+        if (shippingDetails) {
+            if (shippingDetails.carrier) updates["shippingDetails.carrier"] = shippingDetails.carrier;
+            if (shippingDetails.trackingNumber) updates["shippingDetails.trackingNumber"] = shippingDetails.trackingNumber;
+            if (shippingDetails.estimatedDelivery) updates["shippingDetails.estimatedDelivery"] = shippingDetails.estimatedDelivery;
         }
-        if (newStatus === "delivered") updatePayload["shippingDetails.deliveredAt"] = now;
 
-        await docRef.update(updatePayload);
-        await logAudit(req, "UPDATE_ORDER_STATUS", "orders", id, { orderStatus: currentStatus }, { orderStatus: newStatus });
-        return res.json({ success: true, orderStatus: newStatus });
-    } catch (err) { console.error("[orders/update-status]", err); return sendError(res, 500, "internal", "Failed to update order status."); }
-});
+        // ── FIX (from audit finding #4): marking an order "Shipped" now
+        // automatically books the Shiprocket shipment instead of relying
+        // on the admin to remember a separate manual step. If a shipment
+        // already exists, or Shiprocket creation fails, we still record
+        // the status change but flag it so the admin can retry manually.
+        let shipmentResult = null;
+        let shipmentError = null;
+        if (newStatus === "Shipped" && !order.shippingDetails?.trackingNumber) {
+            try {
+                shipmentResult = await createShipmentForOrder(id, req.body.pickupLocation || "");
+                if (shipmentResult?.trackingNumber) updates["shippingDetails.trackingNumber"] = shipmentResult.trackingNumber;
+                if (shipmentResult?.carrier) updates["shippingDetails.carrier"] = shipmentResult.carrier;
+            } catch (shipErr) {
+                console.error("[orders/update-status] auto-shipment failed:", shipErr.message);
+                shipmentError = shipErr.message;
+            }
+        }
 
-// POST /api/orders/cancel (Customer or Admin)
-router.post("/cancel", authMiddleware, async (req, res) => {
-    try {
-        const { orderId, reason } = req.body;
-        if (!orderId) return sendError(res, 400, "invalid-argument", "orderId is required.");
-        if (!reason || !reason.trim()) return sendError(res, 400, "invalid-argument", "A cancellation reason is required.");
-        const CANCELLABLE = ["payment_pending", "pending", "confirmed", "packed"];
+        await ref.update(updates);
+        await logAudit(req, "UPDATE_ORDER_STATUS", "orders", id, { orderStatus: currentStatus }, { orderStatus: newStatus, shipmentError });
 
-        const result = await db.runTransaction(async (t) => {
-            const orderRef = db.collection("orders").doc(orderId);
-            const snap = await t.get(orderRef);
-            if (!snap.exists) throw { status: 404, code: "not-found", message: "Order not found." };
-            const data = snap.data();
-            if (data.customerId !== req.user.uid && !req.isAdmin) throw { status: 403, code: "permission-denied", message: "Not authorized." };
-            const current = (data.orderStatus || "").toLowerCase().replace(/\s+/g, "_");
-            if (!CANCELLABLE.some(s => current.includes(s))) throw { status: 400, code: "failed-precondition", message: `Cannot cancel order with status "${data.orderStatus}".` };
-            const now = admin.firestore.FieldValue.serverTimestamp();
-            t.update(orderRef, {
-                orderStatus: "cancelled", cancellationReason: reason.trim(),
-                statusHistory: admin.firestore.FieldValue.arrayUnion({ status: "Cancelled", timestamp: new Date().toISOString(), changedBy: "customer", note: `Cancelled. Reason: ${reason.trim()}` }),
-                updatedAt: now
+        // ── Notification hook (audit finding: no notification on status change) ──
+        // Writes a notification doc the storefront can read from
+        // /notifications/{uid}. Actual email/SMS/push delivery can be
+        // wired in here later (e.g. via nodemailer, already a dependency).
+        try {
+            await db.collection("notifications").add({
+                userId: order.customerId,
+                type: "order_status",
+                orderId: id,
+                orderNumber: order.orderNumber || id,
+                title: `Order ${newStatus}`,
+                message: note || `Your order is now ${newStatus}.`,
+                read: false,
+                createdAt: now
             });
-            return { orderNumber: data.orderNumber };
-        });
+        } catch (notifErr) {
+            console.error("[orders/update-status] notification write failed:", notifErr.message);
+        }
 
-        await logAudit(req, "ORDER_CANCELLED_BY_CUSTOMER", "orders", orderId, null, { reason: reason.trim() });
-        return res.json({ success: true, orderNumber: result.orderNumber });
+        return res.json({
+            success: true,
+            orderId: id,
+            newStatus,
+            shipmentCreated: !!shipmentResult,
+            shipmentError
+        });
     } catch (err) {
-        if (err.status) return sendError(res, err.status, err.code, err.message);
-        console.error("[orders/cancel]", err);
-        return sendError(res, 500, "internal", "Failed to cancel order.");
+        console.error("[orders/update-status]", err);
+        return sendError(res, 500, "internal", "Failed to update order status.");
     }
 });
 
-// POST /api/orders/return (Customer)
-router.post("/return", authMiddleware, async (req, res) => {
+// ── POST /api/orders/list (Admin only) — paginated order list for dashboard ──
+router.post("/list", authMiddleware, requireAdmin, async (req, res) => {
     try {
-        const { orderId, reason } = req.body;
-        if (!orderId) return sendError(res, 400, "invalid-argument", "orderId is required.");
-        if (!reason || !reason.trim()) return sendError(res, 400, "invalid-argument", "A return reason is required.");
-
-        const orderRef = db.collection("orders").doc(orderId);
-        const snap = await orderRef.get();
-        if (!snap.exists) return sendError(res, 404, "not-found", "Order not found.");
-        const data = snap.data();
-        if (data.customerId !== req.user.uid) return sendError(res, 403, "permission-denied", "Not authorized.");
-        if (!(data.orderStatus || "").toLowerCase().includes("deliver")) return sendError(res, 400, "failed-precondition", "Returns can only be requested for delivered orders.");
-
-        if (data.shippingDetails?.deliveredAt) {
-            const deliveredAt = data.shippingDetails.deliveredAt.toDate ? data.shippingDetails.deliveredAt.toDate() : new Date(data.shippingDetails.deliveredAt);
-            const days = (new Date() - deliveredAt) / (1000 * 60 * 60 * 24);
-            if (days > 7) return sendError(res, 400, "failed-precondition", "Return window has expired. Returns must be within 7 days of delivery.");
-        }
-
-        const now = admin.firestore.FieldValue.serverTimestamp();
-        await orderRef.update({
-            orderStatus: "returned", returnReason: reason.trim(),
-            statusHistory: admin.firestore.FieldValue.arrayUnion({ status: "Return Requested", timestamp: new Date().toISOString(), changedBy: "customer", note: `Return requested. Reason: ${reason.trim()}` }),
-            updatedAt: now
-        });
-        await logAudit(req, "RETURN_REQUESTED_BY_CUSTOMER", "orders", orderId, null, { reason: reason.trim() });
-        return res.json({ success: true, orderNumber: data.orderNumber });
-    } catch (err) { console.error("[orders/return]", err); return sendError(res, 500, "internal", "Failed to submit return request."); }
+        const { limit = 50, status } = req.body;
+        let q = db.collection("orders");
+        if (status && status !== "all") q = q.where("orderStatus", "==", status);
+        q = q.orderBy("createdAt", "desc").limit(Math.min(limit, 200));
+        const snap = await q.get();
+        return res.json({ orders: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+    } catch (err) {
+        console.error("[orders/list]", err);
+        return sendError(res, 500, "internal", "Failed to fetch orders.");
+    }
 });
 
 module.exports = router;

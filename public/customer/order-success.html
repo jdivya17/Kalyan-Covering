@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation | Kalyan Covering</title>
+  <meta name="description" content="Thank you for your order at Kalyan Covering.">
+  <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/customer.css">
+</head>
+<body>
+  <!-- Skip to main content -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav" id="main-nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">
+        <img src="../assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img" onerror="this.style.display='none'">
+        Kalyan Covering
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Products</a></li>
+        <li><a href="wishlist.html">Wishlist</a></li>
+        <li><a href="cart.html">Cart</a></li>
+        <li><a href="my-orders.html">Orders</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button class="nav-icon-btn keep-mobile" onclick="toggleSearch()" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
+          <a href="auth.html" class="btn btn-outline btn-sm">Login</a>
+        </div>
+        <button id="nav-user-btn" class="nav-icon-btn" style="display:none" aria-label="User Profile"></button>
+        <button class="nav-icon-btn keep-mobile" onclick="window.location='wishlist.html'" aria-label="Wishlist">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <span class="badge" id="wishlist-count" style="display:none">0</span>
+        </button>
+        <button class="nav-icon-btn keep-mobile" onclick="window.location='cart.html'" aria-label="Shopping cart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          <span class="badge cart-count">0</span>
+        </button>
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-drawer">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
+  <div class="mobile-drawer" id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="drawer-header">
+      <div class="nav-logo" style="font-size:1.2rem;">
+        <img src="../assets/kalyan_logo.png" alt="Logo" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--gold);">
+        Kalyan Covering
+      </div>
+      <button class="drawer-close-btn" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
+    </div>
+    <ul class="drawer-nav">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="products.html">💎 Products</a></li>
+      <li><a href="wishlist.html">♥ Wishlist</a></li>
+      <li><a href="cart.html">🛒 Cart</a></li>
+      <li><a href="my-orders.html">📦 My Orders</a></li>
+      <li><a href="profile.html">👤 Profile</a></li>
+    </ul>
+  </div>
+
+  <!-- Search modal -->
+  <div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label="Product search" aria-hidden="true">
+    <div class="search-inner">
+      <div class="search-input-wrap">
+        <input type="text" id="smart-search-input" placeholder="Search jewellery..." autocomplete="off" aria-label="Search products">
+        <button class="search-close-btn" onclick="toggleSearch()" aria-label="Close search">×</button>
+      </div>
+      <div id="smart-search-results"></div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main id="main-content" class="container flex-center" style="padding-top: 130px; padding-bottom: 90px; min-height: 70vh;">
+    <div style="background: var(--black-card); border: 1px solid var(--gold-dim); padding: 3rem 2rem; border-radius: var(--radius-lg); max-width: 580px; width: 100%; text-align: center; box-shadow: var(--shadow-lift);">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--gold-dim); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      
+      <h1 style="font-size: clamp(1.8rem, 4vw, 2.3rem); margin-bottom: 0.5rem; font-family: var(--font-serif); font-weight: 400;" class="gold-text">Order Placed Successfully!</h1>
+      <p style="color: var(--white-dim); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6;">Thank you for shopping with Kalyan Covering. Your order has been placed and is being prepared with care.</p>
+
+      <div style="background: var(--black-soft); padding: 1.25rem 1.5rem; border-radius: var(--radius); border: 1px solid var(--black-border); margin-bottom: 2rem; text-align: left;">
+        <div class="flex-between" style="margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+          <span style="color: var(--white-dim); font-size: 0.9rem;">Order Reference:</span>
+          <span id="order-id-display" class="gold" style="font-weight: 700; font-family: var(--font-sans);">#KC-ORDER</span>
+        </div>
+        <div class="flex-between" style="flex-wrap: wrap; gap: 0.5rem;">
+          <span style="color: var(--white-dim); font-size: 0.9rem;">Estimated Delivery:</span>
+          <span style="color: var(--white); font-size: 0.9rem; font-weight: 500;">3-5 Business Days</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-center" style="flex-wrap: wrap;">
+        <a href="my-orders.html" class="btn btn-gold">View My Orders</a>
+        <a href="products.html" class="btn btn-outline">Continue Shopping</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer" style="background:var(--black-card);padding:4rem 0 2rem;border-top:1px solid var(--black-border);margin-top:auto">
+    <div class="container">
+      <div class="footer-main">
+        <div>
+          <img src="../assets/kalyan_logo.png" class="footer-brand-img" alt="Kalyan Covering" onerror="this.style.display='none'">
+          <h3 style="color:var(--gold);font-family:var(--font-serif);font-size:1.4rem;margin-bottom:0.75rem">Kalyan Covering</h3>
+          <p style="color:var(--white-dim);font-size:0.85rem;line-height:1.8;max-width:260px">Since 2000, crafting premium gold-covering jewellery for every special occasion.</p>
+        </div>
+        <div>
+          <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="products.html">Products</a></li>
+            <li><a href="wishlist.html">Wishlist</a></li>
+            <li><a href="my-orders.html">My Orders</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="auth.html">My Account</a></li>
+            <li><a href="my-orders.html">Track Orders</a></li>
+            <li><a href="../Terms of Use.pdf" target="_blank">Terms of Use</a></li>
+            <li><a href="../Privacy Policy.pdf" target="_blank">Privacy Policy</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Contact</h4>
+          <ul class="footer-links" style="line-height:2">
+            <li style="color:var(--white-dim);font-size:0.85rem">📍 Erode, Tamil Nadu</li>
+            <li><a href="tel:+919876543210">📞 +91 98765 43210</a></li>
+            <li><a href="mailto:info@kalyancovering.com">✉️ info@kalyancovering.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div style="border-top:1px solid #222;padding-top:1.5rem;margin-top:2.5rem;text-align:center">
+        <p style="color:#666;font-size:0.8rem">© 2026 Kalyan Covering. All Rights Reserved. | Made with 💛 in Tamil Nadu</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="../js/app.js"></script>
+  <script type="module">
+    document.addEventListener('DOMContentLoaded', () => {
+      // User auth check
+      const user = JSON.parse(localStorage.getItem('kc_user'));
+      const authBtns = document.getElementById('nav-auth-btns');
+      const userBtn = document.getElementById('nav-user-btn');
+      if (user) {
+        if (authBtns) authBtns.style.display = 'none';
+        if (userBtn) {
+          userBtn.style.display = 'block';
+          userBtn.innerHTML = `<span style="font-size:0.75rem;color:var(--gold);border:1px solid var(--gold);padding:2px 10px;border-radius:12px;font-weight:700;">${(user.name || 'User').split(' ')[0]}</span>`;
+          userBtn.onclick = () => window.location = 'profile.html';
+        }
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('orderId') || 'KC-' + Math.floor(100000 + Math.random() * 900000);
+      const displayEl = document.getElementById('order-id-display');
+      if (displayEl) displayEl.textContent = '#' + orderId;
+    });
+  </script>
+</body>
+</html>

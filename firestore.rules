@@ -84,14 +84,14 @@ service cloud.firestore {
       // Reviews must be submitted via Cloud Function to ensure one-review-per-order validation.
       allow create: if false;
       // Users can edit ONLY review content fields on their own reviews.
-      // Prevents tampering with customerId, productId, orderId, or any other metadata.
+      // Prevents tampering with customerId, userId, productId, orderId, or any other metadata.
       allow update: if isAdmin() || (
         isAuthenticated() && 
-        resource.data.customerId == request.auth.uid &&
+        (resource.data.customerId == request.auth.uid || resource.data.userId == request.auth.uid) &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['rating', 'comment', 'title', 'updatedAt'])
+          .hasOnly(['rating', 'comment', 'reviewText', 'reviewerName', 'images', 'title', 'updatedAt'])
       );
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow delete: if isAdmin() || (isAuthenticated() && (resource.data.customerId == request.auth.uid || resource.data.userId == request.auth.uid));
     }
 
     // --- Protected User Collections ---
@@ -118,6 +118,11 @@ service cloud.firestore {
       );
       
       allow delete: if isAdmin();
+
+      // Allow users to manage their address book subcollection
+      match /addresses/{addressId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
     
     match /carts/{userId} {
@@ -140,6 +145,14 @@ service cloud.firestore {
 
       // Only owner or manager can delete orders.
       allow delete: if isOwnerOrManager();
+    }
+
+    match /returns/{returnId} {
+      // Users can only view their own return requests; admins can view all.
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+
+      // Returns are created exclusively via the initiateReturn Cloud Function.
+      allow write: if false;
     }
     
     match /wishlists/{userId} {
