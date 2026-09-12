@@ -2253,6 +2253,7 @@
                 if (!cachedRole && authChecked) {
                     const loaderText = document.getElementById('admin-loader-text');
                     const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                    console.log('[dashboard.html REDIRECT Path 1: No cached role]', { bounces });
                     if (bounces > 2) {
                         sessionStorage.removeItem('admin_auth_bounces');
                         if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
@@ -2266,6 +2267,7 @@
                     setTimeout(() => {
                         if (!auth.currentUser && !sessionStorage.getItem('kc_admin_role')) {
                             const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
+                            console.log('[dashboard.html REDIRECT Path 2: Auth timeout]', { bounces });
                             if (bounces > 2) {
                                 sessionStorage.removeItem('admin_auth_bounces');
                                 const loaderText = document.getElementById('admin-loader-text');
@@ -2284,9 +2286,10 @@
 
             try {
                 const role = await RBAC.getUserRole(user);
-                console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role });
+                console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role, bounces: sessionStorage.getItem('admin_auth_bounces') });
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
                 if (!role || !validRoles.includes(role.toLowerCase())) {
+                    console.log('[dashboard.html REDIRECT Path 3: Unauthorized role]', { role, bounces: sessionStorage.getItem('admin_auth_bounces') });
                     sessionStorage.removeItem('kc_admin_role');
                     localStorage.removeItem('kc_admin_role');
                     const loaderText = document.getElementById('admin-loader-text');
@@ -2305,6 +2308,7 @@
                 }
 
                 // Successful, non-redirecting dashboard load -> CLEAR BOUNCES COUNTER!
+                console.log('[dashboard.html Auth PASSED] Access granted as', role);
                 sessionStorage.removeItem('admin_auth_bounces');
 
                 const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role;
@@ -2348,7 +2352,7 @@
                     if (window.Toast) Toast.warning('Data Loading Warning', 'Some dashboard data could not be fetched.');
                 }
             } catch (err) {
-                console.error('Error during admin auth state change:', err);
+                console.error('[dashboard.html REDIRECT Path 4: Auth exception]', err);
                 sessionStorage.removeItem('kc_admin_role');
                 localStorage.removeItem('kc_admin_role');
                 try { await signOut(auth); } catch (_) {}
