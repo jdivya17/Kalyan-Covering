@@ -1770,6 +1770,10 @@
             console.warn('Firebase Functions init warning:', fnErr);
         }
 
+        // Idle timer declarations (no other declaration exists for these)
+        let adminIdleTimer = null;
+        let adminWarnTimer = null;
+
         // Admin data from Firebase
         window.adminData = {
             products: [],
@@ -2120,8 +2124,10 @@
 
         window.updateProductInFirebase = async function (productId, productData) {
             try {
+                // Strip Firestore sentinel objects that can't be JSON-serialized
+                const { createdAt: _ca, lastUpdated: _lu, ...cleanData } = productData;
                 try {
-                    await callVercelApi('/api/products/update', { id: productId, ...productData });
+                    await callVercelApi('/api/products/update', { id: productId, ...cleanData });
                 } catch (vErr) {
                     console.warn("Vercel update API failed, using direct Firestore:", vErr.message);
                     await updateDoc(doc(db, "products", productId), {
@@ -2859,9 +2865,8 @@
                     image: imageList[0] || '',
                     isNew: document.getElementById('pm-isnew').checked,
                     rating: 4.5,
-                    reviews: 0,
-                    createdAt: serverTimestamp(),
-                    lastUpdated: serverTimestamp()
+                    reviews: 0
+                    // Note: createdAt & lastUpdated are set server-side by the API
                 };
 
                 if (data.mrp > data.price) {
@@ -3922,8 +3927,6 @@
 
         // ---- Admin Idle Session Timeout (15 minutes) ----
         const ADMIN_IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
-        let adminIdleTimer = null;
-        let adminWarnTimer = null;
 
         function resetAdminIdleTimer() {
             clearTimeout(adminIdleTimer);

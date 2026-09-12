@@ -50,12 +50,40 @@
                 "destination": "/admin/orders.html"
             },
             {
+                "source": "/customer/index",
+                "destination": "/customer/index.html"
+            },
+            {
+                "source": "/customer/products",
+                "destination": "/customer/products.html"
+            },
+            {
+                "source": "/customer/product-detail",
+                "destination": "/customer/product-detail.html"
+            },
+            {
                 "source": "/customer/cart",
                 "destination": "/customer/cart.html"
             },
             {
                 "source": "/customer/checkout",
                 "destination": "/customer/checkout.html"
+            },
+            {
+                "source": "/customer/wishlist",
+                "destination": "/customer/wishlist.html"
+            },
+            {
+                "source": "/customer/my-orders",
+                "destination": "/customer/my-orders.html"
+            },
+            {
+                "source": "/customer/profile",
+                "destination": "/customer/profile.html"
+            },
+            {
+                "source": "/customer/auth",
+                "destination": "/customer/auth.html"
             }
         ],
         "headers": [

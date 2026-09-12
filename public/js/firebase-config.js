@@ -56,6 +56,21 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const functions = getFunctions(app);
 
+// ── Vercel API Base URL ────────────────────────────────────────
+// Firebase Hosting serves only static files — it has NO backend.
+// When the site is running on Firebase (not localhost / Vite dev),
+// we must send /api/* requests to the Vercel deployment instead.
+// On localhost (Vite dev server) the Express API runs as middleware,
+// so relative URLs work fine there.
+const _isLocalhost = (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.startsWith("192.168.")
+);
+const VERCEL_API_BASE = _isLocalhost
+    ? ""   // relative URL works on local Vite dev server
+    : "https://kalyan-covering-store.vercel.app"; // ← your Vercel deployment URL
+
 /**
  * Helper to call Vercel API endpoints with Firebase Auth Token.
  * @param {string} endpoint - The API path, e.g., '/api/payments/create-order'
@@ -66,7 +81,9 @@ async function callVercelApi(endpoint, data = {}) {
     if (auth.currentUser) {
         token = await auth.currentUser.getIdToken();
     }
-    const response = await fetch(endpoint, {
+    // Prefix the Vercel URL when not on localhost (Firebase Hosting has no API)
+    const url = VERCEL_API_BASE + endpoint;
+    const response = await fetch(url, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

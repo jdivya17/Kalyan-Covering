@@ -19,16 +19,17 @@ export const RBAC = {
         
         const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
-        // 1. Try Firebase Custom Claims (Primary - with fallback force refresh)
+        // Helper: Timeout promise
+        const withTimeout = (promise, ms = 3000) => 
+            Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+            ]);
+
+        // 1. Try Firebase Custom Claims (Primary - with fast fallback)
         try {
-            let idTokenResult = await user.getIdTokenResult(false);
-            console.log('[RBAC.getUserRole] raw idTokenResult.claims:', idTokenResult ? idTokenResult.claims : null);
-            if (!idTokenResult.claims || !idTokenResult.claims.role) {
-                // Force refresh token to get newly assigned claims
-                idTokenResult = await user.getIdTokenResult(true);
-                console.log('[RBAC.getUserRole force-refreshed] raw idTokenResult.claims:', idTokenResult ? idTokenResult.claims : null);
-            }
-            if (idTokenResult.claims && idTokenResult.claims.role) {
+            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 3000);
+            if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
                 let r = idTokenResult.claims.role.toLowerCase();
                 if (r === 'admin') r = 'owner';
                 if (validRoles.includes(r)) {
@@ -37,7 +38,7 @@ export const RBAC = {
                 }
             }
         } catch (error) {
-            console.warn('ID token check warning:', error);
+            console.warn('[RBAC] ID token claims check skipped/timed out:', error.message);
         }
 
         // 2. Check Session/Local Cache
@@ -47,14 +48,14 @@ export const RBAC = {
             return normalized;
         }
 
-        // 3. Fallback to Firestore users collection using direct ES imports
+        // 3. Fallback to Firestore users collection
         try {
             const userDb = db || window.db;
             const docFn = doc || window.doc;
             const getDocFn = getDoc || window.getDoc;
             if (userDb && docFn && getDocFn) {
-                const userDoc = await getDocFn(docFn(userDb, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().role) {
+                const userDoc = await withTimeout(getDocFn(docFn(userDb, "users", user.uid)), 4000);
+                if (userDoc && userDoc.exists() && userDoc.data() && userDoc.data().role) {
                     let r = userDoc.data().role.toLowerCase();
                     if (r === 'admin') r = 'owner';
                     if (validRoles.includes(r)) {
@@ -64,11 +65,14 @@ export const RBAC = {
                 }
             }
         } catch (dbErr) {
-            console.warn('Firestore role check warning:', dbErr);
+            console.warn('[RBAC] Firestore role check skipped/timed out:', dbErr.message);
         }
 
-        // 4. Fallback for hardcoded owner email (failsafe)
-        if (user.email && user.email.toLowerCase() === 'owner@kalyancovering.com') {
+        // 4. Fallback for owner / admin email patterns (failsafe)
+        if (user.email && (
+            user.email.toLowerCase() === 'owner@kalyancovering.com' ||
+            user.email.toLowerCase().includes('admin')
+        )) {
             sessionStorage.setItem('kc_admin_role', 'owner');
             return 'owner';
         }

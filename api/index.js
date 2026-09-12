@@ -4,6 +4,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({ origin: true }));
+app.options("*", cors({ origin: true })); // Handle OPTIONS preflight for cross-origin (Firebase→Vercel)
 app.use(express.json({
     verify: (req, res, buf) => {
         req.rawBody = buf;

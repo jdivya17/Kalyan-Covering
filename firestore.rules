@@ -9,12 +9,18 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Check if the user has an admin role (via custom claims)
+    // Check if the user has an admin role (via custom claims or email pattern fallback)
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.role == 'owner' || 
+        request.auth.token.role == 'admin' || 
         request.auth.token.role == 'manager' || 
-        request.auth.token.role == 'staff'
+        request.auth.token.role == 'staff' ||
+        (request.auth.token.email != null && (
+          request.auth.token.email.matches('.*admin.*') ||
+          request.auth.token.email == 'owner@kalyancovering.com' ||
+          request.auth.token.email.matches('.*@stellamaryscoe\\.edu\\.in')
+        ))
       );
     }
     
@@ -22,7 +28,13 @@ service cloud.firestore {
     function isOwnerOrManager() {
       return isAuthenticated() && (
         request.auth.token.role == 'owner' || 
-        request.auth.token.role == 'manager'
+        request.auth.token.role == 'admin' || 
+        request.auth.token.role == 'manager' ||
+        (request.auth.token.email != null && (
+          request.auth.token.email.matches('.*admin.*') ||
+          request.auth.token.email == 'owner@kalyancovering.com' ||
+          request.auth.token.email.matches('.*@stellamaryscoe\\.edu\\.in')
+        ))
       );
     }
     
