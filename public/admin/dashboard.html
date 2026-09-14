@@ -809,14 +809,7 @@
             .admin-content {
                 padding: 1rem .75rem;
             }
-            .admin-table th, .admin-table td {
-                padding: .6rem .5rem;
-                font-size: .78rem;
-            }
-            .tbl-actions {
-                flex-direction: column;
-                gap: .25rem;
-            }
+            /* Admin table responsive rules are in public/css/admin.css @media (max-width: 768px) */
         }
     </style>
 </head>
@@ -852,6 +845,7 @@
                 <button class="sidebar-link" onclick="showPanel('orders',this)" data-rbac="orders"><span class="icon">🛍</span>Orders<span
                         class="notif-dot"></span></button>
                 <button class="sidebar-link" onclick="showPanel('invoices',this)" data-rbac="orders"><span class="icon">🧾</span>Invoices</button>
+                <button class="sidebar-link" onclick="showPanel('coupons',this)" data-rbac="coupons"><span class="icon">🎟️</span>Coupons</button>
                 <button class="sidebar-link" onclick="showPanel('users',this)" data-rbac="users"><span class="icon">👥</span>Registered Users</button>
                 <button class="sidebar-link" onclick="showPanel('audit',this)" data-rbac="audit"><span class="icon">📜</span>Audit Logs</button>
                 <div class="nav-group-label">Settings</div>
@@ -864,7 +858,7 @@
                         class="icon">🔔</span>Notifications</button>
             </nav>
             <div class="sidebar-footer">
-                <a href="index.html" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-bottom:0.5rem">← View Website</a>
+                <a href="/index.html" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-bottom:0.5rem">← View Website</a>
                 <button onclick="adminLogout()" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;color:var(--red);border-color:var(--red)">Logout</button>
                 <div id="logged-in-role" style="font-size:.72rem;color:#444;margin-top:.7rem;text-align:center;font-weight:bold;text-transform:uppercase;">Logged in as ...</div>
             </div>
@@ -1460,9 +1454,137 @@
                         </table>
                     </div>
                 </div>
+                <!-- ===== COUPONS ===== -->
+                <div class="admin-panel" id="panel-coupons">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+                        <div>
+                            <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">🎟️ Coupon Management</h2>
+                            <p style="color:#666;font-size:.82rem;margin:.3rem 0 0">Create and manage promotional discount codes</p>
+                        </div>
+                        <button class="btn btn-gold" onclick="openCouponModal()">+ Create Coupon</button>
+                    </div>
+
+                    <!-- Stats row -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+                        <div class="stat-card" style="padding:1rem">
+                            <div class="stat-label">Total Coupons</div>
+                            <div class="stat-value" style="font-size:1.6rem" id="cpn-stat-total">—</div>
+                        </div>
+                        <div class="stat-card" style="padding:1rem">
+                            <div class="stat-label">Active</div>
+                            <div class="stat-value" style="font-size:1.6rem;color:var(--green)" id="cpn-stat-active">—</div>
+                        </div>
+                        <div class="stat-card" style="padding:1rem">
+                            <div class="stat-label">Expired</div>
+                            <div class="stat-value" style="font-size:1.6rem;color:var(--orange)" id="cpn-stat-expired">—</div>
+                        </div>
+                        <div class="stat-card" style="padding:1rem">
+                            <div class="stat-label">Total Redemptions</div>
+                            <div class="stat-value" style="font-size:1.6rem" id="cpn-stat-used">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div style="background:#111;padding:.9rem 1rem;border-radius:var(--radius);border:1px solid #222;margin-bottom:1.2rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:center">
+                        <input type="text" class="form-input" id="cpn-search" placeholder="🔍 Search code or type..." style="flex:1;min-width:200px" oninput="filterCoupons()">
+                        <select class="form-input" id="cpn-filter-status" style="width:150px" onchange="filterCoupons()">
+                            <option value="">All Status</option>
+                            <option value="active">✅ Active</option>
+                            <option value="inactive">⛔ Inactive</option>
+                        </select>
+                        <select class="form-input" id="cpn-filter-type" style="width:160px" onchange="filterCoupons()">
+                            <option value="">All Types</option>
+                            <option value="percentage">% Percentage</option>
+                            <option value="flat">₹ Flat Amount</option>
+                        </select>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Type</th>
+                                    <th>Value</th>
+                                    <th>Min Order</th>
+                                    <th>Usage</th>
+                                    <th>Per User</th>
+                                    <th>Expiry</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coupons-table-body">
+                                <tr><td colspan="9" style="text-align:center;padding:3rem;color:#555"><div class="spinner" style="margin:0 auto 1rem"></div>Loading coupons...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div><!-- /admin-content -->
         </div><!-- /admin-main -->
     </div><!-- /admin-layout -->
+
+    </div>
+
+    <!-- Add / Edit Coupon Modal -->
+    <div class="modal-overlay" id="coupon-modal">
+        <div class="modal" style="max-width:600px">
+            <button class="modal-close" onclick="closeModal('coupon-modal')">×</button>
+            <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem" id="coupon-modal-title">Create Coupon</h3>
+            <input type="hidden" id="cpn-id">
+            <div class="modal-form-grid">
+                <div class="form-group">
+                    <label class="form-label">Coupon Code *</label>
+                    <input type="text" id="cpn-code" class="form-input" placeholder="e.g. SAVE20" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'')">
+                    <small style="color:#555;font-size:.72rem">Auto-uppercased, no spaces</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status *</label>
+                    <select id="cpn-status" class="form-input">
+                        <option value="active">✅ Active</option>
+                        <option value="inactive">⛔ Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Discount Type *</label>
+                    <select id="cpn-discount-type" class="form-input">
+                        <option value="percentage">% Percentage off</option>
+                        <option value="flat">₹ Flat amount off</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Discount Value *</label>
+                    <input type="number" id="cpn-discount-value" class="form-input" placeholder="e.g. 20" min="0">
+                    <small style="color:#555;font-size:.72rem">For percentage: 0–100. For flat: amount in ₹</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Expiry Date</label>
+                    <input type="date" id="cpn-expiry" class="form-input">
+                    <small style="color:#555;font-size:.72rem">Leave blank for no expiry</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Min Order Value (₹)</label>
+                    <input type="number" id="cpn-min-order" class="form-input" placeholder="e.g. 500" min="0">
+                    <small style="color:#555;font-size:.72rem">Leave blank for no minimum</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Usage Limit</label>
+                    <input type="number" id="cpn-usage-limit" class="form-input" placeholder="e.g. 100" min="1">
+                    <small style="color:#555;font-size:.72rem">Max total redemptions. Leave blank for unlimited</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Per-User Limit</label>
+                    <input type="number" id="cpn-per-user" class="form-input" placeholder="1" min="0" value="1">
+                    <small style="color:#555;font-size:.72rem">0 = unlimited reuse per customer</small>
+                </div>
+            </div>
+            <div style="margin-top:2rem;display:flex;gap:1rem">
+                <button class="btn btn-outline" style="flex:1" onclick="closeModal('coupon-modal')">Cancel</button>
+                <button class="btn btn-gold" style="flex:1" id="cpn-save-btn" onclick="saveCoupon()">💾 Save Coupon</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Add/Edit Branch Modal -->
     <div class="modal-overlay" id="branch-modal">
@@ -1638,13 +1760,16 @@
                 <div class="form-group"><label class="form-label">Category *</label>
                     <select class="form-input" id="pm-cat">
                         <option value="">-- Select Category --</option>
-                        <option>Car Covers</option>
-                        <option>Seat Covers</option>
-                        <option>Steering Covers</option>
-                        <option>Floor Mats</option>
-                        <option>Dashboard Covers</option>
-                        <option>Bike Covers</option>
-                        <option>Accessories</option>
+                        <option>Necklaces</option>
+                        <option>Earrings</option>
+                        <option>Bangles</option>
+                        <option>Rings</option>
+                        <option>Bracelets</option>
+                        <option>Anklets</option>
+                        <option>Mangalsutra</option>
+                        <option>Nose Pins</option>
+                        <option>Makeup</option>
+                        <option>Hair Accessories</option>
                         <option>Others</option>
                     </select>
                 </div>
@@ -1670,6 +1795,11 @@
                 <div class="form-group"><label class="form-label">Tags (comma separated)</label>
                     <input type="text" class="form-input" id="pm-tags" placeholder="gold, necklace, bridal">
                 </div>
+            </div>
+
+            <div class="form-group" style="margin-top:1.2rem">
+                <label class="form-label">Description</label>
+                <textarea id="pm-description" class="form-input" rows="4" placeholder="Describe the product..."></textarea>
             </div>
 
             <div class="form-group">
@@ -1730,7 +1860,7 @@
         console.log('--- ADMIN VERSION 101 ---');
         console.log('Admin Firebase Module Initializing...');
         // Firebase imports for admin
-        import { app, db, auth, onAuthStateChanged, signOut, functions, httpsCallable, collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, serverTimestamp, arrayUnion, onSnapshot, callVercelApi } from '../js/firebase-config.js';
+        import { app, db, auth, onAuthStateChanged, signOut, functions, httpsCallable, collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, serverTimestamp, Timestamp, arrayUnion, onSnapshot, callVercelApi } from '../js/firebase-config.js';
         import { RBAC } from '../js/rbac.js';
         import { uploadToCloudinary, getOptimizedUrl } from '../js/utils/cloudinaryUtils.js';
         console.log('Firebase Configuration Imported - v2 (Global Exports Active)');
@@ -1759,6 +1889,8 @@
         window.where = where;
         window.orderBy = orderBy;
         window.serverTimestamp = serverTimestamp;
+        window.Timestamp = Timestamp;
+        window.firebase_Timestamp = Timestamp;
         window.callVercelApi = callVercelApi;
 
         // Firebase Functions for Invoices
@@ -1986,11 +2118,11 @@
             }
             tbody.innerHTML = branches.map(b => `
                 <tr>
-                    <td><div style="font-weight:600;color:var(--gold)">${b.name}</div></td>
-                    <td>${b.address}</td>
-                    <td>${b.pin}</td>
-                    <td>${b.phone}</td>
-                    <td>
+                    <td data-label="Branch Name"><div style="font-weight:600;color:var(--gold)">${b.name}</div></td>
+                    <td data-label="Address">${b.address}</td>
+                    <td data-label="PIN Code">${b.pin}</td>
+                    <td data-label="Phone">${b.phone}</td>
+                    <td data-label="Actions">
                         <div class="tbl-actions">
                             <button class="tbl-btn edit" onclick="openBranchModal('${b.id}')">Edit</button>
                             <button class="tbl-btn delete" onclick="deleteBranch('${b.id}')">Delete</button>
@@ -2201,11 +2333,11 @@
 
             tbody.innerHTML = users.map(u => `
                 <tr class="reveal">
-                    <td><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || 'Anonymous'}</div></td>
-                    <td>${u.phone || u.email || 'N/A'}</td>
-                    <td>${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString() : new Date(u.lastLogin).toLocaleString()) : 'Never'}</td>
-                    <td><span class="badge" style="background:#333">${u.loginCount || 1} logins</span></td>
-                    <td><div class="tbl-actions">
+                    <td data-label="User Name"><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || 'Anonymous'}</div></td>
+                    <td data-label="Phone Number">${u.phone || u.email || 'N/A'}</td>
+                    <td data-label="Last Login">${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString() : new Date(u.lastLogin).toLocaleString()) : 'Never'}</td>
+                    <td data-label="Total Orders"><span class="badge" style="background:#333">${u.loginCount || 1} logins</span></td>
+                    <td data-label="Actions"><div class="tbl-actions">
                         <button class="tbl-btn edit" onclick="alert('User Details:\\nName: ${u.name || u.displayName || 'N/A'}\\nEmail: ${u.email || 'N/A'}\\nRole: ${u.role || 'customer'}')">View</button>
                     </div></td>
                 </tr>
@@ -2385,7 +2517,7 @@
             if (title) title.textContent = 'Add New Product';
 
             // Reset input values
-            const fields = ['pm-name', 'pm-cat', 'pm-price', 'pm-mrp', 'pm-discount', 'pm-tags', 'pm-images', 'pm-videos'];
+            const fields = ['pm-name', 'pm-description', 'pm-cat', 'pm-price', 'pm-mrp', 'pm-discount', 'pm-tags', 'pm-images', 'pm-videos'];
             fields.forEach(f => {
                 const el = document.getElementById(f);
                 if (el) el.value = '';
@@ -2448,11 +2580,9 @@
         let currentUploadedVideos = [];
 
         // Progress tracking for Cloudinary
-        window.updateUploadProgress = function (progress) {
-            const imageFill = document.querySelector('#pm-image-progress .fill');
-            const videoFill = document.querySelector('#pm-video-progress .fill');
-            if (imageFill) imageFill.style.width = progress + '%';
-            if (videoFill) videoFill.style.width = progress + '%';
+        window.updateUploadProgress = function (progress, type) {
+            const fill = document.querySelector(`#pm-${type || 'image'}-progress .fill`);
+            if (fill) fill.style.width = progress + '%';
         };
 
         async function handleProductMultiUpload(files, type) {
@@ -2471,6 +2601,15 @@
             const filesToUpload = (type === 'video' && files.length > 1) ? [files[0]] : Array.from(files);
             if (type === 'video' && files.length > 1) {
                 Toast.info('Only one video allowed', 'Only the first video will be uploaded.');
+            }
+
+            const MAX_IMAGE_MB = 10;
+            const MAX_VIDEO_MB = 100;
+            const maxBytes = (type === 'video' ? MAX_VIDEO_MB : MAX_IMAGE_MB) * 1024 * 1024;
+            const oversized = filesToUpload.filter(f => f.size > maxBytes);
+            if (oversized.length > 0) {
+                Toast.error('File too large', `${oversized.map(f => f.name).join(', ')} exceeds the ${type === 'video' ? MAX_VIDEO_MB : MAX_IMAGE_MB}MB limit. Please compress and try again.`);
+                return;
             }
 
             for (let i = 0; i < filesToUpload.length; i++) {
@@ -2507,7 +2646,7 @@
                     }
                 } catch (e) {
                     console.error(`${type} upload failed:`, e);
-                    Toast.error(`Upload Failed`, `${file.name} could not be uploaded. Check your Cloudinary config.`);
+                    Toast.error(`Upload Failed`, `${file.name}: ${e.message || 'Unknown error'}`);
                 }
             }
 
@@ -2590,7 +2729,7 @@
             document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             if (btn) btn.classList.add('active');
 
-            const titles = { dashboard: 'Dashboard', analytics: 'Analytics', products: 'Products & Stock', orders: 'Orders & Payments', invoices: 'Invoice Management', theme: 'Seasonal Theme', social: 'Social Media Settings', notifications: 'Notifications', users: 'User Analytics', settings: 'General Settings', audit: 'System Audit Logs' };
+            const titles = { dashboard: 'Dashboard', analytics: 'Analytics', products: 'Products & Stock', orders: 'Orders & Payments', invoices: 'Invoice Management', coupons: 'Coupon Management', theme: 'Seasonal Theme', social: 'Social Media Settings', notifications: 'Notifications', users: 'User Analytics', settings: 'General Settings', audit: 'System Audit Logs' };
             document.getElementById('panel-title').textContent = titles[id] || '';
             document.getElementById('admin-sidebar').classList.remove('open');
 
@@ -2599,6 +2738,7 @@
             if (id === 'products') renderProductsTable(adminProducts);
             if (id === 'orders') renderOrdersTable(ordersData);
             if (id === 'invoices') { if (typeof window.loadAdminInvoices === 'function') window.loadAdminInvoices(); }
+            if (id === 'coupons') { if (typeof window.loadCoupons === 'function') window.loadCoupons(); }
             if (id === 'notifications') renderNotifications();
             if (id === 'users') renderUsersTable();
             if (id === 'settings') renderBranchesTable();
@@ -2731,14 +2871,14 @@
             const sorted = [...adminProducts].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
             tbody.innerHTML = sorted.map(p => `
     <tr>
-      <td><div style="display:flex;align-items:center;gap:.7rem">
+      <td data-label="Product"><div style="display:flex;align-items:center;gap:.7rem">
         <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
         <span>${p.name}</span>
       </div></td>
-      <td style="color:var(--gold)">${p.reviews || 0}</td>
-      <td style="color:var(--gold)">₹${((p.price || 0) * (p.reviews || 0) * 0.3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
-      <td>${'★'.repeat(Math.floor(p.rating || 4.5))} ${p.rating || 4.5}</td>
-      <td><span class="stock-badge ${stockClass[p.stock || 'in']}" style="font-size:.72rem"><span class="dot"></span>${p.stock === 'in' ? 'In Stock' : p.stock === 'low' ? 'Low' : 'Out'}</span></td>
+      <td data-label="Sales" style="color:var(--gold)">${p.reviews || 0}</td>
+      <td data-label="Revenue" style="color:var(--gold)">₹${((p.price || 0) * (p.reviews || 0) * 0.3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
+      <td data-label="Rating">${'★'.repeat(Math.floor(p.rating || 4.5))} ${p.rating || 4.5}</td>
+      <td data-label="Stock"><span class="stock-badge ${stockClass[p.stock || 'in']}" style="font-size:.72rem"><span class="dot"></span>${p.stock === 'in' ? 'In Stock' : p.stock === 'low' ? 'Low' : 'Out'}</span></td>
     </tr>`).join('');
         }
 
@@ -2766,16 +2906,16 @@
                 const ss = getStockStatus(p);
                 return `
     <tr>
-      <td><div style="display:flex;align-items:center;gap:.8rem">
+      <td data-label="Product"><div style="display:flex;align-items:center;gap:.8rem">
         <img src="${mainImg}" style="width:44px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #222">
         <div><div style="font-weight:600;font-size:.85rem">${sName}</div><div style="font-size:.72rem;color:#666">${sCat}</div></div>
       </div></td>
-      <td style="color:#888;font-size:.8rem">${sCat}</td>
-      <td style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
-      <td><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.72rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'}</span></td>
-      <td style="color:var(--gold)">${p.wishlistCount || 0} ♥</td>
-      <td>${(p.isNewLaunch || p.isNew) ? '<span class="badge badge-gold">NEW</span>' : '<span style="color:#444">—</span>'}</td>
-      <td><div class="tbl-actions">
+      <td data-label="Category" style="color:#888;font-size:.8rem">${sCat}</td>
+      <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
+      <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.72rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'}</span></td>
+      <td data-label="Wishlist" style="color:var(--gold)">${p.wishlistCount || 0} ♥</td>
+      <td data-label="Flags">${(p.isNewLaunch || p.isNew) ? '<span class="badge badge-gold">NEW</span>' : '<span style="color:#444">—</span>'}</td>
+      <td data-label="Actions"><div class="tbl-actions">
         <button class="tbl-btn edit" onclick="openEditProduct('${p.id}')">Edit</button>
         <button class="tbl-btn del" onclick="deleteProduct('${p.id}')">Delete</button>
       </div></td>
@@ -2799,6 +2939,7 @@
             editingProductId = id;
             document.getElementById('product-modal-title').textContent = 'Edit Product';
             document.getElementById('pm-name').value = p.name || '';
+            document.getElementById('pm-description').value = p.description || '';
             document.getElementById('pm-cat').value = p.category || '';
             document.getElementById('pm-price').value = p.price || 0;
             document.getElementById('pm-mrp').value = p.mrp || p.price || 0;
@@ -2844,7 +2985,7 @@
                 const data = {
                     name,
                     productName: name,
-                    description: document.getElementById('pm-cat').value + " - " + name,
+                    description: document.getElementById('pm-description').value.trim() || `${document.getElementById('pm-cat').value} - ${name}`,
                     category: document.getElementById('pm-cat').value,
                     sku: 'SKU-' + name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8) + '-' + Math.floor(Math.random() * 1000),
                     price: parseInt(document.getElementById('pm-price').value) || 0,
@@ -2981,17 +3122,17 @@
 
                 return `
     <tr>
-      <td style="color:var(--gold);font-weight:600;font-size:.8rem" title="${o.id}">${shortId}</td>
-      <td>
+      <td data-label="Order ID" style="color:var(--gold);font-weight:600;font-size:.8rem" title="${o.id}">${shortId}</td>
+      <td data-label="Customer">
         <div style="font-weight:600">${customerName}</div>
         ${customerPhone ? `<div style="font-size:.72rem;color:#666">${customerPhone}</div>` : ''}
       </td>
-      <td>${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
-      <td style="color:var(--gold);font-weight:700">₹${Number(total).toLocaleString()}</td>
-      <td style="font-size:.78rem">${paymentMethod}</td>
-      <td><span class="order-status ${statusClass}">${displayStatus}</span></td>
-      <td style="color:#666;font-size:.78rem">${orderDate}</td>
-      <td><div class="tbl-actions">
+      <td data-label="Items">${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
+      <td data-label="Total" style="color:var(--gold);font-weight:700">₹${Number(total).toLocaleString()}</td>
+      <td data-label="Payment" style="font-size:.78rem">${paymentMethod}</td>
+      <td data-label="Status"><span class="order-status ${statusClass}">${displayStatus}</span></td>
+      <td data-label="Date" style="color:#666;font-size:.78rem">${orderDate}</td>
+      <td data-label="Actions"><div class="tbl-actions">
         <button class="tbl-btn edit" style="border-color:rgba(255,215,0,0.4);color:var(--gold)" onclick="openAdminOrderModal('${o.id}')">🚚 Manage</button>
       </div></td>
     </tr>`;
@@ -3500,11 +3641,11 @@
 
                 return `
                 <tr>
-                    <td>
+                    <td data-label="Timestamp">
                         <div style="font-weight:600;color:var(--white);font-size:0.82rem">${dateStr}</div>
                         <div style="color:#777;font-size:0.72rem;font-family:monospace">${timeStr}</div>
                     </td>
-                    <td>
+                    <td data-label="Admin / Operator">
                         <div style="display:flex;align-items:center;gap:0.5rem">
                             <div style="width:28px;height:28px;border-radius:50%;background:#222;border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:0.75rem;font-weight:bold">
                                 ${adminName.charAt(0).toUpperCase()}
@@ -3515,20 +3656,20 @@
                             </div>
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Action">
                         <span class="badge" style="background:${actStyle.bg};color:${actStyle.color};font-weight:700;font-size:0.78rem;padding:4px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:0.3rem">
                             ${actStyle.icon} ${log.action || 'UPDATE'}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Target Resource">
                         <div style="font-weight:600;color:var(--white);font-size:0.85rem">${resIcon} ${log.collection || 'system'}</div>
                         <div style="font-size:0.7rem;color:#888;font-family:monospace">ID: ${log.documentId ? (String(log.documentId).length > 12 ? String(log.documentId).substring(0, 12) + '...' : log.documentId) : '—'}</div>
                     </td>
-                    <td>
+                    <td data-label="Device / IP">
                         <div style="font-size:0.8rem;color:#60a5fa;font-family:monospace">🌐 ${log.ip || 'Local Host'}</div>
                         <div style="font-size:0.7rem;color:#666;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${log.device || 'Browser'}">💻 ${(log.device || 'Web Browser').substring(0, 25)}</div>
                     </td>
-                    <td style="text-align:right">
+                    <td data-label="Inspector" style="text-align:right">
                         <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold);font-weight:600" onclick="window.openAuditInspector(${idx})">🔍 Inspect</button>
                     </td>
                 </tr>`;
@@ -3630,7 +3771,7 @@
             // Clear all stored data to prevent data leakage
             localStorage.clear();
             sessionStorage.clear();
-            window.location.replace('admin-login.html');
+            window.location.replace('/admin/admin-login.html');
         };
         // Bug Fix #14: Removed duplicate adminLogout wrapper — window.adminLogout is the single source of truth.
 
@@ -3774,18 +3915,18 @@
                     
                 return `
                 <tr>
-                    <td style="color:var(--gold);font-weight:600;font-size:0.85rem">${inv.invoiceNumber}</td>
-                    <td>
+                    <td data-label="Invoice #" style="color:var(--gold);font-weight:600;font-size:0.85rem">${inv.invoiceNumber}</td>
+                    <td data-label="Customer">
                         <div>${inv.customerName || '—'}</div>
                         <div style="font-size:0.7rem;color:#666">${inv.customerEmail || '—'}</div>
                     </td>
-                    <td style="color:#888;font-size:0.8rem">${inv.orderNumber || '—'}</td>
-                    <td style="color:var(--green);font-weight:700">₹${(inv.grandTotal||0).toLocaleString('en-IN')}</td>
-                    <td style="color:#aaa;font-size:0.85rem">₹${(inv.cgst||0).toLocaleString('en-IN')}</td>
-                    <td style="color:#aaa;font-size:0.85rem">₹${(inv.sgst||0).toLocaleString('en-IN')}</td>
-                    <td><span class="badge" style="background:#222;color:#ccc">${(inv.paymentMethod||'razorpay').toUpperCase()}</span></td>
-                    <td style="color:#777;font-size:0.8rem">${date}</td>
-                    <td>
+                    <td data-label="Order #" style="color:#888;font-size:0.8rem">${inv.orderNumber || '—'}</td>
+                    <td data-label="Amount" style="color:var(--green);font-weight:700">₹${(inv.grandTotal||0).toLocaleString('en-IN')}</td>
+                    <td data-label="CGST" style="color:#aaa;font-size:0.85rem">₹${(inv.cgst||0).toLocaleString('en-IN')}</td>
+                    <td data-label="SGST" style="color:#aaa;font-size:0.85rem">₹${(inv.sgst||0).toLocaleString('en-IN')}</td>
+                    <td data-label="Payment"><span class="badge" style="background:#222;color:#ccc">${(inv.paymentMethod||'razorpay').toUpperCase()}</span></td>
+                    <td data-label="Date" style="color:#777;font-size:0.8rem">${date}</td>
+                    <td data-label="Actions">
                         <div class="tbl-actions">
                             <button class="tbl-btn edit" onclick="window.downloadAdminInvoice('${inv.orderId}')">📄 PDF</button>
                             <button class="tbl-btn approve" onclick="window.emailAdminInvoice('${inv.orderId}', '${inv.id}')">📧 Email</button>
@@ -3964,6 +4105,187 @@
             if (theme === 'diwali') content.innerHTML = '<div style="font-size:3rem;margin-bottom:.5rem">🪔</div><div>Diwali Theme – Fireworks & Gold</div>';
             if (theme === 'christmas') content.innerHTML = '<div style="font-size:3rem;margin-bottom:.5rem">❄️</div><div>Christmas Theme – Snow & Lights</div>';
         }
+
+        // ============================================================
+        // COUPON MANAGEMENT
+        // ============================================================
+        let allCoupons = [];
+
+        async function loadCoupons() {
+            const tbody = document.getElementById('coupons-table-body');
+            if (!tbody) return;
+            try {
+                const snap = await getDocs(collection(db, 'coupons'));
+                allCoupons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCouponsTable(allCoupons);
+                updateCouponStats(allCoupons);
+            } catch (err) {
+                console.error('loadCoupons:', err);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--red)">Failed to load coupons.</td></tr>';
+            }
+        }
+
+        function updateCouponStats(coupons) {
+            const now = new Date();
+            const active   = coupons.filter(c => c.status === 'active' && (!c.expiryDate || c.expiryDate.toDate() >= now)).length;
+            const expired  = coupons.filter(c => c.expiryDate && c.expiryDate.toDate() < now).length;
+            const totalUsed = coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0);
+            document.getElementById('cpn-stat-total').textContent   = coupons.length;
+            document.getElementById('cpn-stat-active').textContent  = active;
+            document.getElementById('cpn-stat-expired').textContent = expired;
+            document.getElementById('cpn-stat-used').textContent    = totalUsed;
+        }
+
+        function renderCouponsTable(coupons) {
+            const tbody = document.getElementById('coupons-table-body');
+            if (!tbody) return;
+            if (!coupons.length) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:3rem;color:#555">No coupons found. Click "+ Create Coupon" to add one.</td></tr>';
+                return;
+            }
+            const now = new Date();
+            tbody.innerHTML = coupons.map(c => {
+                const isExpired = c.expiryDate && c.expiryDate.toDate() < now;
+                const expiryStr = c.expiryDate
+                    ? c.expiryDate.toDate().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+                    : '—';
+                const usageStr = c.usageLimit != null
+                    ? `${c.usedCount || 0} / ${c.usageLimit}`
+                    : `${c.usedCount || 0} / ∞`;
+                const valueStr = c.discountType === 'percentage'
+                    ? `${c.discountValue}%`
+                    : `₹${c.discountValue}`;
+                const statusBadge = isExpired
+                    ? `<span style="background:rgba(255,138,0,.15);color:var(--orange);border:1px solid rgba(255,138,0,.3);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">EXPIRED</span>`
+                    : c.status === 'active'
+                        ? `<span style="background:rgba(0,204,102,.12);color:var(--green);border:1px solid rgba(0,204,102,.25);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">ACTIVE</span>`
+                        : `<span style="background:rgba(255,0,0,.1);color:var(--red);border:1px solid rgba(255,0,0,.2);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">INACTIVE</span>`;
+                return `<tr>
+                    <td style="color:var(--gold);font-weight:700;letter-spacing:.5px">${DOMPurify.sanitize(c.code || '')}</td>
+                    <td style="font-size:.8rem;color:#aaa">${c.discountType === 'percentage' ? '% Percentage' : '₹ Flat'}</td>
+                    <td style="font-weight:700">${valueStr}</td>
+                    <td style="color:#aaa;font-size:.82rem">${c.minOrderValue != null ? '₹' + c.minOrderValue : '—'}</td>
+                    <td style="font-size:.82rem">${usageStr}</td>
+                    <td style="font-size:.82rem">${c.perUserLimit != null ? (c.perUserLimit === 0 ? '∞' : c.perUserLimit) : '1'}</td>
+                    <td style="font-size:.8rem;color:${isExpired ? 'var(--orange)' : '#aaa'}">${expiryStr}</td>
+                    <td>${statusBadge}</td>
+                    <td><div class="tbl-actions" style="justify-content:flex-end">
+                        <button class="tbl-btn edit" onclick="openCouponModal('${c.id}')">✏️ Edit</button>
+                        <button class="tbl-btn" style="border-color:rgba(255,0,0,.3);color:var(--red)" onclick="deleteCoupon('${c.id}','${DOMPurify.sanitize(c.code || '')}')">🗑 Delete</button>
+                    </div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.filterCoupons = function() {
+            const q      = (document.getElementById('cpn-search')?.value || '').toLowerCase();
+            const status = document.getElementById('cpn-filter-status')?.value || '';
+            const type   = document.getElementById('cpn-filter-type')?.value || '';
+            const filtered = allCoupons.filter(c => {
+                const matchQ      = !q || (c.code || '').toLowerCase().includes(q) || (c.discountType || '').toLowerCase().includes(q);
+                const matchStatus = !status || c.status === status;
+                const matchType   = !type   || c.discountType === type;
+                return matchQ && matchStatus && matchType;
+            });
+            renderCouponsTable(filtered);
+        };
+
+        window.openCouponModal = function(id) {
+            const titleEl = document.getElementById('coupon-modal-title');
+            document.getElementById('cpn-id').value           = id || '';
+            document.getElementById('cpn-code').value         = '';
+            document.getElementById('cpn-status').value       = 'active';
+            document.getElementById('cpn-discount-type').value = 'percentage';
+            document.getElementById('cpn-discount-value').value = '';
+            document.getElementById('cpn-expiry').value       = '';
+            document.getElementById('cpn-min-order').value    = '';
+            document.getElementById('cpn-usage-limit').value  = '';
+            document.getElementById('cpn-per-user').value     = '1';
+
+            if (id) {
+                const c = allCoupons.find(x => x.id === id);
+                if (c) {
+                    titleEl.textContent = `Edit Coupon: ${c.code}`;
+                    document.getElementById('cpn-code').value          = c.code || '';
+                    document.getElementById('cpn-status').value        = c.status || 'active';
+                    document.getElementById('cpn-discount-type').value = c.discountType || 'percentage';
+                    document.getElementById('cpn-discount-value').value = c.discountValue != null ? c.discountValue : '';
+                    if (c.expiryDate) {
+                        const d = c.expiryDate.toDate();
+                        document.getElementById('cpn-expiry').value = d.toISOString().split('T')[0];
+                    }
+                    document.getElementById('cpn-min-order').value   = c.minOrderValue != null ? c.minOrderValue : '';
+                    document.getElementById('cpn-usage-limit').value  = c.usageLimit   != null ? c.usageLimit   : '';
+                    document.getElementById('cpn-per-user').value     = c.perUserLimit  != null ? c.perUserLimit  : '1';
+                }
+            } else {
+                titleEl.textContent = 'Create Coupon';
+            }
+            openModal('coupon-modal');
+        };
+
+        window.saveCoupon = async function() {
+            const id           = document.getElementById('cpn-id').value.trim();
+            const code         = document.getElementById('cpn-code').value.trim().toUpperCase();
+            const status       = document.getElementById('cpn-status').value;
+            const discountType = document.getElementById('cpn-discount-type').value;
+            const discountVal  = parseFloat(document.getElementById('cpn-discount-value').value);
+            const expiryRaw    = document.getElementById('cpn-expiry').value;
+            const minOrderRaw  = document.getElementById('cpn-min-order').value;
+            const usageLimRaw  = document.getElementById('cpn-usage-limit').value;
+            const perUserRaw   = document.getElementById('cpn-per-user').value;
+
+            // Validation
+            if (!code) { Toast.error('Validation', 'Coupon code is required.'); return; }
+            if (isNaN(discountVal) || discountVal < 0) { Toast.error('Validation', 'Enter a valid discount value.'); return; }
+            if (discountType === 'percentage' && discountVal > 100) { Toast.error('Validation', 'Percentage cannot exceed 100.'); return; }
+
+            const data = {
+                code,
+                status,
+                discountType,
+                discountValue: discountVal,
+                expiryDate:    expiryRaw   ? window.firebase_Timestamp.fromDate(new Date(expiryRaw)) : null,
+                minOrderValue: minOrderRaw !== '' ? parseFloat(minOrderRaw) : null,
+                usageLimit:    usageLimRaw !== '' ? parseInt(usageLimRaw, 10) : null,
+                perUserLimit:  perUserRaw  !== '' ? parseInt(perUserRaw, 10) : 1,
+                updatedAt:     serverTimestamp()
+            };
+
+            const btn = document.getElementById('cpn-save-btn');
+            btn.disabled = true; btn.textContent = '⏳ Saving...';
+
+            try {
+                if (id) {
+                    // Edit — preserve usedCount
+                    await updateDoc(doc(db, 'coupons', id), data);
+                    Toast.success('Coupon Updated', `${code} has been updated.`);
+                } else {
+                    // Create — initialise usedCount to 0
+                    await addDoc(collection(db, 'coupons'), { ...data, usedCount: 0, createdAt: serverTimestamp() });
+                    Toast.success('Coupon Created', `${code} is now live.`);
+                }
+                closeModal('coupon-modal');
+                await loadCoupons();
+            } catch (err) {
+                console.error('saveCoupon:', err);
+                Toast.error('Save Failed', err.message);
+            } finally {
+                btn.disabled = false; btn.textContent = '💾 Save Coupon';
+            }
+        };
+
+        window.deleteCoupon = async function(id, code) {
+            if (!confirm(`Delete coupon "${code}"? This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(db, 'coupons', id));
+                Toast.success('Coupon Deleted', `${code} has been removed.`);
+                await loadCoupons();
+            } catch (err) {
+                console.error('deleteCoupon:', err);
+                Toast.error('Delete Failed', err.message);
+            }
+        };
 
         window.applyThemeAdmin = async function () {
             const btn = document.getElementById('apply-theme-btn');

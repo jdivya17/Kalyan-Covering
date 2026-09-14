@@ -23,6 +23,7 @@ import {
     where,
     orderBy,
     serverTimestamp,
+    Timestamp,
     increment,
     onSnapshot,
     arrayUnion
@@ -127,6 +128,7 @@ export {
     where,
     orderBy,
     serverTimestamp,
+    Timestamp,
     increment,
     onSnapshot,
     arrayUnion,

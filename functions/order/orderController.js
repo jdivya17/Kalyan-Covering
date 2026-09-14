@@ -25,7 +25,67 @@ async function logAudit(request, action, targetCollection, targetId, before, aft
     });
 }
 
-async function calculateOrderTotals(items, promoCode, isCOD = false) {
+/**
+ * Validates a coupon against all abuse-prevention rules and returns the
+ * applicable discount amount. Throws HttpsError with a user-facing message
+ * on any violation so the client can surface the exact reason.
+ *
+ * @param {object} promoData   - Firestore coupon document data
+ * @param {number} subtotal    - Cart subtotal in INR (before discount)
+ * @param {string} customerId  - Firebase UID of the ordering customer
+ * @returns {number} discount  - Rupee discount to apply
+ */
+async function validateAndApplyCoupon(promoData, subtotal, customerId) {
+    const now = new Date();
+
+    // 1. Expiry check
+    if (promoData.expiryDate && promoData.expiryDate.toDate() < now) {
+        throw new HttpsError('failed-precondition', 'This coupon has expired.');
+    }
+
+    // 2. Minimum order value check
+    if (promoData.minOrderValue != null && subtotal < promoData.minOrderValue) {
+        throw new HttpsError('failed-precondition',
+            `A minimum order value of \u20b9${promoData.minOrderValue} is required to use this coupon.`);
+    }
+
+    // 3. Total usage limit check (read usedCount from the same doc snapshot)
+    if (promoData.usageLimit != null && (promoData.usedCount || 0) >= promoData.usageLimit) {
+        throw new HttpsError('failed-precondition', 'This coupon has reached its usage limit.');
+    }
+
+    // 4. Per-user usage limit check
+    //    Default perUserLimit = 1 (one-time use per customer).
+    //    Set perUserLimit = 0 on the coupon doc to make it fully reusable.
+    const perUserLimit = promoData.perUserLimit ?? 1;
+    if (perUserLimit > 0 && customerId) {
+        const userOrdersSnap = await db.collection('orders')
+            .where('customerId', '==', customerId)
+            .where('couponCode', '==', promoData.code)
+            .get();
+        // Exclude cancelled orders — filter client-side to avoid composite index requirement
+        const validUsageCount = userOrdersSnap.docs.filter(
+            d => d.data().orderStatus !== 'cancelled'
+        ).length;
+        if (validUsageCount >= perUserLimit) {
+            throw new HttpsError('failed-precondition',
+                'You have already used this coupon the maximum number of times.');
+        }
+    }
+
+    // 5. Compute discount
+    let discount = 0;
+    if (promoData.discountType === 'percentage') {
+        discount = Math.round(subtotal * ((promoData.discountValue || 0) / 100));
+        discount = Math.min(discount, subtotal);
+    } else {
+        discount = Math.min(promoData.discountValue || 0, subtotal);
+    }
+
+    return discount;
+}
+
+async function calculateOrderTotals(items, promoCode, isCOD = false, customerId = null) {
     for (const item of items) {
         if (!item.id) throw new HttpsError('invalid-argument', 'Each cart item must have an id.');
         if (!Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100) {
@@ -58,20 +118,18 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
     });
 
     let discount = 0;
+    let couponDocRef = null; // kept for atomic usedCount increment in the order transaction
     if (promoCode) {
         const promoSnap = await db.collection("coupons")
             .where("code", "==", promoCode.trim().toUpperCase())
             .where("status", "==", 'active')
             .limit(1).get();
-        if (!promoSnap.empty) {
-            const promoData = promoSnap.docs[0].data();
-            if (promoData.discountType === 'percentage') {
-                discount = Math.round(subtotal * ((promoData.discountValue || 0) / 100));
-                discount = Math.min(discount, subtotal);
-            } else {
-                discount = Math.min(promoData.discountValue || 0, subtotal);
-            }
+        if (promoSnap.empty) {
+            throw new HttpsError('not-found', 'Coupon code not found or is no longer active.');
         }
+        couponDocRef = promoSnap.docs[0].ref;
+        const promoData = promoSnap.docs[0].data();
+        discount = await validateAndApplyCoupon(promoData, subtotal, customerId);
     }
 
     const gst = Math.round((subtotal - discount) * 0.12);
@@ -79,7 +137,7 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
     const codFee = isCOD ? 50 : 0;
     const totalAmount = (subtotal - discount) + gst + deliveryCharge + codFee;
 
-    return { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount };
+    return { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponDocRef };
 }
 
 const createCODOrder = onCall(async (request) => {
@@ -96,7 +154,8 @@ const createCODOrder = onCall(async (request) => {
     }
 
     try {
-        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, promoCode, true);
+        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponDocRef } =
+            await calculateOrderTotals(items, promoCode, true, request.auth.uid);
         const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
         const now_ts = admin.firestore.FieldValue.serverTimestamp();
 
@@ -138,6 +197,14 @@ const createCODOrder = onCall(async (request) => {
                 updatedAt: now_ts
             };
             transaction.set(codOrderRef, codOrder);
+
+            // Atomically increment usedCount on the coupon so concurrent orders
+            // don't race past the usage limit checked above.
+            if (couponDocRef) {
+                transaction.update(couponDocRef, {
+                    usedCount: admin.firestore.FieldValue.increment(1)
+                });
+            }
         });
 
         await logAudit(request, 'CREATE_COD_ORDER', 'orders', docRefId, null, { orderNumber, totalAmount });

@@ -19,7 +19,7 @@ export async function uploadToCloudinary(file, resourceType = 'auto') {
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
                     const progress = (event.loaded / event.total) * 100;
-                    if (typeof window.updateUploadProgress === 'function') window.updateUploadProgress(progress);
+                    if (typeof window.updateUploadProgress === 'function') window.updateUploadProgress(progress, resourceType === 'video' ? 'video' : 'image');
                 }
             };
 

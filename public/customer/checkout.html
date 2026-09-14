@@ -870,23 +870,22 @@
                 if(u.pin) document.getElementById('pin').value = u.pin;
             }
 
-            // Fallback load items
-            setTimeout(() => {
+            // Synchronous & event-driven cart loading
+            function initCheckoutCart() {
                 let cart = JSON.parse(localStorage.getItem('kc_cart')) || [];
-                if(cart.length === 0 && (!window.KC || !window.KC.cart || window.KC.cart.length === 0)) {
-                    document.getElementById('checkout-layout').innerHTML = `
-                        <div style="grid-column:1/-1; text-align:center; padding:5rem 0;">
-                            <h2 style="color:var(--gold); font-family:var(--font-serif);">Your Cart is Empty</h2>
-                            <p style="color:#888; margin:1rem 0 2rem;">Add items to your cart before proceeding to checkout.</p>
-                            <a href="products.html" class="btn btn-gold">Browse Collection</a>
-                        </div>
-                    `;
+                if (cart.length === 0 && window.KC && window.KC.cart && window.KC.cart.length > 0) {
+                    cart = window.KC.cart;
+                }
+                if (cart.length === 0) {
+                    renderEmptyCart();
                 } else {
-                    if(cart.length === 0 && window.KC) cart = window.KC.cart;
                     window.checkoutCart = cart;
                     renderSummary();
                 }
-            }, 300);
+            }
+
+            initCheckoutCart();
+            window.addEventListener('kc-products-loaded', initCheckoutCart);
         });
 
         function toggleMobileSummary() {
@@ -894,29 +893,43 @@
         }
 
         function renderSummary() {
-            const items = window.checkoutCart || [];
-            document.getElementById('cart-item-count').textContent = `${items.reduce((s,i)=>s+(i.qty||1),0)} items`;
+            try {
+                const items = (window.checkoutCart || []).filter(item => item && typeof item.price === 'number' && item.price >= 0);
+                if (items.length !== (window.checkoutCart || []).length) {
+                    console.warn('Some cart items had invalid price data and were skipped:', window.checkoutCart);
+                }
 
-            document.getElementById('summary-items').innerHTML = items.map(item => `
-                <div class="summary-item">
-                    <img src="${item.image || '/img-fallback.svg'}" class="summary-item-img">
-                    <div style="flex:1;">
-                        <div style="font-weight:600; color:var(--white); font-size:0.95rem; margin-bottom:0.2rem;">${item.name}</div>
-                        <div style="color:var(--gold); font-weight:700;">₹${item.price.toLocaleString()}</div>
-                        <div class="qty-controls">
-                            <button class="qty-btn" onclick="changeQty('${item.id}', -1)">−</button>
-                            <div class="qty-val">${item.qty || 1}</div>
-                            <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
+                if (items.length === 0) {
+                    renderEmptyCart();
+                    return;
+                }
+
+                document.getElementById('cart-item-count').textContent = `${items.reduce((s, i) => s + (i.qty || 1), 0)} items`;
+
+                document.getElementById('summary-items').innerHTML = items.map(item => `
+                    <div class="summary-item">
+                        <img src="${item.image || '/img-fallback.svg'}" class="summary-item-img" alt="${DOMPurify.sanitize(item.name || '')}">
+                        <div style="flex:1;">
+                            <div style="font-weight:600; color:var(--white); font-size:0.95rem; margin-bottom:0.2rem;">${DOMPurify.sanitize(item.name || 'Jewellery Item')}</div>
+                            <div style="color:var(--gold); font-weight:700;">₹${(item.price || 0).toLocaleString()}</div>
+                            <div class="qty-controls">
+                                <button class="qty-btn" onclick="changeQty('${item.id}', -1)">−</button>
+                                <div class="qty-val">${item.qty || 1}</div>
+                                <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-family:var(--font-serif); font-size:1.1rem; color:var(--white);">₹${((item.qty || 1) * (item.price || 0)).toLocaleString()}</div>
+                            <button onclick="removeItem('${item.id}')" style="background:none; border:none; color:var(--red); font-size:0.8rem; cursor:pointer; margin-top:0.5rem; text-decoration:underline;">Remove</button>
                         </div>
                     </div>
-                    <div style="text-align:right;">
-                        <div style="font-family:var(--font-serif); font-size:1.1rem; color:var(--white);">₹${((item.qty||1)*item.price).toLocaleString()}</div>
-                        <button onclick="removeItem('${item.id}')" style="background:none; border:none; color:var(--red); font-size:0.8rem; cursor:pointer; margin-top:0.5rem; text-decoration:underline;">Remove</button>
-                    </div>
-                </div>
-            `).join('');
+                `).join('');
 
-            updateTotals();
+                updateTotals();
+            } catch (e) {
+                console.error('renderSummary failed:', e);
+                updateTotals();
+            }
         }
 
         function renderEmptyCart() {

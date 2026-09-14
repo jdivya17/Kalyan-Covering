@@ -16,7 +16,7 @@ export function renderHomePageFeatured() {
 
     const featured = (KC.products || []).filter(p => p.popular || p.featured).slice(0, 8);
     if (featured.length === 0) {
-        grid.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color: var(--gold-light);">Discover our finest collection below.</p>';
+        grid.innerHTML = '<div style="width:100%;grid-column:1/-1;text-align:center;padding:3rem 1rem;color:#666"><div style="font-size:2rem;margin-bottom:0.5rem;opacity:0.4">✦</div><p>New featured pieces coming soon — check back shortly.</p></div>';
         return;
     }
 

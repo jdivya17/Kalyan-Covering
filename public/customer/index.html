@@ -421,8 +421,20 @@
     }
 
     @media (max-width: 600px) {
-      .cat-grid { grid-auto-rows: 200px; }
-      .cat-card { grid-column: span 12 !important; grid-row: span 1 !important; }
+      .hero-title {
+        font-size: clamp(2.2rem, 10vw, 3rem);
+      }
+
+      .cat-grid {
+        grid-template-columns: 1fr;
+        grid-auto-rows: 200px;
+        gap: 1rem;
+      }
+
+      .cat-card {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
+      }
     }
 
     .cat-card:hover {
@@ -864,16 +876,7 @@
       }
     }
 
-    @media (max-width: 600px) {
-      .hero-title {
-        font-size: clamp(2.2rem, 10vw, 3rem);
-      }
 
-      .cat-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-    }
 
     /* ===== BRANCHES ===== */
     .branches-grid {
@@ -1093,6 +1096,25 @@
     </div>
   </div>
 
+  <!-- ===== QUICK VIEW MODAL ===== -->
+  <div class="quick-view-modal" id="quick-view-modal" role="dialog" aria-modal="true" aria-labelledby="qv-title">
+    <div class="qv-overlay" onclick="closeQuickView()" aria-hidden="true"></div>
+    <div class="qv-content">
+      <button class="qv-close" onclick="closeQuickView()" aria-label="Close quick view">×</button>
+      <div class="qv-grid">
+        <div>
+          <img id="qv-img" class="qv-image" src="" alt="">
+        </div>
+        <div class="qv-details">
+          <h2 class="qv-title" id="qv-title">Product Title</h2>
+          <div class="qv-price" id="qv-price">&#8377;0</div>
+          <p class="qv-desc" id="qv-desc">Description</p>
+          <button class="btn btn-gold" id="qv-add-cart" style="width:100%;font-size:1rem;padding:0.9rem">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== HERO ===== -->
   <main id="main-content">
   <header class="hero-section">
@@ -1170,36 +1192,36 @@
       <div class="necklace-strip-inner" id="necklace-strip">
         <!-- Images duplicated for infinite scroll -->
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-label="Browse Gold Necklaces"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=500&q=80"
-          alt="Gold Necklace"></a>
+          alt="Gold Necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-label="Browse Diamond Necklaces"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500&q=80"
-          alt="Diamond Necklace"></a>
+          alt="Diamond Necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-label="Browse Temple Necklaces"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500&q=80"
-          alt="Temple Necklace"></a>
+          alt="Temple Necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-label="Browse Bridal Necklaces"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=500&q=80"
-          alt="Bridal Necklace"></a>
-        <a class="strip-img-link" href="products.html?cat=Rings" aria-label="Browse Rings"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=500&q=80" alt="Ring"></a>
+          alt="Bridal Necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
+        <a class="strip-img-link" href="products.html?cat=Rings" aria-label="Browse Rings"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=500&q=80" alt="Ring" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Earrings" aria-label="Browse Earrings"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=500&q=80"
-          alt="Earrings"></a>
+          alt="Earrings" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Bangles" aria-label="Browse Bangles"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80"
-          alt="Bangles"></a>
+          alt="Bangles" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html" aria-label="Browse Pendants"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=500&q=80"
-          alt="Pendant"></a>
+          alt="Pendant" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <!-- Duplicates for seamless loop (aria-hidden) -->
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Necklaces" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=500&q=80"
-          alt=""></a>
-        <a class="strip-img-link" href="products.html?cat=Rings" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=500&q=80" alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
+        <a class="strip-img-link" href="products.html?cat=Rings" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=500&q=80" alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Earrings" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html?cat=Bangles" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
         <a class="strip-img-link" href="products.html" aria-hidden="true" tabindex="-1"><img class="strip-img" loading="lazy" src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=500&q=80"
-          alt=""></a>
+          alt="" onerror="this.onerror=null;this.src='/img-fallback.svg'"></a>
       </div>
     </div>
   </section>
@@ -1214,7 +1236,7 @@
       </div>
       <div class="cat-grid">
         <a class="cat-card reveal" href="products.html?cat=Necklaces" aria-label="Shop Exquisite Necklaces">
-          <img src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=600&q=80" alt="A collection of exquisite gold necklaces">
+          <img src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=600&q=80" alt="A collection of exquisite gold necklaces" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="cat-card-overlay" aria-hidden="true"></div>
           <div class="cat-card-body">
             <h3>Exquisite Necklaces</h3>
@@ -1223,7 +1245,7 @@
           </div>
         </a>
         <a class="cat-card reveal" href="products.html?cat=Rings" aria-label="Shop Royal Rings">
-          <img src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=600&q=80" alt="A collection of royal gold rings">
+          <img src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=600&q=80" alt="A collection of royal gold rings" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="cat-card-overlay" aria-hidden="true"></div>
           <div class="cat-card-body">
             <h3>Royal Rings</h3>
@@ -1232,7 +1254,7 @@
           </div>
         </a>
         <a class="cat-card reveal" href="products.html?cat=Earrings" aria-label="Shop Divine Earrings">
-          <img src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=600&q=80" alt="A collection of divine gold earrings">
+          <img src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=600&q=80" alt="A collection of divine gold earrings" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="cat-card-overlay" aria-hidden="true"></div>
           <div class="cat-card-body">
             <h3>Divine Earrings</h3>
@@ -1241,7 +1263,7 @@
           </div>
         </a>
         <a class="cat-card reveal" href="products.html?cat=Bangles" aria-label="Shop Traditional Bangles">
-          <img src="https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600&q=80" alt="A collection of traditional gold bangles">
+          <img src="https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600&q=80" alt="A collection of traditional gold bangles" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="cat-card-overlay" aria-hidden="true"></div>
           <div class="cat-card-body">
             <h3>Traditional Bangles</h3>
@@ -1470,27 +1492,27 @@
       <!-- Instagram photo grid — click any to open Instagram -->
       <div class="insta-grid" role="list" aria-label="Instagram photo gallery">
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=300&q=80" alt="Kalyan Covering Instagram post: gold necklace">
+          <img src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=300&q=80" alt="Kalyan Covering Instagram post: gold necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=300&q=80" alt="Kalyan Covering Instagram post: temple necklace">
+          <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=300&q=80" alt="Kalyan Covering Instagram post: temple necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&q=80" alt="Kalyan Covering Instagram post: diamond necklace">
+          <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&q=80" alt="Kalyan Covering Instagram post: diamond necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=300&q=80" alt="Kalyan Covering Instagram post: bridal necklace">
+          <img src="https://images.unsplash.com/photo-1573408302185-9102fe74439a?w=300&q=80" alt="Kalyan Covering Instagram post: bridal necklace" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=300&q=80" alt="Kalyan Covering Instagram post: gold ring">
+          <img src="https://images.unsplash.com/photo-1605100804763-247f67b3f41e?w=300&q=80" alt="Kalyan Covering Instagram post: gold ring" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
         <div class="insta-item reveal dynamic-insta-click" role="listitem">
-          <img src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=300&q=80" alt="Kalyan Covering Instagram post: gold earrings">
+          <img src="https://images.unsplash.com/photo-1629227310822-bb2f2583750a?w=300&q=80" alt="Kalyan Covering Instagram post: gold earrings" onerror="this.onerror=null;this.src='/img-fallback.svg'">
           <div class="insta-item-overlay" aria-hidden="true"><span class="insta-ig-icon">📷</span></div>
         </div>
       </div>
@@ -1710,22 +1732,38 @@
       if (allDots[currentSlide]) allDots[currentSlide].setAttribute('aria-selected', 'true');
     }
 
-    // Inject slides 2-4 after page load so their bg images don't block initial paint
+    // Preload slides 2-4 after page load so their bg images don't flicker or block initial paint
     window.addEventListener('load', () => {
       const slider = document.getElementById('hero-slider');
-      const deferredSlides = [
-        'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?auto=format&fit=crop&q=80&w=1600',
-        'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=1600',
-        'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&q=80&w=1600'
+      if (!slider) return;
+
+      const isMobile = window.innerWidth <= 600;
+      const widthParam = isMobile ? 'w=800' : 'w=1600';
+
+      const baseUrls = [
+        'https://images.unsplash.com/photo-1599643477877-530eb83abc8e',
+        'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338',
+        'https://images.unsplash.com/photo-1611652022419-a9419f74343d'
       ];
-      deferredSlides.forEach(url => {
-        const div = document.createElement('div');
-        div.className = 'hero-slide';
-        div.style.backgroundImage = `url('${url}')`;
-        slider.appendChild(div);
+
+      const deferredUrls = baseUrls.map(url => `${url}?auto=format&fit=crop&q=80&${widthParam}`);
+
+      let loadedCount = 0;
+      deferredUrls.forEach(url => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          const div = document.createElement('div');
+          div.className = 'hero-slide';
+          div.style.backgroundImage = `url('${url}')`;
+          slider.appendChild(div);
+          loadedCount++;
+          if (loadedCount === deferredUrls.length) {
+            slides = document.querySelectorAll('.hero-slide');
+            setInterval(() => goToSlide(currentSlide + 1), 5000);
+          }
+        };
+        img.src = url;
       });
-      slides = document.querySelectorAll('.hero-slide'); // refresh NodeList with all 4 slides
-      setInterval(() => goToSlide(currentSlide + 1), 5000);
     });
 
     /* ===== REVEAL ON SCROLL ===== */

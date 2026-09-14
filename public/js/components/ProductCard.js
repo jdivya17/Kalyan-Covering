@@ -10,6 +10,19 @@ import { KC } from '../store/state.js';
 import { renderStars, escapeHtml, formatCurrency, discountPercent } from '../utils/helpers.js';
 import { getOptimizedUrl } from '../utils/cloudinaryUtils.js';
 
+export function getStockStatus(p) {
+    if (!p) return 'out';
+    if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
+    if (typeof p.stock === 'string' && ['in', 'low', 'out'].includes(p.stock)) return p.stock;
+    const num = Number(p.stock);
+    if (!isNaN(num)) {
+        if (num <= 0) return 'out';
+        if (num <= 5) return 'low';
+        return 'in';
+    }
+    return 'in';
+}
+
 /**
  * Render a product card HTML string
  * @param {Object} p - Product object from Firestore
@@ -37,8 +50,9 @@ export function renderProductCard(p, opts = {}) {
     const mrp = p.mrp ?? 0;
     const discount = discountPercent(price, mrp);
 
-    const stockClass = p.stock === 'in' ? 'stock-in' : p.stock === 'low' ? 'stock-low' : 'stock-out';
-    const stockText = p.stock === 'in' ? 'In Stock' : p.stock === 'low' ? 'Low Stock' : 'Out of Stock';
+    const stockStatus = getStockStatus(p);
+    const stockClass = stockStatus === 'in' ? 'stock-in' : stockStatus === 'low' ? 'stock-low' : 'stock-out';
+    const stockText = stockStatus === 'in' ? 'In Stock' : stockStatus === 'low' ? 'Low Stock' : 'Out of Stock';
 
     const isWishlisted = KC.wishlist && KC.wishlist.some(i => i.id === p.id);
     const starsHtml = renderStars(p.rating || 4.5);
@@ -84,9 +98,9 @@ export function renderProductCard(p, opts = {}) {
           <button
             class="btn btn-gold btn-sm"
             onclick="event.stopPropagation(); window.ProductCard.addToCart('${p.id}')"
-            ${p.stock === 'out' ? 'disabled' : ''}
+            ${stockStatus === 'out' ? 'disabled' : ''}
             aria-label="Add ${altText} to cart"
-          >${p.stock === 'out' ? 'Out of Stock' : 'Add to Cart'}</button>
+          >${stockStatus === 'out' ? 'Out of Stock' : 'Add to Cart'}</button>
         </div>
         ` : ''}
       </div>

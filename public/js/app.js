@@ -945,9 +945,23 @@ function renderStars(rating) {
     return '★'.repeat(full) + (half ? '⯨' : '') + '<span class="empty">' + '★'.repeat(empty) + '</span>';
 }
 
+function getStockStatus(p) {
+    if (!p) return 'out';
+    if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
+    if (typeof p.stock === 'string' && ['in', 'low', 'out'].includes(p.stock)) return p.stock;
+    const num = Number(p.stock);
+    if (!isNaN(num)) {
+        if (num <= 0) return 'out';
+        if (num <= 5) return 'low';
+        return 'in';
+    }
+    return 'in';
+}
+
 function renderProductCard(p, mini = false) {
-    const stockClass = p.stock === 'in' ? 'stock-in' : p.stock === 'low' ? 'stock-low' : 'stock-out';
-    const stockText = p.stock === 'in' ? 'In Stock' : p.stock === 'low' ? 'Low Stock' : 'Out of Stock';
+    const stockStatus = getStockStatus(p);
+    const stockClass = stockStatus === 'in' ? 'stock-in' : stockStatus === 'low' ? 'stock-low' : 'stock-out';
+    const stockText = stockStatus === 'in' ? 'In Stock' : stockStatus === 'low' ? 'Low Stock' : 'Out of Stock';
     const rawImg = p.primaryImageURL || (p.imageURLs && p.imageURLs[0]) || (p.images && p.images[0]) || p.image || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=300&fit=crop';
     const mainImg = getOptimizedUrl(rawImg, 500);
 
@@ -973,7 +987,7 @@ function renderProductCard(p, mini = false) {
           <span class="stock-badge ${stockClass}"><span class="dot"></span>${stockText}</span>
         </div>
         ${!mini ? `<div class="card-actions">
-          <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();addToCartFromCard('${p.id}')">Add to Cart</button>
+          <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();addToCartFromCard('${p.id}')" ${stockStatus === 'out' ? 'disabled' : ''}>${stockStatus === 'out' ? 'Out of Stock' : 'Add to Cart'}</button>
         </div>` : ''}
       </div>
     </div>
@@ -1028,8 +1042,8 @@ async function toggleWishlistCard(id, btn) {
 function renderFeaturedProducts() {
     const track = document.getElementById('featured-track');
     if (!track || !KC.products) return;
-    const featured = KC.products.filter(p => p.popular).slice(0, 8);
-    track.innerHTML = featured.length > 0 ? featured.map(p => renderProductCard(p)).join('') : '<p style="padding:2rem;color:#666">No featured products found.</p>';
+    const featured = KC.products.filter(p => p.featured || p.popular).slice(0, 8);
+    track.innerHTML = featured.length > 0 ? featured.map(p => renderProductCard(p)).join('') : '<div style="width:100%;text-align:center;padding:3rem 1rem;color:#666"><div style="font-size:2rem;margin-bottom:0.5rem;opacity:0.4">✦</div><p>New featured pieces coming soon — check back shortly.</p></div>';
     track.querySelectorAll('.product-card').forEach(addSparkleEffect);
     const container = track.closest('.carousel-container');
     if (container) initCarousel(container);
@@ -1056,7 +1070,7 @@ function renderNewLaunches() {
     const track = document.getElementById('new-track');
     if (!track || !KC.products) return;
     const newProducts = KC.products.filter(p => p.isNew);
-    track.innerHTML = newProducts.length > 0 ? newProducts.map(p => renderProductCard(p)).join('') : '<p style="padding:2rem;color:#666">No new launches found.</p>';
+    track.innerHTML = newProducts.length > 0 ? newProducts.map(p => renderProductCard(p)).join('') : '<div style="width:100%;text-align:center;padding:3rem 1rem;color:#666"><div style="font-size:2rem;margin-bottom:0.5rem;opacity:0.4">✦</div><p>New launches coming soon — check back shortly.</p></div>';
     track.querySelectorAll('.product-card').forEach(addSparkleEffect);
     const container = track.closest('.carousel-container');
     if (container) initCarousel(container);

@@ -667,17 +667,35 @@
                 <button class="cat-pill" data-cat="Necklaces" onclick="selectCatPill(this, 'Necklaces')">
                     📿 Necklaces <span class="pill-count" id="pill-count-Necklaces">0</span>
                 </button>
-                <button class="cat-pill" data-cat="Rings" onclick="selectCatPill(this, 'Rings')">
-                    💍 Rings <span class="pill-count" id="pill-count-Rings">0</span>
+                <button class="cat-pill" data-cat="Earrings" onclick="selectCatPill(this, 'Earrings')">
+                    👂 Earrings <span class="pill-count" id="pill-count-Earrings">0</span>
                 </button>
                 <button class="cat-pill" data-cat="Bangles" onclick="selectCatPill(this, 'Bangles')">
                     🔮 Bangles <span class="pill-count" id="pill-count-Bangles">0</span>
                 </button>
+                <button class="cat-pill" data-cat="Rings" onclick="selectCatPill(this, 'Rings')">
+                    💍 Rings <span class="pill-count" id="pill-count-Rings">0</span>
+                </button>
                 <button class="cat-pill" data-cat="Bracelets" onclick="selectCatPill(this, 'Bracelets')">
                     ✨ Bracelets <span class="pill-count" id="pill-count-Bracelets">0</span>
                 </button>
-                <button class="cat-pill" data-cat="Earrings" onclick="selectCatPill(this, 'Earrings')">
-                    👂 Earrings <span class="pill-count" id="pill-count-Earrings">0</span>
+                <button class="cat-pill" data-cat="Anklets" onclick="selectCatPill(this, 'Anklets')">
+                    🦶 Anklets <span class="pill-count" id="pill-count-Anklets">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Mangalsutra" onclick="selectCatPill(this, 'Mangalsutra')">
+                    💖 Mangalsutra <span class="pill-count" id="pill-count-Mangalsutra">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Nose Pins" onclick="selectCatPill(this, 'Nose Pins')">
+                    💎 Nose Pins <span class="pill-count" id="pill-count-Nose Pins">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Makeup" onclick="selectCatPill(this, 'Makeup')">
+                    💄 Makeup <span class="pill-count" id="pill-count-Makeup">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Hair Accessories" onclick="selectCatPill(this, 'Hair Accessories')">
+                    🎀 Hair Accessories <span class="pill-count" id="pill-count-Hair Accessories">0</span>
+                </button>
+                <button class="cat-pill" data-cat="Others" onclick="selectCatPill(this, 'Others')">
+                    📦 Others <span class="pill-count" id="pill-count-Others">0</span>
                 </button>
                 <button class="cat-pill" data-cat="__new__" onclick="selectCatPill(this, '__new__')">
                     🆕 New Launches
@@ -714,10 +732,16 @@
                     </div>
                     <div class="filter-content filter-options">
                         <label class="filter-option"><input type="checkbox" name="cat" value="Necklaces" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Necklaces</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Earrings" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Earrings</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Bangles" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Bangles</span></label>
                         <label class="filter-option"><input type="checkbox" name="cat" value="Rings" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Rings</span></label>
                         <label class="filter-option"><input type="checkbox" name="cat" value="Bracelets" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Bracelets</span></label>
-                        <label class="filter-option"><input type="checkbox" name="cat" value="Bangles" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Bangles</span></label>
-                        <label class="filter-option"><input type="checkbox" name="cat" value="Earrings" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Earrings</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Anklets" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Anklets</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Mangalsutra" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Mangalsutra</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Nose Pins" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Nose Pins</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Makeup" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Makeup</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Hair Accessories" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Hair Accessories</span></label>
+                        <label class="filter-option"><input type="checkbox" name="cat" value="Others" onchange="applyFilters()"><span class="chk"></span><span class="option-label">Others</span></label>
                     </div>
                 </div>
                 <hr class="filter-separator">
@@ -971,7 +995,10 @@
 
             // Sidebar filters
             if (catChecked.length) filtered = filtered.filter(p => catChecked.includes(p.category));
-            if (stockChecked.length) filtered = filtered.filter(p => stockChecked.includes(p.stock));
+            if (stockChecked.length) filtered = filtered.filter(p => {
+                const status = p.stockStatus || (typeof p.stock === 'string' && ['in', 'low', 'out'].includes(p.stock) ? p.stock : (!isNaN(Number(p.stock)) ? (Number(p.stock) <= 0 ? 'out' : Number(p.stock) <= 5 ? 'low' : 'in') : 'in'));
+                return stockChecked.includes(status);
+            });
             if (specialChecked.includes('new')) filtered = filtered.filter(p => p.isNew);
             if (specialChecked.includes('sale')) filtered = filtered.filter(p => p.discount > 0);
             if (specialChecked.includes('popular')) filtered = filtered.filter(p => p.popular);

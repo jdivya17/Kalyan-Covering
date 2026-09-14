@@ -329,6 +329,10 @@ textarea.form-input {
 .quick-view-btn:hover { background: var(--gold); color: #000; }
 .product-card:hover .quick-view-btn { transform: translateY(0); }
 
+@media (hover: none) {
+  .quick-view-btn { transform: translateY(0); }
+}
+
 .wishlist-overlay-btn {
   position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px); border: 1px solid rgba(255, 215, 0, 0.3); color: var(--white);
@@ -337,6 +341,10 @@ textarea.form-input {
 }
 .wishlist-overlay-btn:hover, .wishlist-overlay-btn.active { background: var(--gold); color: #000; border-color: var(--gold); opacity: 1; }
 .product-card:hover .wishlist-overlay-btn { opacity: 1; }
+
+@media (hover: none) {
+  .wishlist-overlay-btn { opacity: 1; }
+}
 
 .product-card .card-badge {
   position: absolute; top: 10px; left: 10px; padding: 0.3rem 0.6rem;

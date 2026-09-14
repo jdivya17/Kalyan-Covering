@@ -15,12 +15,7 @@ service cloud.firestore {
         request.auth.token.role == 'owner' || 
         request.auth.token.role == 'admin' || 
         request.auth.token.role == 'manager' || 
-        request.auth.token.role == 'staff' ||
-        (request.auth.token.email != null && (
-          request.auth.token.email.matches('.*admin.*') ||
-          request.auth.token.email == 'owner@kalyancovering.com' ||
-          request.auth.token.email.matches('.*@stellamaryscoe\\.edu\\.in')
-        ))
+        request.auth.token.role == 'staff'
       );
     }
     
@@ -29,12 +24,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.role == 'owner' || 
         request.auth.token.role == 'admin' || 
-        request.auth.token.role == 'manager' ||
-        (request.auth.token.email != null && (
-          request.auth.token.email.matches('.*admin.*') ||
-          request.auth.token.email == 'owner@kalyancovering.com' ||
-          request.auth.token.email.matches('.*@stellamaryscoe\\.edu\\.in')
-        ))
+        request.auth.token.role == 'manager'
       );
     }
     
@@ -52,9 +42,10 @@ service cloud.firestore {
     
     match /products/{document=**} {
       allow read: if true;
-      allow write: if isAdmin() && 
+      allow create, update: if isAdmin() && 
                    (!('price' in request.resource.data) || request.resource.data.price is number) &&
                    (!('mrp' in request.resource.data) || request.resource.data.mrp is number);
+      allow delete: if isAdmin();
     }
     
     match /brands/{document=**} {

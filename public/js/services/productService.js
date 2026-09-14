@@ -107,6 +107,21 @@ export function searchProducts(queryStr, products = KC.products) {
 // ---- Filter ----
 /**
  * Filter products by a criteria object
+export function getStockStatus(p) {
+    if (!p) return 'out';
+    if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
+    if (typeof p.stock === 'string' && ['in', 'low', 'out'].includes(p.stock)) return p.stock;
+    const num = Number(p.stock);
+    if (!isNaN(num)) {
+        if (num <= 0) return 'out';
+        if (num <= 5) return 'low';
+        return 'in';
+    }
+    return 'in';
+}
+
+/**
+ * Filter products in memory
  * @param {Array} products
  * @param {Object} filters
  * @param {string} [filters.category]
@@ -124,7 +139,7 @@ export function filterProducts(products, filters = {}) {
         if (filters.brand && p.brand !== filters.brand) return false;
         if (filters.minPrice != null && p.price < filters.minPrice) return false;
         if (filters.maxPrice != null && p.price > filters.maxPrice) return false;
-        if (filters.stock && p.stock !== filters.stock) return false;
+        if (filters.stock && getStockStatus(p) !== filters.stock) return false;
         if (filters.isNew && !p.isNew) return false;
         if (filters.popular && !p.popular) return false;
         return true;
