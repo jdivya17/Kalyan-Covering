@@ -355,7 +355,8 @@ textarea.form-input {
 
 .product-card .card-body { padding: 1.4rem; flex: 1; display: flex; flex-direction: column; }
 .product-card .card-title { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--white); }
-.product-card .card-price-row { display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--gold-dim); padding-top: 0.6rem; margin-top: auto; flex-wrap: wrap; }
+.product-card .card-price-row { display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--gold-dim); padding-top: 0.6rem; margin-top: auto; flex-wrap: wrap; row-gap: 0.4rem; }
+.product-card .stock-badge { margin-left: auto; }
 .product-card .card-price { color: var(--gold); font-weight: 700; font-size: 1.1rem; display: inline-block; }
 .product-card .card-price-old { color: #666; text-decoration: line-through; font-size: 0.85rem; }
 .product-card .card-stars { color: var(--gold); font-size: 0.85rem; margin: 0.4rem 0; letter-spacing: 1px; }
@@ -960,6 +961,7 @@ textarea.form-input {
 
   /* Products */
   .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+  .product-card .card-body { padding: 1rem; }
 
   .hero-title { font-size: clamp(2rem, 8vw, 3rem); }
   .hero-desc { font-size: 1rem; }

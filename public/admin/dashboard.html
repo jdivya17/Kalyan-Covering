@@ -1052,11 +1052,8 @@
                             <thead>
                                 <tr>
                                     <th>Product</th>
-                                    <th>Category</th>
                                     <th>Price</th>
                                     <th>Stock Status</th>
-                                    <th>Wishlist</th>
-                                    <th>Flags</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -1169,15 +1166,13 @@
                                     <th>Customer</th>
                                     <th>Order #</th>
                                     <th>Amount</th>
-                                    <th>CGST</th>
-                                    <th>SGST</th>
                                     <th>Payment</th>
                                     <th>Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="invoices-table">
-                                <tr><td colspan="9" style="text-align:center;padding:3rem;color:#444">Loading invoices...</td></tr>
+                                <tr><td colspan="7" style="text-align:center;padding:3rem;color:#444">Loading invoices...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1747,6 +1742,219 @@
         </div>
     </div>
 
+    <!-- User Detail Modal -->
+    <div class="modal-overlay" id="user-detail-modal">
+        <div class="modal" style="max-width:750px;width:95%">
+            <button class="modal-close" onclick="closeModal('user-detail-modal')">×</button>
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+                <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,215,0,0.15);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1.4rem;font-weight:bold">👤</div>
+                <div>
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin:0" id="udm-user-name">User Profile</h3>
+                    <div style="font-size:0.8rem;color:#888" id="udm-user-email">email@example.com</div>
+                </div>
+                <span class="badge" style="margin-left:auto;background:rgba(255,215,0,0.15);color:var(--gold);border:1px solid var(--gold);font-weight:700" id="udm-user-role">CUSTOMER</span>
+            </div>
+
+            <!-- Profile Summary Grid -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:1rem;background:#141414;padding:1.2rem;border-radius:6px;border:1px solid #222;margin-bottom:1.5rem">
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Phone Number</div>
+                    <div style="color:var(--white);font-weight:600;font-size:0.9rem;margin-top:0.2rem" id="udm-user-phone">—</div>
+                </div>
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Registered On</div>
+                    <div style="color:var(--white);font-weight:600;font-size:0.9rem;margin-top:0.2rem" id="udm-user-regdate">—</div>
+                </div>
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Last Active</div>
+                    <div style="color:var(--white);font-weight:600;font-size:0.9rem;margin-top:0.2rem" id="udm-user-lastlogin">—</div>
+                </div>
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Total Orders</div>
+                    <div style="color:var(--gold);font-weight:700;font-size:0.9rem;margin-top:0.2rem" id="udm-user-ordercount">0</div>
+                </div>
+            </div>
+
+            <!-- User Order History -->
+            <h4 style="font-size:0.95rem;color:var(--gold);margin-bottom:0.8rem">🛍️ Customer Order History</h4>
+            <div class="admin-table-wrap" style="max-height:220px;overflow-y:auto;border:1px solid #222">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th style="text-align:right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="udm-orders-tbody">
+                        <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#666">Loading order history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:1.5rem">
+                <button class="btn btn-gold" onclick="closeModal('user-detail-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div class="modal-overlay" id="product-detail-modal">
+        <div class="modal" style="max-width:800px;width:95%">
+            <button class="modal-close" onclick="closeModal('product-detail-modal')">×</button>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #222;padding-bottom:1rem;margin-bottom:1.2rem">
+                <div>
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin:0" id="pdm-name">Product Details</h3>
+                    <div style="font-size:0.8rem;color:#aaa;margin-top:0.2rem">
+                        <span id="pdm-category" style="color:var(--gold)">Category</span> · <span id="pdm-sku" style="font-family:monospace">SKU-000</span>
+                    </div>
+                </div>
+                <div id="pdm-flags"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:260px 1fr;gap:1.5rem;margin-bottom:1.5rem">
+                <!-- Gallery Column -->
+                <div>
+                    <div style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem">Product Images</div>
+                    <div id="pdm-gallery" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.5rem"></div>
+                </div>
+
+                <!-- Specs Column -->
+                <div style="display:flex;flex-direction:column;gap:1rem">
+                    <!-- Pricing & Inventory Card -->
+                    <div style="background:#141414;padding:1rem;border-radius:6px;border:1px solid #222;display:grid;grid-template-columns:repeat(2, 1fr);gap:0.8rem">
+                        <div>
+                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Selling Price</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:var(--gold)" id="pdm-price">₹0</div>
+                            <div style="font-size:0.75rem;color:#666;text-decoration:line-through" id="pdm-mrp">₹0</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Stock Status</div>
+                            <div style="margin-top:0.3rem"><span class="stock-badge stock-in" id="pdm-stock-badge"><span class="dot"></span>In Stock</span></div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Tax Rate</div>
+                            <div style="font-size:0.85rem;color:#ccc" id="pdm-gst">3% GST</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Discount</div>
+                            <div style="font-size:0.85rem;color:var(--green)" id="pdm-discount">0% OFF</div>
+                        </div>
+                    </div>
+
+                    <!-- Wishlist & Timestamps -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;background:#141414;padding:0.8rem 1rem;border-radius:6px;border:1px solid #222">
+                        <div>
+                            <span style="font-size:0.75rem;color:#888;text-transform:uppercase">Wishlist Saves: </span>
+                            <strong style="color:var(--gold)" id="pdm-wishlist">0 ♥</strong>
+                        </div>
+                        <div style="font-size:0.75rem;color:#666">
+                            Created: <span id="pdm-created" style="color:#aaa">—</span> | Updated: <span id="pdm-updated" style="color:#aaa">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <div style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem">Full Description</div>
+                        <p id="pdm-description" style="font-size:0.85rem;color:#ccc;background:#050505;padding:0.8rem;border:1px solid #222;border-radius:4px;max-height:120px;overflow-y:auto;margin:0;white-space:pre-wrap">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:1rem;border-top:1px solid #222;padding-top:1rem">
+                <button class="btn btn-outline" id="pdm-btn-edit">✏️ Edit Product</button>
+                <button class="btn btn-outline" style="border-color:var(--red);color:var(--red)" id="pdm-btn-delete">🗑 Delete</button>
+                <button class="btn btn-gold" onclick="closeModal('product-detail-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Detail Modal -->
+    <div class="modal-overlay" id="invoice-detail-modal">
+        <div class="modal" style="max-width:750px;width:95%">
+            <button class="modal-close" onclick="closeModal('invoice-detail-modal')">×</button>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #222;padding-bottom:1rem;margin-bottom:1.2rem">
+                <div>
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin:0" id="idm-invoice-no">Invoice #...</h3>
+                    <div style="font-size:0.8rem;color:#888;margin-top:0.2rem" id="idm-order-no">Order #...</div>
+                </div>
+                <div style="text-align:right">
+                    <span class="badge" style="background:rgba(0,204,102,0.15);color:var(--green);border:1px solid var(--green);font-weight:700" id="idm-status-badge">PAID</span>
+                    <div style="font-size:0.72rem;color:#666;margin-top:0.3rem" id="idm-date">Date</div>
+                </div>
+            </div>
+
+            <!-- Customer & Payment Metadata -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;background:#141414;padding:1rem;border-radius:6px;border:1px solid #222;margin-bottom:1.2rem">
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Customer Information</div>
+                    <div style="font-weight:600;color:var(--white);font-size:0.9rem;margin-top:0.2rem" id="idm-cust-name">Customer Name</div>
+                    <div style="font-size:0.78rem;color:#aaa" id="idm-cust-email">email@example.com</div>
+                    <div style="font-size:0.78rem;color:#666" id="idm-cust-phone">Phone</div>
+                </div>
+                <div>
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Payment Details</div>
+                    <div style="font-weight:600;color:var(--gold);font-size:0.9rem;margin-top:0.2rem" id="idm-pay-method">RAZORPAY</div>
+                    <div style="font-size:0.78rem;color:#888;margin-top:0.2rem">GST Treatment: Intra-State / Inter-State</div>
+                </div>
+            </div>
+
+            <!-- Line Items Table -->
+            <h4 style="font-size:0.9rem;color:var(--gold);margin-bottom:0.5rem">📦 Invoice Line Items</h4>
+            <div class="admin-table-wrap" style="max-height:160px;overflow-y:auto;border:1px solid #222;margin-bottom:1.2rem">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Unit Price</th>
+                            <th>Qty</th>
+                            <th style="text-align:right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="idm-items-tbody">
+                        <tr><td colspan="4" style="text-align:center;padding:1rem;color:#666">Loading items...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tax & Financial Summary Breakdown -->
+            <div style="background:#0a0a0a;padding:1rem 1.2rem;border-radius:6px;border:1px solid #333;margin-bottom:1.5rem">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--gold);margin-bottom:0.6rem">Full Financial &amp; Tax Breakdown</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.8rem">
+                    <div style="color:#888">Subtotal (before tax):</div>
+                    <div style="text-align:right;color:#eee" id="idm-subtotal">₹0</div>
+
+                    <div style="color:#888">CGST Amount:</div>
+                    <div style="text-align:right;color:#aaa" id="idm-cgst">₹0</div>
+
+                    <div style="color:#888">SGST Amount:</div>
+                    <div style="text-align:right;color:#aaa" id="idm-sgst">₹0</div>
+
+                    <div style="color:#888;font-weight:600">Total GST Collected:</div>
+                    <div style="text-align:right;color:var(--gold);font-weight:600" id="idm-total-gst">₹0</div>
+
+                    <div style="color:#888">Discount Applied:</div>
+                    <div style="text-align:right;color:var(--green)" id="idm-discount">-₹0</div>
+
+                    <div style="color:#888">Delivery Charge:</div>
+                    <div style="text-align:right;color:#eee" id="idm-delivery">₹0</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #222;margin-top:0.8rem;padding-top:0.8rem">
+                    <span style="font-weight:700;color:var(--white);font-size:1rem">Grand Total:</span>
+                    <span style="font-weight:800;color:var(--gold);font-size:1.2rem" id="idm-grand-total">₹0</span>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:1rem">
+                <button class="btn btn-outline" id="idm-btn-pdf">📄 Download PDF</button>
+                <button class="btn btn-outline" style="border-color:var(--gold);color:var(--gold)" id="idm-btn-email">📧 Email Invoice</button>
+                <button class="btn btn-gold" onclick="closeModal('invoice-detail-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Product Modal -->
     <div class="modal-overlay" id="add-product-modal">
         <div class="modal" style="max-width:700px">
@@ -1893,11 +2101,12 @@
         window.firebase_Timestamp = Timestamp;
         window.callVercelApi = callVercelApi;
 
-        // Firebase Functions for Invoices
+        // Firebase Functions for Invoices & Audit
         try {
             window.fnGetInvoices = httpsCallable(functions, 'getInvoices');
             window.fnEmailInvoice = httpsCallable(functions, 'emailInvoice');
             window.fnGenerateInvoice = httpsCallable(functions, 'generateInvoice');
+            window.fnLogAuditEvent = httpsCallable(functions, 'logAuditEvent');
         } catch (fnErr) {
             console.warn('Firebase Functions init warning:', fnErr);
         }
@@ -2217,6 +2426,46 @@
         };
 
 
+        window.recordAuditLog = async function(eventData) {
+            try {
+                let logged = false;
+                try {
+                    if (typeof window.fnLogAuditEvent === 'function') {
+                        await window.fnLogAuditEvent(eventData);
+                        logged = true;
+                    }
+                } catch (fnErr) {
+                    console.warn("Cloud function logAuditEvent failed, trying Vercel API:", fnErr.message);
+                }
+
+                if (!logged) {
+                    try {
+                        await callVercelApi('/api/admin/log-audit', eventData);
+                        logged = true;
+                    } catch (vErr) {
+                        console.warn("Vercel log-audit API failed, falling back to direct Firestore:", vErr.message);
+                    }
+                }
+
+                if (!logged) {
+                    // Firestore fallback (client-side)
+                    await addDoc(collection(db, "audit_logs"), {
+                        adminId: window.auth?.currentUser?.email || window.auth?.currentUser?.uid || "Admin",
+                        action: eventData.action || "UPDATE",
+                        collection: eventData.collection || "products",
+                        documentId: eventData.documentId || null,
+                        newValue: eventData.newValue || null,
+                        oldValue: eventData.oldValue || null,
+                        timestamp: serverTimestamp(),
+                        ip: "Client (Direct)",
+                        device: navigator.userAgent
+                    });
+                }
+            } catch (ae) {
+                console.warn("recordAuditLog failed:", ae);
+            }
+        };
+
         window.saveProductToFirebase = async function (product) {
             try {
                 let newId = null;
@@ -2231,19 +2480,13 @@
                         lastUpdated: serverTimestamp()
                     });
                     newId = docRef.id;
-                    // Write to audit log
-                    try {
-                        await addDoc(collection(db, "audit_logs"), {
-                            adminId: window.auth?.currentUser?.email || window.auth?.currentUser?.uid || "Admin",
-                            action: "CREATE",
-                            collection: "products",
-                            documentId: newId,
-                            newValue: { name: product.name, price: product.price },
-                            timestamp: serverTimestamp(),
-                            ip: "Direct Client",
-                            device: navigator.userAgent
-                        });
-                    } catch (ae) {}
+                    // Write to audit log via recordAuditLog helper
+                    await window.recordAuditLog({
+                        action: "CREATE",
+                        collection: "products",
+                        documentId: newId,
+                        newValue: { name: product.name, price: product.price }
+                    });
                 }
                 Toast.success('Product Added!', 'Saved to database');
                 return newId;
@@ -2266,19 +2509,13 @@
                         ...productData,
                         lastUpdated: serverTimestamp()
                     });
-                    // Write to audit log
-                    try {
-                        await addDoc(collection(db, "audit_logs"), {
-                            adminId: window.auth?.currentUser?.email || window.auth?.currentUser?.uid || "Admin",
-                            action: "UPDATE",
-                            collection: "products",
-                            documentId: productId,
-                            newValue: { name: productData.name, price: productData.price },
-                            timestamp: serverTimestamp(),
-                            ip: "Direct Client",
-                            device: navigator.userAgent
-                        });
-                    } catch (ae) {}
+                    // Write to audit log via recordAuditLog helper
+                    await window.recordAuditLog({
+                        action: "UPDATE",
+                        collection: "products",
+                        documentId: productId,
+                        newValue: { name: productData.name, price: productData.price }
+                    });
                 }
                 Toast.success('Product Updated!', 'Changes saved');
                 return true;
@@ -2296,18 +2533,12 @@
                 } catch (vErr) {
                     console.warn("Vercel delete API failed, using direct Firestore:", vErr.message);
                     await deleteDoc(doc(db, "products", productId));
-                    // Write to audit log
-                    try {
-                        await addDoc(collection(db, "audit_logs"), {
-                            adminId: window.auth?.currentUser?.email || window.auth?.currentUser?.uid || "Admin",
-                            action: "DELETE",
-                            collection: "products",
-                            documentId: productId,
-                            timestamp: serverTimestamp(),
-                            ip: "Direct Client",
-                            device: navigator.userAgent
-                        });
-                    } catch (ae) {}
+                    // Write to audit log via recordAuditLog helper
+                    await window.recordAuditLog({
+                        action: "DELETE",
+                        collection: "products",
+                        documentId: productId
+                    });
                 }
                 Toast.success('Product Deleted!', 'Removed from database');
                 return true;
@@ -2333,17 +2564,91 @@
 
             tbody.innerHTML = users.map(u => `
                 <tr class="reveal">
-                    <td data-label="User Name"><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || 'Anonymous'}</div></td>
-                    <td data-label="Phone Number">${u.phone || u.email || 'N/A'}</td>
-                    <td data-label="Last Login">${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString() : new Date(u.lastLogin).toLocaleString()) : 'Never'}</td>
+                    <td data-label="User Name"><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || u.fullName || 'Anonymous'}</div></td>
+                    <td data-label="Phone / Email">${u.phone || u.email || 'N/A'}</td>
+                    <td data-label="Last Login">${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString('en-IN') : new Date(u.lastLogin).toLocaleString('en-IN')) : 'Never'}</td>
                     <td data-label="Total Orders"><span class="badge" style="background:#333">${u.loginCount || 1} logins</span></td>
                     <td data-label="Actions"><div class="tbl-actions">
-                        <button class="tbl-btn edit" onclick="alert('User Details:\\nName: ${u.name || u.displayName || 'N/A'}\\nEmail: ${u.email || 'N/A'}\\nRole: ${u.role || 'customer'}')">View</button>
+                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openUserDetailModal('${u.id}')">View</button>
                     </div></td>
                 </tr>
             `).join('');
             if (typeof initReveal === 'function') initReveal();
             if (typeof initCounters === 'function') initCounters();
+        };
+
+        window.openUserDetailModal = function(userId) {
+            const users = window.adminData.users || [];
+            const u = users.find(x => x.id === userId || x.uid === userId);
+            if (!u) {
+                Toast.error('User Not Found', 'Could not find details for this user.');
+                return;
+            }
+
+            const name = u.name || u.displayName || u.fullName || 'Anonymous';
+            const email = u.email || 'N/A';
+            const phone = u.phone || u.phoneNumber || 'N/A';
+            const role = (u.role || 'customer').toUpperCase();
+            
+            let regDate = 'N/A';
+            if (u.createdAt) {
+                try {
+                    const d = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+                    regDate = isNaN(d) ? 'N/A' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                } catch(e) {}
+            }
+
+            let lastLogin = 'Never';
+            if (u.lastLogin) {
+                try {
+                    const d = u.lastLogin.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
+                    lastLogin = isNaN(d) ? 'Never' : d.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                } catch(e) {}
+            }
+
+            // Orders query for this user
+            const orders = window.adminData.orders || [];
+            const userOrders = orders.filter(o => 
+                (o.customerId && o.customerId === userId) || 
+                (o.userId && o.userId === userId) ||
+                (o.customerEmail && email !== 'N/A' && o.customerEmail.toLowerCase() === email.toLowerCase()) ||
+                (o.customerPhone && phone !== 'N/A' && o.customerPhone === phone)
+            );
+
+            document.getElementById('udm-user-name').textContent = name;
+            document.getElementById('udm-user-email').textContent = email;
+            document.getElementById('udm-user-phone').textContent = phone;
+            document.getElementById('udm-user-role').textContent = role;
+            document.getElementById('udm-user-regdate').textContent = regDate;
+            document.getElementById('udm-user-lastlogin').textContent = lastLogin;
+            document.getElementById('udm-user-ordercount').textContent = `${userOrders.length} order${userOrders.length !== 1 ? 's' : ''}`;
+
+            // Render Order History list/table in modal
+            const ordersTbody = document.getElementById('udm-orders-tbody');
+            if (ordersTbody) {
+                if (userOrders.length === 0) {
+                    ordersTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#666">No orders placed by this user yet.</td></tr>';
+                } else {
+                    ordersTbody.innerHTML = userOrders.map(o => {
+                        const shortId = (o.id || 'ORD').substring(0, 10).toUpperCase();
+                        const total = o.totalAmount || o.total || 0;
+                        const status = o.orderStatus || o.status || 'Placed';
+                        const statusCls = typeof _getOrderStatusClass === 'function' ? _getOrderStatusClass(status) : 'os-pending';
+                        const dt = typeof _fmtOrderDate === 'function' ? _fmtOrderDate(o.createdAt || o.date) : '—';
+                        return `<tr>
+                            <td style="color:var(--gold);font-weight:600;font-size:0.8rem">${shortId}</td>
+                            <td style="color:var(--gold);font-weight:700">₹${Number(total).toLocaleString()}</td>
+                            <td><span class="order-status ${statusCls}">${status}</span></td>
+                            <td style="color:#777;font-size:0.78rem">${dt}</td>
+                            <td style="text-align:right">
+                                <button class="tbl-btn edit" style="border-color:rgba(255,215,0,0.4);color:var(--gold);padding:2px 8px;font-size:0.72rem" onclick="closeModal('user-detail-modal');openAdminOrderModal('${o.id}')">🚚 Manage</button>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+
+            openModal('user-detail-modal');
         };
         window.clearAllProductsFromFirebase = async function () {
             // Role check: only owner can mass-delete
@@ -2910,18 +3215,98 @@
         <img src="${mainImg}" style="width:44px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #222">
         <div><div style="font-weight:600;font-size:.85rem">${sName}</div><div style="font-size:.72rem;color:#666">${sCat}</div></div>
       </div></td>
-      <td data-label="Category" style="color:#888;font-size:.8rem">${sCat}</td>
       <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
       <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.72rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'}</span></td>
-      <td data-label="Wishlist" style="color:var(--gold)">${p.wishlistCount || 0} ♥</td>
-      <td data-label="Flags">${(p.isNewLaunch || p.isNew) ? '<span class="badge badge-gold">NEW</span>' : '<span style="color:#444">—</span>'}</td>
       <td data-label="Actions"><div class="tbl-actions">
+        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openProductDetailModal('${p.id}')">View</button>
         <button class="tbl-btn edit" onclick="openEditProduct('${p.id}')">Edit</button>
         <button class="tbl-btn del" onclick="deleteProduct('${p.id}')">Delete</button>
       </div></td>
     </tr>`;
             }).join('');
         }
+
+        window.openProductDetailModal = function(productId) {
+            const p = (window.adminProducts || []).find(x => x.id === productId);
+            if (!p) {
+                Toast.error('Product not found', 'Could not find product details.');
+                return;
+            }
+
+            const sName = DOMPurify.sanitize(p.name || 'Unnamed');
+            const sCat = DOMPurify.sanitize(p.category || 'Uncategorized');
+            const desc = DOMPurify.sanitize(p.description || 'No description provided.');
+            const sku = p.sku || 'N/A';
+            const wishlist = p.wishlistCount || 0;
+            const isNew = p.isNewLaunch || p.isNew;
+            const isFeatured = p.featured;
+
+            // Images
+            const imgs = p.imageURLs || p.images || (p.image ? [p.image] : ['/img-fallback.svg']);
+            const galleryEl = document.getElementById('pdm-gallery');
+            if (galleryEl) {
+                galleryEl.innerHTML = imgs.map(url => `
+                    <a href="${url}" target="_blank" rel="noopener">
+                        <img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #333;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    </a>
+                `).join('');
+            }
+
+            document.getElementById('pdm-name').textContent = sName;
+            document.getElementById('pdm-category').textContent = sCat;
+            document.getElementById('pdm-sku').textContent = `SKU: ${sku}`;
+            document.getElementById('pdm-description').textContent = desc;
+
+            document.getElementById('pdm-price').textContent = `₹${(p.price || 0).toLocaleString()}`;
+            document.getElementById('pdm-mrp').textContent = `₹${(p.mrp || p.price || 0).toLocaleString()}`;
+            document.getElementById('pdm-gst').textContent = `${p.gst || 3}% GST`;
+            document.getElementById('pdm-discount').textContent = `${p.discount || 0}% OFF`;
+
+            document.getElementById('pdm-wishlist').textContent = `${wishlist} ♥`;
+            
+            // Flags
+            const flagsEl = document.getElementById('pdm-flags');
+            let flagsHtml = '';
+            if (isNew) flagsHtml += '<span class="badge badge-gold" style="margin-right:0.4rem">NEW LAUNCH</span>';
+            if (isFeatured) flagsHtml += '<span class="badge" style="background:rgba(96,165,250,0.2);color:#60a5fa;border:1px solid #60a5fa">FEATURED</span>';
+            if (!flagsHtml) flagsHtml = '<span style="color:#555;font-size:0.8rem">Standard Product</span>';
+            flagsEl.innerHTML = flagsHtml;
+
+            // Stock Status
+            const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
+            const ss = p.stockStatus || (stockVal > 5 ? 'in' : (stockVal > 0 ? 'low' : 'out'));
+            const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
+            const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
+            document.getElementById('pdm-stock-badge').className = `stock-badge ${stockClass[ss] || 'stock-in'}`;
+            document.getElementById('pdm-stock-badge').innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockVal} units)`;
+
+            // Timestamps
+            let createdStr = 'N/A';
+            if (p.createdAt) {
+                try {
+                    const d = p.createdAt.seconds ? new Date(p.createdAt.seconds*1000) : (p.createdAt.toDate ? p.createdAt.toDate() : new Date(p.createdAt));
+                    createdStr = isNaN(d) ? 'N/A' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                } catch(e) {}
+            }
+            let updatedStr = 'N/A';
+            if (p.lastUpdated || p.updatedAt) {
+                const ts = p.lastUpdated || p.updatedAt;
+                try {
+                    const d = ts.seconds ? new Date(ts.seconds*1000) : (ts.toDate ? ts.toDate() : new Date(ts));
+                    updatedStr = isNaN(d) ? 'N/A' : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                } catch(e) {}
+            }
+            document.getElementById('pdm-created').textContent = createdStr;
+            document.getElementById('pdm-updated').textContent = updatedStr;
+
+            // Connect action buttons inside modal
+            const editBtn = document.getElementById('pdm-btn-edit');
+            if (editBtn) editBtn.onclick = () => { closeModal('product-detail-modal'); openEditProduct(productId); };
+            const delBtn = document.getElementById('pdm-btn-delete');
+            if (delBtn) delBtn.onclick = () => { closeModal('product-detail-modal'); deleteProduct(productId); };
+
+            openModal('product-detail-modal');
+        };
 
         // Bug Fix #3: Null-safe filter — won't crash if name/category is undefined
         function filterProducts(q) {
@@ -3567,10 +3952,23 @@
             const fromDateStr = document.getElementById('audit-date-from')?.value;
             const toDateStr = document.getElementById('audit-date-to')?.value;
 
-            const fromDate = fromDateStr ? new Date(fromDateStr) : null;
-            if (fromDate) fromDate.setHours(0,0,0,0);
-            const toDate = toDateStr ? new Date(toDateStr) : null;
-            if (toDate) toDate.setHours(23,59,59,999);
+            let fromDate = null;
+            if (fromDateStr) {
+                const fd = new Date(fromDateStr);
+                if (!isNaN(fd.getTime())) {
+                    fd.setHours(0, 0, 0, 0);
+                    fromDate = fd;
+                }
+            }
+
+            let toDate = null;
+            if (toDateStr) {
+                const td = new Date(toDateStr);
+                if (!isNaN(td.getTime())) {
+                    td.setHours(23, 59, 59, 999);
+                    toDate = td;
+                }
+            }
 
             const filtered = allAuditLogs.filter(log => {
                 // Search match
@@ -3591,7 +3989,7 @@
                 let matchDate = true;
                 if (fromDate || toDate) {
                     const ts = log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000) : (log.timestamp ? new Date(log.timestamp) : null);
-                    if (ts) {
+                    if (ts && !isNaN(ts.getTime())) {
                         if (fromDate && ts < fromDate) matchDate = false;
                         if (toDate && ts > toDate) matchDate = false;
                     }
@@ -3870,13 +4268,13 @@
                 }
                 
                 if (adminInvoices.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:3rem;color:#666">No invoices found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:3rem;color:#666">No invoices found.</td></tr>';
                 } else {
                     renderAdminInvoices(adminInvoices);
                 }
             } catch (err) {
                 console.error("Error loading invoices:", err);
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:3rem;color:var(--red)">Failed to load invoices. Ensure you have Admin permissions.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--red)">Failed to load invoices. Ensure you have Admin permissions.</td></tr>';
             } finally {
                 if (loadMore) {
                     loadBtn.textContent = 'Load More';
@@ -3922,12 +4320,11 @@
                     </td>
                     <td data-label="Order #" style="color:#888;font-size:0.8rem">${inv.orderNumber || '—'}</td>
                     <td data-label="Amount" style="color:var(--green);font-weight:700">₹${(inv.grandTotal||0).toLocaleString('en-IN')}</td>
-                    <td data-label="CGST" style="color:#aaa;font-size:0.85rem">₹${(inv.cgst||0).toLocaleString('en-IN')}</td>
-                    <td data-label="SGST" style="color:#aaa;font-size:0.85rem">₹${(inv.sgst||0).toLocaleString('en-IN')}</td>
                     <td data-label="Payment"><span class="badge" style="background:#222;color:#ccc">${(inv.paymentMethod||'razorpay').toUpperCase()}</span></td>
                     <td data-label="Date" style="color:#777;font-size:0.8rem">${date}</td>
                     <td data-label="Actions">
                         <div class="tbl-actions">
+                            <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openInvoiceDetailModal('${inv.id}')">View</button>
                             <button class="tbl-btn edit" onclick="window.downloadAdminInvoice('${inv.orderId}')">📄 PDF</button>
                             <button class="tbl-btn approve" onclick="window.emailAdminInvoice('${inv.orderId}', '${inv.id}')">📧 Email</button>
                         </div>
@@ -3944,27 +4341,124 @@
             document.getElementById('inv-stat-emailed').textContent = emailedToday;
         };
 
-        window.filterAdminInvoices = function() {
-            const query = (document.getElementById('inv-search-admin').value || '').toLowerCase();
-            const fromDateStr = document.getElementById('inv-date-from').value;
-            const toDateStr = document.getElementById('inv-date-to').value;
+        window.openInvoiceDetailModal = function(invoiceId) {
+            const inv = (adminInvoices || []).find(x => x.id === invoiceId || x.invoiceNumber === invoiceId);
+            if (!inv) {
+                Toast.error('Invoice Not Found', 'Could not find details for this invoice.');
+                return;
+            }
+
+            const invNo = inv.invoiceNumber || 'INV-—';
+            const ordNo = inv.orderNumber || inv.orderId || '—';
+            const custName = inv.customerName || 'Customer';
+            const custEmail = inv.customerEmail || '—';
+            const custPhone = inv.customerPhone || '—';
             
-            const fromDate = fromDateStr ? new Date(fromDateStr) : null;
-            if (fromDate) fromDate.setHours(0,0,0,0);
-            const toDate = toDateStr ? new Date(toDateStr) : null;
-            if (toDate) toDate.setHours(23,59,59,999);
+            let dateStr = '—';
+            if (inv.createdAt) {
+                try {
+                    const d = inv.createdAt.seconds ? new Date(inv.createdAt.seconds*1000) : new Date(inv.createdAt);
+                    dateStr = isNaN(d) ? '—' : d.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                } catch(e) {}
+            }
+
+            const subtotal = inv.subtotal || inv.grandTotal || 0;
+            const cgst = inv.cgst || Math.round(subtotal * 0.015 * 100) / 100;
+            const sgst = inv.sgst || Math.round(subtotal * 0.015 * 100) / 100;
+            const totalGst = inv.totalGst || (cgst + sgst);
+            const discount = inv.discountAmount || inv.discount || 0;
+            const delivery = inv.deliveryCharge || inv.shippingCharge || 0;
+            const grandTotal = inv.grandTotal || (subtotal + totalGst + delivery - discount);
+            const payMethod = (inv.paymentMethod || 'razorpay').toUpperCase();
+            const orderStatus = inv.orderStatus || 'Confirmed';
+
+            document.getElementById('idm-invoice-no').textContent = invNo;
+            document.getElementById('idm-order-no').textContent = `Order #${ordNo}`;
+            document.getElementById('idm-cust-name').textContent = custName;
+            document.getElementById('idm-cust-email').textContent = custEmail;
+            document.getElementById('idm-cust-phone').textContent = custPhone;
+            document.getElementById('idm-date').textContent = dateStr;
+            document.getElementById('idm-pay-method').textContent = payMethod;
+            document.getElementById('idm-status-badge').textContent = orderStatus;
+
+            // Financial breakdown
+            document.getElementById('idm-subtotal').textContent = `₹${Number(subtotal).toLocaleString('en-IN')}`;
+            document.getElementById('idm-cgst').textContent = `₹${Number(cgst).toLocaleString('en-IN')}`;
+            document.getElementById('idm-sgst').textContent = `₹${Number(sgst).toLocaleString('en-IN')}`;
+            document.getElementById('idm-total-gst').textContent = `₹${Number(totalGst).toLocaleString('en-IN')}`;
+            document.getElementById('idm-discount').textContent = `-₹${Number(discount).toLocaleString('en-IN')}`;
+            document.getElementById('idm-delivery').textContent = `₹${Number(delivery).toLocaleString('en-IN')}`;
+            document.getElementById('idm-grand-total').textContent = `₹${Number(grandTotal).toLocaleString('en-IN')}`;
+
+            // Line items (find associated order in adminData.orders)
+            const matchingOrder = (window.adminData?.orders || []).find(o => o.id === inv.orderId || o.orderNumber === ordNo);
+            const items = inv.items || matchingOrder?.items || matchingOrder?.products || [];
+            const itemsTbody = document.getElementById('idm-items-tbody');
+            if (itemsTbody) {
+                if (items.length === 0) {
+                    itemsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:#666">Line items not specified for this invoice.</td></tr>';
+                } else {
+                    itemsTbody.innerHTML = items.map(item => {
+                        const name = item.name || item.productName || 'Item';
+                        const qty = item.quantity || item.qty || 1;
+                        const price = item.price || 0;
+                        const itemTotal = price * qty;
+                        return `<tr>
+                            <td style="color:#eee;font-size:0.85rem">${DOMPurify.sanitize(name)}</td>
+                            <td style="color:#aaa;font-size:0.85rem">₹${Number(price).toLocaleString('en-IN')}</td>
+                            <td style="color:#aaa;font-size:0.85rem">${qty}</td>
+                            <td style="color:var(--gold);font-weight:600;font-size:0.85rem;text-align:right">₹${Number(itemTotal).toLocaleString('en-IN')}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+
+            // Modal action buttons
+            const pdfBtn = document.getElementById('idm-btn-pdf');
+            if (pdfBtn) pdfBtn.onclick = () => window.downloadAdminInvoice(inv.orderId);
+            const emailBtn = document.getElementById('idm-btn-email');
+            if (emailBtn) emailBtn.onclick = () => window.emailAdminInvoice(inv.orderId, inv.id);
+
+            openModal('invoice-detail-modal');
+        };
+
+        window.filterAdminInvoices = function() {
+            const query = (document.getElementById('inv-search-admin')?.value || '').toLowerCase().trim();
+            const fromDateStr = document.getElementById('inv-date-from')?.value;
+            const toDateStr = document.getElementById('inv-date-to')?.value;
+            
+            let fromDate = null;
+            if (fromDateStr) {
+                const fd = new Date(fromDateStr);
+                if (!isNaN(fd.getTime())) {
+                    fd.setHours(0, 0, 0, 0);
+                    fromDate = fd;
+                }
+            }
+
+            let toDate = null;
+            if (toDateStr) {
+                const td = new Date(toDateStr);
+                if (!isNaN(td.getTime())) {
+                    td.setHours(23, 59, 59, 999);
+                    toDate = td;
+                }
+            }
             
             const filtered = adminInvoices.filter(inv => {
                 const qMatch = !query || 
                                (inv.invoiceNumber && inv.invoiceNumber.toLowerCase().includes(query)) ||
-                               (inv.orderNumber && inv.orderNumber.toLowerCase().includes(query)) ||
-                               (inv.customerEmail && inv.customerEmail.toLowerCase().includes(query));
+                               (inv.orderNumber && String(inv.orderNumber).toLowerCase().includes(query)) ||
+                               (inv.customerEmail && inv.customerEmail.toLowerCase().includes(query)) ||
+                               (inv.customerName && inv.customerName.toLowerCase().includes(query));
                 
                 let dMatch = true;
                 if (fromDate || toDate) {
-                    const dt = inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000) : new Date(inv.createdAt);
-                    if (fromDate && dt < fromDate) dMatch = false;
-                    if (toDate && dt > toDate) dMatch = false;
+                    const dt = inv.createdAt?.seconds ? new Date(inv.createdAt.seconds * 1000) : (inv.createdAt ? new Date(inv.createdAt) : null);
+                    if (dt && !isNaN(dt.getTime())) {
+                        if (fromDate && dt < fromDate) dMatch = false;
+                        if (toDate && dt > toDate) dMatch = false;
+                    }
                 }
                 
                 return qMatch && dMatch;

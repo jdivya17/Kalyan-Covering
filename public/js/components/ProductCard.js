@@ -88,7 +88,7 @@ export function renderProductCard(p, opts = {}) {
           ${starsHtml}
           <span style="color:#666;font-size:0.75rem;font-family:var(--font-sans)">(${p.reviews || 0})</span>
         </div>
-        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+        <div class="card-price-row">
           <span class="card-price">${formatCurrency(price)}</span>
           ${mrp > price ? `<span class="card-price-old">${formatCurrency(mrp)}</span>` : ''}
           <span class="stock-badge ${stockClass}"><span class="dot"></span>${stockText}</span>

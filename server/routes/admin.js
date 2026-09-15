@@ -42,6 +42,18 @@ router.post("/get-audit-logs", authMiddleware, requireAdmin, async (req, res) =>
     }
 });
 
+// POST /api/admin/log-audit
+router.post("/log-audit", authMiddleware, requireAdmin, async (req, res) => {
+    try {
+        const { action, collection: col, documentId, oldValue, newValue } = req.body;
+        await logAudit(req, action || "UPDATE", col || "products", documentId || null, oldValue || null, newValue || null);
+        return res.json({ success: true });
+    } catch (err) {
+        console.error("[admin/log-audit]", err);
+        return sendError(res, 500, "internal", "Failed to log audit event.");
+    }
+});
+
 // ── NEW: POST /api/admin/set-user-role (Owner only) ─────────────────────────
 // Migrated from the old Cloud Function `setUserRole`. This is the ONLY
 // place (besides the CLI script scripts/setRole.js used to create the very
