@@ -42,6 +42,7 @@
             flex-direction: column;
             z-index: 200;
             transition: transform .3s ease;
+            -webkit-overflow-scrolling: touch;
         }
 
         .sidebar-logo {
@@ -170,10 +171,15 @@
             padding: 2rem;
         }
 
+        .admin-content .reveal {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
         /* Panels */
         .admin-panel {
             display: none;
-            animation: fadeIn .4s ease;
+            /* animation removed to prevent tab switch flicker */
         }
 
         .admin-panel.active {
@@ -288,18 +294,26 @@
         }
 
         /* Action buttons row */
-        .tbl-actions {
+                .tbl-actions {
             display: flex;
             gap: .4rem;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .tbl-btn {
-            padding: .3rem .7rem;
+            padding: .4rem .7rem;
             border-radius: var(--radius-sm);
-            font-size: .75rem;
+            font-size: .8rem;
             cursor: pointer;
             border: 1px solid;
             transition: var(--transition);
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
         }
 
         .tbl-btn.edit {
@@ -750,21 +764,7 @@
         }
 
         @media(max-width:900px) {
-            .admin-sidebar {
-                transform: translateX(-100%);
-            }
-
-            .admin-sidebar.open {
-                transform: translateX(0);
-            }
-
-            .admin-main {
-                margin-left: 0;
-            }
-
-            .sidebar-toggle {
-                display: block;
-            }
+            
 
             .video-mgmt-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -825,6 +825,9 @@
         <style>@keyframes adminSpin{to{transform:rotate(360deg)}}</style>
     </div>
 
+    <!-- Sidebar overlay — sits behind sidebar, above main content -->
+    <div class="admin-sidebar-overlay" id="admin-sidebar-overlay"></div>
+
     <div class="admin-layout" id="main-admin-layout" style="display:none">
 
         <!-- SIDEBAR -->
@@ -832,6 +835,7 @@
             <div class="sidebar-logo">
                 <img src="../assets/kalyan_logo.png" alt="" onerror="this.style.display='none'">
                 <div>Kalyan Covering <span class="sidebar-badge">ADMIN</span></div>
+                <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">✕</button>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-group-label">Overview</div>
@@ -869,8 +873,7 @@
             <!-- Topbar -->
             <div class="admin-topbar">
                 <div style="display:flex;align-items:center;gap:1.5rem">
-                    <button class="sidebar-toggle"
-                        onclick="document.getElementById('admin-sidebar').classList.toggle('open')">☰</button>
+                    <button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Open menu">☰</button>
                     <div class="topbar-title" id="panel-title">Dashboard</div>
                     <div id="conn-pill"
                         style="display:flex;align-items:center;gap:0.4rem;background:rgba(255,0,0,0.1);color:#ff4444;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
@@ -1724,7 +1727,7 @@
                     <h4 style="font-size:0.9rem;color:var(--gold);margin:0">State Payload &amp; Mutation Diff</h4>
                     <button class="btn btn-outline btn-sm" onclick="copyAuditEventJson()" style="font-size:0.72rem">📋 Copy JSON</button>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="adm-diff-container">
+                <div class="adm-diff-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="adm-diff-container">
                     <div>
                         <div style="font-size:0.75rem;font-weight:600;color:var(--red);margin-bottom:0.3rem">🔴 Before / Old Value</div>
                         <pre id="adm-old-value" style="background:#050505;border:1px solid rgba(239,83,80,0.3);padding:0.8rem;border-radius:4px;color:#ccc;font-size:0.75rem;font-family:monospace;max-height:220px;overflow-y:auto;white-space:pre-wrap;margin:0">null</pre>
@@ -1756,7 +1759,7 @@
             </div>
 
             <!-- Profile Summary Grid -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:1rem;background:#141414;padding:1.2rem;border-radius:6px;border:1px solid #222;margin-bottom:1.5rem">
+            <div class="udm-meta-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:1rem;background:#141414;padding:1.2rem;border-radius:6px;border:1px solid #222;margin-bottom:1.5rem">
                 <div>
                     <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Phone Number</div>
                     <div style="color:var(--white);font-weight:600;font-size:0.9rem;margin-top:0.2rem" id="udm-user-phone">—</div>
@@ -1814,7 +1817,7 @@
                 <div id="pdm-flags"></div>
             </div>
 
-            <div style="display:grid;grid-template-columns:260px 1fr;gap:1.5rem;margin-bottom:1.5rem">
+            <div class="pdm-inner-grid" style="display:grid;grid-template-columns:min(260px,100%) 1fr;gap:1.5rem;margin-bottom:1.5rem">
                 <!-- Gallery Column -->
                 <div>
                     <div style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem">Product Images</div>
@@ -1887,7 +1890,7 @@
             </div>
 
             <!-- Customer & Payment Metadata -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;background:#141414;padding:1rem;border-radius:6px;border:1px solid #222;margin-bottom:1.2rem">
+            <div class="idm-meta-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;background:#141414;padding:1rem;border-radius:6px;border:1px solid #222;margin-bottom:1.2rem">
                 <div>
                     <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Customer Information</div>
                     <div style="font-weight:600;color:var(--white);font-size:0.9rem;margin-top:0.2rem" id="idm-cust-name">Customer Name</div>
@@ -1922,7 +1925,7 @@
             <!-- Tax & Financial Summary Breakdown -->
             <div style="background:#0a0a0a;padding:1rem 1.2rem;border-radius:6px;border:1px solid #333;margin-bottom:1.5rem">
                 <div style="font-size:0.8rem;font-weight:600;color:var(--gold);margin-bottom:0.6rem">Full Financial &amp; Tax Breakdown</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.8rem">
+                <div class="idm-fin-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.8rem">
                     <div style="color:#888">Subtotal (before tax):</div>
                     <div style="text-align:right;color:#eee" id="idm-subtotal">₹0</div>
 
@@ -2135,9 +2138,7 @@
         window.loadAdminData = async function () {
             const pill = document.getElementById('conn-pill');
 
-            // Helpful check for file:// protocol
             if (window.location.protocol === 'file:') {
-                console.error('Firebase does not support "file://" protocol. Use a local server (e.g. VS Code Live Server).');
                 if (pill) {
                     pill.style.background = 'rgba(255,165,0,0.1)';
                     pill.style.color = '#ffa500';
@@ -2147,73 +2148,76 @@
                 return;
             }
 
+            const productsTbody = document.getElementById('products-table');
+            if (productsTbody) productsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--white-dim)"><div class="spinner" style="display:inline-block;margin-right:0.5rem"></div>Loading products...</td></tr>';
+            const recentOrdersTbody = document.getElementById('recent-orders');
+            if (recentOrdersTbody) recentOrdersTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--white-dim)"><div class="spinner" style="display:inline-block;margin-right:0.5rem"></div>Loading recent orders...</td></tr>';
+            const ordersTbody = document.getElementById('orders-table');
+            if (ordersTbody) ordersTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--white-dim)"><div class="spinner" style="display:inline-block;margin-right:0.5rem"></div>Loading orders...</td></tr>';
+
+            let hasErrors = false;
+
             try {
-                console.log('Starting loadAdminData...');
+                if (pill) {
+                    pill.style.background = 'rgba(255,215,0,0.1)';
+                    pill.style.color = 'var(--gold)';
+                    pill.innerHTML = '<span class="dot-blink" style="width:6px;height:6px;background:var(--gold);border-radius:50%;display:inline-block"></span> Fetching Data...';
+                }
 
-                // Add a visual "Connecting" state if not set
-                if (pill) pill.innerHTML = '<span class="dot-blink"></span> Connecting to DB...';
+                // Fetch ALL 6 collections concurrently in PARALLEL
+                const [productsRes, ordersRes, usersRes, branchesRes, socialRes, settingsRes] = await Promise.allSettled([
+                    getDocs(query(collection(db, "products"))),
+                    getDocs(collection(db, "orders")),
+                    getDocs(collection(db, "users")),
+                    getDocs(collection(db, "branches")),
+                    getDoc(doc(db, "config", "social")),
+                    getDoc(doc(db, "config", "settings"))
+                ]);
 
-                // Load products
-                console.log('Fetching products...');
-                try {
-                    const productsSnap = await getDocs(query(collection(db, "products")));
-                    window.adminData.products = productsSnap.empty ? getDefaultAdminProducts() : productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                } catch (pErr) {
-                    console.warn('Products fetch warning:', pErr);
+                // 1. Products
+                if (productsRes.status === 'fulfilled' && !productsRes.value.empty) {
+                    window.adminData.products = productsRes.value.docs.map(d => ({ id: d.id, ...d.data() }));
+                } else {
                     window.adminData.products = getDefaultAdminProducts();
                 }
 
-                // Load orders — preserve FULL document IDs for updateDoc calls
-                console.log('Fetching orders...');
-                try {
-                    const ordersSnap = await getDocs(collection(db, "orders"));
-                    window.adminData.orders = ordersSnap.empty ? getDefaultOrders() : ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                } catch (oErr) {
-                    console.warn('Orders fetch warning:', oErr);
+                // 2. Orders
+                if (ordersRes.status === 'fulfilled' && !ordersRes.value.empty) {
+                    window.adminData.orders = ordersRes.value.docs.map(d => ({ id: d.id, ...d.data() }));
+                } else {
                     window.adminData.orders = getDefaultOrders();
                 }
 
-                console.log('Fetching users...');
-                try {
-                    const usersSnap = await getDocs(collection(db, "users"));
-                    window.adminData.users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                } catch (err) { console.log('Users collection might not exist yet'); window.adminData.users = []; }
-
-                console.log('Admin data loaded from Firebase');
-
-                // Load social links
-                console.log('Fetching social links...');
-                try {
-                    const socialSnap = await getDoc(doc(db, "config", "social"));
-                    if (socialSnap.exists()) {
-                        const data = socialSnap.data();
-                        if (document.getElementById('sm-insta')) document.getElementById('sm-insta').value = data.instagram || '';
-                        if (document.getElementById('sm-wa')) document.getElementById('sm-wa').value = data.whatsapp || '';
-                        if (document.getElementById('sm-fb')) document.getElementById('sm-fb').value = data.facebook || '';
-                        if (document.getElementById('sm-yt')) document.getElementById('sm-yt').value = data.youtube || '';
-                        if (document.getElementById('sm-tw')) document.getElementById('sm-tw').value = data.twitter || '';
-                    }
-                } catch (sErr) {
-                    console.warn('Social links fetch warning:', sErr);
+                // 3. Users
+                if (usersRes.status === 'fulfilled') {
+                    window.adminData.users = usersRes.value.docs.map(d => ({ id: d.id, ...d.data() }));
+                } else {
+                    window.adminData.users = [];
                 }
 
-                // Load general settings
-                console.log('Fetching general settings...');
-                try {
-                    const settingsSnap = await getDoc(doc(db, "config", "settings"));
-                    if (settingsSnap.exists()) {
-                        const data = settingsSnap.data();
-                        if (document.getElementById('setting-admin-keyword')) 
-                            document.getElementById('setting-admin-keyword').value = data.adminKeyword || 'admin';
-                    }
-                } catch (e) { console.warn('Settings load failed', e); }
+                // 4. Branches
+                if (branchesRes.status === 'fulfilled') {
+                    window.adminData.branches = branchesRes.value.docs.map(d => ({ id: d.id, ...d.data() }));
+                } else {
+                    window.adminData.branches = [];
+                }
 
-                // Load branches
-                console.log('Fetching branches...');
-                try {
-                    const branchesSnap = await getDocs(collection(db, "branches"));
-                    window.adminData.branches = branchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                } catch (e) { console.warn('Branches load failed', e); window.adminData.branches = []; }
+                // 5. Social Links
+                if (socialRes.status === 'fulfilled' && socialRes.value.exists()) {
+                    const data = socialRes.value.data();
+                    if (document.getElementById('sm-insta')) document.getElementById('sm-insta').value = data.instagram || '';
+                    if (document.getElementById('sm-wa')) document.getElementById('sm-wa').value = data.whatsapp || '';
+                    if (document.getElementById('sm-fb')) document.getElementById('sm-fb').value = data.facebook || '';
+                    if (document.getElementById('sm-yt')) document.getElementById('sm-yt').value = data.youtube || '';
+                    if (document.getElementById('sm-tw')) document.getElementById('sm-tw').value = data.twitter || '';
+                }
+
+                // 6. General Settings
+                if (settingsRes.status === 'fulfilled' && settingsRes.value.exists()) {
+                    const data = settingsRes.value.data();
+                    if (document.getElementById('setting-admin-keyword'))
+                        document.getElementById('setting-admin-keyword').value = data.adminKeyword || 'admin';
+                }
 
                 if (pill) {
                     pill.style.background = 'rgba(0,255,100,0.1)';
@@ -2233,9 +2237,9 @@
 
                 // UI Refresh
                 if (typeof updateDashboardStats === 'function') updateDashboardStats();
-                if (typeof renderRecentOrders === 'function') renderRecentOrders();
+                if (typeof renderRecentOrders === 'function' && window.adminData.orders.length > 0) renderRecentOrders();
                 if (typeof renderLowStock === 'function') renderLowStock();
-                if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts);
+                if (typeof renderProductsTable === 'function' && window.adminData.products.length > 0) renderProductsTable(window.adminProducts);
                 if (typeof renderBranchesTable === 'function') renderBranchesTable();
                 if (typeof window.generateAdminNotifications === 'function') window.generateAdminNotifications();
 
@@ -2267,11 +2271,11 @@
 
                 console.log('Admin UI Refresh Complete');
             } catch (e) {
-                console.error('Firebase Load Warning:', e);
+                console.error('Firebase Load Error:', e);
                 if (pill) {
-                    pill.style.background = 'rgba(0,255,100,0.1)';
-                    pill.style.color = '#00ff88';
-                    pill.innerHTML = '<span style="width:6px;height:6px;background:#00ff88;border-radius:50%;display:inline-block"></span> Backend Connected';
+                    pill.style.background = 'rgba(255,68,68,0.1)';
+                    pill.style.color = 'var(--red)';
+                    pill.innerHTML = '<span style="width:6px;height:6px;background:var(--red);border-radius:50%;display:inline-block"></span> DB Error';
                 }
                 window.adminData.products = getDefaultAdminProducts();
                 window.adminData.orders = getDefaultOrders();
@@ -2326,15 +2330,15 @@
                 return;
             }
             tbody.innerHTML = branches.map(b => `
-                <tr>
+                <tr style="cursor:pointer" onclick="openBranchModal('${b.id}')"
                     <td data-label="Branch Name"><div style="font-weight:600;color:var(--gold)">${b.name}</div></td>
                     <td data-label="Address">${b.address}</td>
                     <td data-label="PIN Code">${b.pin}</td>
                     <td data-label="Phone">${b.phone}</td>
-                    <td data-label="Actions">
+                    <td data-label="Actions" onclick="event.stopPropagation()">
                         <div class="tbl-actions">
-                            <button class="tbl-btn edit" onclick="openBranchModal('${b.id}')">Edit</button>
-                            <button class="tbl-btn delete" onclick="deleteBranch('${b.id}')">Delete</button>
+                            <button class="tbl-btn edit" onclick="event.stopPropagation(); openBranchModal('${b.id}')">✏️ Edit</button>
+                            <button class="tbl-btn delete" onclick="event.stopPropagation(); deleteBranch('${b.id}')">🗑️ Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -2563,18 +2567,29 @@
             }
 
             tbody.innerHTML = users.map(u => `
-                <tr class="reveal">
+                <tr class="reveal" style="cursor:pointer" onclick="openUserDetailModal('${u.id}')">
                     <td data-label="User Name"><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || u.fullName || 'Anonymous'}</div></td>
                     <td data-label="Phone / Email">${u.phone || u.email || 'N/A'}</td>
                     <td data-label="Last Login">${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString('en-IN') : new Date(u.lastLogin).toLocaleString('en-IN')) : 'Never'}</td>
                     <td data-label="Total Orders"><span class="badge" style="background:#333">${u.loginCount || 1} logins</span></td>
-                    <td data-label="Actions"><div class="tbl-actions">
-                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openUserDetailModal('${u.id}')">View</button>
+                    <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
+                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="event.stopPropagation(); openUserDetailModal('${u.id}')">👁️ View</button>
                     </div></td>
                 </tr>
             `).join('');
             if (typeof initReveal === 'function') initReveal();
-            if (typeof initCounters === 'function') initCounters();
+            const dashPanel = document.getElementById('panel-dashboard');
+            if (dashPanel && !dashPanel.dataset.initialised) {
+                dashPanel.dataset.initialised = 'true';
+                if (typeof initCounters === 'function') initCounters(dashPanel);
+            } else {
+                counters.forEach(c => {
+                    const targetVal = parseInt(c.getAttribute('data-target') || '0');
+                    const prefix = c.getAttribute('data-prefix') || (c.textContent.includes('₹') ? '₹' : '');
+                    const suffix = c.getAttribute('data-suffix') || '';
+                    c.textContent = prefix + targetVal.toLocaleString() + suffix;
+                });
+            }
         };
 
         window.openUserDetailModal = function(userId) {
@@ -2806,6 +2821,52 @@
         });
     </script>
     <script>
+        // ---- Sidebar open / close (Bug 2 fix) ----
+        (function () {
+            function openSidebar() {
+                const sidebar = document.getElementById('admin-sidebar');
+                const overlay = document.getElementById('admin-sidebar-overlay');
+                if (sidebar)  sidebar.classList.add('open');
+                if (overlay)  overlay.classList.add('open');
+                document.body.classList.add('sidebar-open');
+            }
+            function closeSidebar() {
+                const sidebar = document.getElementById('admin-sidebar');
+                const overlay = document.getElementById('admin-sidebar-overlay');
+                if (sidebar)  sidebar.classList.remove('open');
+                if (overlay)  overlay.classList.remove('open');
+                document.body.classList.remove('sidebar-open');
+            }
+
+            document.addEventListener('click', function (e) {
+                // Hamburger toggle
+                if (e.target.closest('#sidebar-toggle-btn')) {
+                    const sidebar = document.getElementById('admin-sidebar');
+                    if (sidebar && sidebar.classList.contains('open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                    return;
+                }
+                // Close button inside sidebar header
+                if (e.target.closest('#sidebar-close-btn')) {
+                    closeSidebar();
+                    return;
+                }
+                // Clicking the dark overlay
+                if (e.target.id === 'admin-sidebar-overlay') {
+                    closeSidebar();
+                    return;
+                }
+                // Clicking a nav link on mobile closes the sidebar
+                if (e.target.closest('.sidebar-nav a, .sidebar-nav button')) {
+                    const mq = window.matchMedia('(max-width: 1024px)');
+                    if (mq.matches) closeSidebar();
+                }
+            });
+        })();
+
         // ---- Admin Modal Utilities ----
         window.openModal = function(id) {
             const m = document.getElementById(id);
@@ -3048,8 +3109,11 @@
             if (id === 'users') renderUsersTable();
             if (id === 'settings') renderBranchesTable();
             if (id === 'audit') renderAuditLogs();
-            if (typeof initCounters === 'function') initCounters();
-            if (typeof initReveal === 'function') initReveal();
+            if (target && !target.dataset.initialised) {
+                target.dataset.initialised = 'true';
+                if (typeof initCounters === 'function') initCounters(target);
+                if (typeof initReveal === 'function') initReveal(target);
+            }
         }
         window.showPanel = showPanel;
 
@@ -3078,7 +3142,18 @@
                     if (change) change.textContent = `↓ ${lowStockCount} low stock`;
                 }
             });
-            if (typeof initCounters === 'function') initCounters();
+            const dashPanel = document.getElementById('panel-dashboard');
+            if (dashPanel && !dashPanel.dataset.initialised) {
+                dashPanel.dataset.initialised = 'true';
+                if (typeof initCounters === 'function') initCounters(dashPanel);
+            } else {
+                counters.forEach(c => {
+                    const targetVal = parseInt(c.getAttribute('data-target') || '0');
+                    const prefix = c.getAttribute('data-prefix') || (c.textContent.includes('₹') ? '₹' : '');
+                    const suffix = c.getAttribute('data-suffix') || '';
+                    c.textContent = prefix + targetVal.toLocaleString() + suffix;
+                });
+            }
         }
 
         function renderRecentOrders() {
@@ -3098,13 +3173,13 @@
                 const cls = statusClass[rawStatus] || 'os-pending';
                 const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString() : new Date(o.createdAt).toLocaleDateString()) : (o.date || 'Today');
                 return `
-    <tr>
-      <td style="color:var(--gold);font-weight:600">${orderId}</td>
-      <td>${custName}</td>
-      <td>${itemLength} item${itemLength > 1 ? 's' : ''}</td>
-      <td style="color:var(--gold)">₹${amt.toLocaleString()}</td>
-      <td><span class="order-status ${cls}">${rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</span></td>
-      <td>${dateStr}</td>
+    <tr style="cursor:pointer" onclick="openAdminOrderModal('${o.id}')">
+      <td data-label="Order ID" style="color:var(--gold);font-weight:600">${orderId}</td>
+      <td data-label="Customer">${custName}</td>
+      <td data-label="Product">${itemLength} item${itemLength > 1 ? 's' : ''}</td>
+      <td data-label="Amount" style="color:var(--gold)">₹${amt.toLocaleString()}</td>
+      <td data-label="Status"><span class="order-status ${cls}">${rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</span></td>
+      <td data-label="Date">${dateStr}</td>
     </tr>`;
             }).join('');
         }
@@ -3175,7 +3250,7 @@
             const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
             const sorted = [...adminProducts].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
             tbody.innerHTML = sorted.map(p => `
-    <tr>
+    <tr style="cursor:pointer" onclick="openProductDetailModal('${p.id}')">
       <td data-label="Product"><div style="display:flex;align-items:center;gap:.7rem">
         <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
         <span>${p.name}</span>
@@ -3217,10 +3292,10 @@
       </div></td>
       <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
       <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.72rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'}</span></td>
-      <td data-label="Actions"><div class="tbl-actions">
-        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openProductDetailModal('${p.id}')">View</button>
-        <button class="tbl-btn edit" onclick="openEditProduct('${p.id}')">Edit</button>
-        <button class="tbl-btn del" onclick="deleteProduct('${p.id}')">Delete</button>
+      <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
+        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')" title="View details">👁️ View</button>
+        <button class="tbl-btn edit" onclick="event.stopPropagation(); openEditProduct('${p.id}')" title="Edit product">✏️ Edit</button>
+        <button class="tbl-btn del" onclick="event.stopPropagation(); deleteProduct('${p.id}')" title="Delete product">🗑️ Delete</button>
       </div></td>
     </tr>`;
             }).join('');
@@ -3517,8 +3592,8 @@
       <td data-label="Payment" style="font-size:.78rem">${paymentMethod}</td>
       <td data-label="Status"><span class="order-status ${statusClass}">${displayStatus}</span></td>
       <td data-label="Date" style="color:#666;font-size:.78rem">${orderDate}</td>
-      <td data-label="Actions"><div class="tbl-actions">
-        <button class="tbl-btn edit" style="border-color:rgba(255,215,0,0.4);color:var(--gold)" onclick="openAdminOrderModal('${o.id}')">🚚 Manage</button>
+      <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
+        <button class="tbl-btn edit" style="border-color:rgba(255,215,0,0.4);color:var(--gold)" onclick="event.stopPropagation(); openAdminOrderModal('${o.id}')">🚚 Manage</button>
       </div></td>
     </tr>`;
             });
@@ -4038,7 +4113,7 @@
                 const adminName = (log.adminId || 'Admin').split('@')[0];
 
                 return `
-                <tr>
+                <tr style="cursor:pointer" onclick="window.openAuditInspector(${idx})"
                     <td data-label="Timestamp">
                         <div style="font-weight:600;color:var(--white);font-size:0.82rem">${dateStr}</div>
                         <div style="color:#777;font-size:0.72rem;font-family:monospace">${timeStr}</div>
@@ -4067,8 +4142,8 @@
                         <div style="font-size:0.8rem;color:#60a5fa;font-family:monospace">🌐 ${log.ip || 'Local Host'}</div>
                         <div style="font-size:0.7rem;color:#666;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${log.device || 'Browser'}">💻 ${(log.device || 'Web Browser').substring(0, 25)}</div>
                     </td>
-                    <td data-label="Inspector" style="text-align:right">
-                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold);font-weight:600" onclick="window.openAuditInspector(${idx})">🔍 Inspect</button>
+                    <td data-label="Inspector" style="text-align:right" onclick="event.stopPropagation()">
+                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold);font-weight:600" onclick="event.stopPropagation(); window.openAuditInspector(${idx})">🔍 Inspect</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -4200,61 +4275,75 @@
                 }
                 
                 let invoices = [];
+                // Direct Client Firestore fetching for instant response
                 try {
-                    if (typeof window.fnGetInvoices === 'function') {
-                        const res = await window.fnGetInvoices(reqData);
-                        invoices = (res && res.data && res.data.invoices) ? res.data.invoices : (res && res.invoices ? res.invoices : []);
+                    const invoicesSnap = await getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc")));
+                    if (!invoicesSnap.empty) {
+                        invoices = invoicesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                     } else {
-                        throw new Error('fnGetInvoices not available');
+                        const ordersList = window.adminData?.orders?.length > 0 ? window.adminData.orders : [];
+                        if (ordersList.length > 0) {
+                            invoices = ordersList.map(o => {
+                                const grandTotal = o.grandTotal || o.totalAmount || o.total || 0;
+                                const subtotal = o.subtotal || grandTotal;
+                                const cgst = o.cgst || Math.round(subtotal * 0.09 * 100) / 100;
+                                const sgst = o.sgst || Math.round(subtotal * 0.09 * 100) / 100;
+                                return {
+                                    id: o.id,
+                                    invoiceNumber: o.invoiceNumber || `INV-${String(o.id).substring(0, 8).toUpperCase()}`,
+                                    orderNumber: o.orderNumber || o.id,
+                                    orderId: o.id,
+                                    customerId: o.customerId || o.userId || "",
+                                    customerName: o.customerName || o.customer || o.userName || "Customer",
+                                    customerEmail: o.customerEmail || o.userEmail || "—",
+                                    customerPhone: o.customerPhone || o.userPhone || "",
+                                    grandTotal,
+                                    subtotal,
+                                    cgst,
+                                    sgst,
+                                    totalGst: cgst + sgst,
+                                    paymentMethod: o.paymentMethod || "razorpay",
+                                    orderStatus: o.status || o.orderStatus || "Confirmed",
+                                    createdAt: o.createdAt || null
+                                };
+                            });
+                        } else {
+                            const ordersSnap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
+                            invoices = ordersSnap.docs.map(d => {
+                                const o = d.data();
+                                const grandTotal = o.grandTotal || o.totalAmount || o.total || 0;
+                                const subtotal = o.subtotal || grandTotal;
+                                const cgst = o.cgst || Math.round(subtotal * 0.09 * 100) / 100;
+                                const sgst = o.sgst || Math.round(subtotal * 0.09 * 100) / 100;
+                                return {
+                                    id: d.id,
+                                    invoiceNumber: o.invoiceNumber || `INV-${d.id.substring(0, 8).toUpperCase()}`,
+                                    orderNumber: o.orderNumber || d.id,
+                                    orderId: d.id,
+                                    customerId: o.customerId || o.userId || "",
+                                    customerName: o.customerName || o.userName || "Customer",
+                                    customerEmail: o.customerEmail || o.userEmail || "—",
+                                    customerPhone: o.customerPhone || o.userPhone || "",
+                                    grandTotal,
+                                    subtotal,
+                                    cgst,
+                                    sgst,
+                                    totalGst: cgst + sgst,
+                                    paymentMethod: o.paymentMethod || "razorpay",
+                                    orderStatus: o.status || o.orderStatus || "Confirmed",
+                                    createdAt: o.createdAt || null
+                                };
+                            });
+                        }
                     }
-                } catch (fnErr) {
-                    console.warn("Cloud function getInvoices failed, trying Vercel API:", fnErr.message);
+                } catch (fErr) {
+                    console.warn("Direct Firestore invoice fetch warning:", fErr);
                     try {
                         const vRes = await callVercelApi('/api/invoices/list', reqData);
                         invoices = (vRes && vRes.invoices) ? vRes.invoices : [];
-                    } catch (vErr) {
-                        console.warn("Vercel API failed, falling back to direct Firestore:", vErr.message);
-                        // Direct Client Firestore Fallback
-                        try {
-                            const invoicesSnap = await getDocs(query(collection(db, "invoices"), orderBy("createdAt", "desc")));
-                            if (!invoicesSnap.empty) {
-                                invoices = invoicesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                            } else {
-                                // If invoices collection is empty, synthesize invoice entries from orders
-                                const ordersSnap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
-                                invoices = ordersSnap.docs.map(d => {
-                                    const o = d.data();
-                                    const grandTotal = o.grandTotal || o.totalAmount || o.total || 0;
-                                    const subtotal = o.subtotal || grandTotal;
-                                    const cgst = o.cgst || Math.round(subtotal * 0.09 * 100) / 100;
-                                    const sgst = o.sgst || Math.round(subtotal * 0.09 * 100) / 100;
-                                    return {
-                                        id: d.id,
-                                        invoiceNumber: o.invoiceNumber || `INV-${d.id.substring(0, 8).toUpperCase()}`,
-                                        orderNumber: o.orderNumber || d.id,
-                                        orderId: d.id,
-                                        customerId: o.customerId || o.userId || "",
-                                        customerName: o.customerName || o.userName || "Customer",
-                                        customerEmail: o.customerEmail || o.userEmail || "—",
-                                        customerPhone: o.customerPhone || o.userPhone || "",
-                                        grandTotal,
-                                        subtotal,
-                                        cgst,
-                                        sgst,
-                                        totalGst: cgst + sgst,
-                                        paymentMethod: o.paymentMethod || "razorpay",
-                                        orderStatus: o.status || o.orderStatus || "Confirmed",
-                                        createdAt: o.createdAt || null
-                                    };
-                                });
-                            }
-                        } catch (fErr) {
-                            console.error("Direct Firestore fallback error:", fErr);
-                            throw fErr;
-                        }
-                    }
+                    } catch (_) {}
                 }
-                
+
                 if (invoices.length > 0) {
                     invoiceLastDoc = invoices[invoices.length - 1].createdAt;
                 }
@@ -4654,20 +4743,20 @@
                     : c.status === 'active'
                         ? `<span style="background:rgba(0,204,102,.12);color:var(--green);border:1px solid rgba(0,204,102,.25);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">ACTIVE</span>`
                         : `<span style="background:rgba(255,0,0,.1);color:var(--red);border:1px solid rgba(255,0,0,.2);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">INACTIVE</span>`;
-                return `<tr>
-                    <td style="color:var(--gold);font-weight:700;letter-spacing:.5px">${DOMPurify.sanitize(c.code || '')}</td>
-                    <td style="font-size:.8rem;color:#aaa">${c.discountType === 'percentage' ? '% Percentage' : '₹ Flat'}</td>
-                    <td style="font-weight:700">${valueStr}</td>
-                    <td style="color:#aaa;font-size:.82rem">${c.minOrderValue != null ? '₹' + c.minOrderValue : '—'}</td>
-                    <td style="font-size:.82rem">${usageStr}</td>
-                    <td style="font-size:.82rem">${c.perUserLimit != null ? (c.perUserLimit === 0 ? '∞' : c.perUserLimit) : '1'}</td>
-                    <td style="font-size:.8rem;color:${isExpired ? 'var(--orange)' : '#aaa'}">${expiryStr}</td>
-                    <td>${statusBadge}</td>
-                    <td><div class="tbl-actions" style="justify-content:flex-end">
-                        <button class="tbl-btn edit" onclick="openCouponModal('${c.id}')">✏️ Edit</button>
+                return `<tr style="cursor:pointer" onclick="openCouponModal('${c.id}')">
+                    <td data-label="Code" style="color:var(--gold);font-weight:700;letter-spacing:.5px">${DOMPurify.sanitize(c.code || '')}</td>
+                    <td data-label="Type" style="font-size:.8rem;color:#aaa">${c.discountType === 'percentage' ? '% Percentage' : '₹ Flat'}</td>
+                    <td data-label="Value" style="font-weight:700">${valueStr}</td>
+                    <td data-label="Min Order" style="color:#aaa;font-size:.82rem">${c.minOrderValue != null ? '₹' + c.minOrderValue : '—'}</td>
+                    <td data-label="Usage" style="font-size:.82rem">${usageStr}</td>
+                    <td data-label="Per User" style="font-size:.82rem">${c.perUserLimit != null ? (c.perUserLimit === 0 ? '∞' : c.perUserLimit) : '1'}</td>
+                    <td data-label="Expiry" style="font-size:.8rem;color:${isExpired ? 'var(--orange)' : '#aaa'}">${expiryStr}</td>
+                    <td data-label="Status">${statusBadge}</td>
+                    <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end">
+                        <button class="tbl-btn edit" onclick="event.stopPropagation(); openCouponModal('${c.id}')">✏️ Edit</button>
                         <button class="tbl-btn" style="border-color:rgba(255,0,0,.3);color:var(--red)" onclick="deleteCoupon('${c.id}','${DOMPurify.sanitize(c.code || '')}')">🗑 Delete</button>
                     </div></td>
-                </tr>`;
+                `;
             }).join('');
         }
 

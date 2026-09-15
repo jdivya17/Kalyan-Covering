@@ -944,14 +944,6 @@ textarea.form-input {
   .nav-icon-btn:not(.keep-mobile) { display: none; }
   .nav-icon-btn.keep-mobile, .nav-icon-btn[aria-label="Shopping cart"], .nav-icon-btn[aria-label="Wishlist"] { display: flex; }
 
-  /* Admin Sidebar becomes an overlay */
-  .admin-sidebar {
-    transform: translateX(-100%);
-  }
-  .admin-sidebar.open { transform: translateX(0); }
-  .admin-main { margin-left: 0; padding: 1rem; }
-  .admin-mobile-toggle { display: flex; }
-
   /* Footer */
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
   .footer-main { grid-template-columns: 1fr 1fr; gap: 2rem; }

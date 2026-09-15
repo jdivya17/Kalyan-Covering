@@ -26,9 +26,10 @@ export const RBAC = {
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
             ]);
 
-        // 1. Try Firebase Custom Claims (Primary - with fast fallback)
+        // 1. Try Firebase Custom Claims (Primary - with forced refresh)
         try {
-            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 3000);
+            await withTimeout(user.getIdToken(true), 3000);
+            let idTokenResult = await withTimeout(user.getIdTokenResult(true), 3000);
             if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
                 let r = idTokenResult.claims.role.toLowerCase();
                 if (r === 'admin') r = 'owner';

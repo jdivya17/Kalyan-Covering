@@ -658,7 +658,8 @@ const SeasonalTheme = {
 };
 
 // ---- Reveal on Scroll ----
-function initReveal() {
+function initReveal(container = document) {
+    const scope = (container && container.querySelectorAll) ? container : document;
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -667,7 +668,7 @@ function initReveal() {
             }
         });
     }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    scope.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 }
 
 // ---- Counter Animation ----
@@ -683,7 +684,8 @@ function animateCounter(el, target, duration = 1500, prefix = '', suffix = '') {
     requestAnimationFrame(frame);
 }
 
-function initCounters() {
+function initCounters(container = document) {
+    const scope = (container && container.querySelectorAll) ? container : document;
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -696,7 +698,7 @@ function initCounters() {
             }
         });
     }, { threshold: 0.5 });
-    document.querySelectorAll('.counter').forEach(el => observer.observe(el));
+    scope.querySelectorAll('.counter').forEach(el => observer.observe(el));
 }
 
 // ---- Navigation ----

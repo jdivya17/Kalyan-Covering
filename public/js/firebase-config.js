@@ -80,31 +80,49 @@ const VERCEL_API_BASE = _isLocalhost
 async function callVercelApi(endpoint, data = {}) {
     let token = "";
     if (auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
+        try {
+            token = await Promise.race([
+                auth.currentUser.getIdToken(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Token timeout')), 2500))
+            ]);
+        } catch (_) {}
     }
     // Prefix the Vercel URL when not on localhost (Firebase Hosting has no API)
     const url = VERCEL_API_BASE + endpoint;
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
-    });
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
     
-    let result = {};
-    const text = await response.text();
     try {
-        result = text ? JSON.parse(text) : {};
-    } catch (e) {
-        result = { error: text || `HTTP ${response.status} ${response.statusText}` };
-    }
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(data),
+            signal: controller ? controller.signal : undefined
+        });
+        if (timeoutId) clearTimeout(timeoutId);
 
-    if (!response.ok) {
-        throw new Error(result.message || result.error || `API Request Failed (HTTP ${response.status})`);
+        let result = {};
+        const text = await response.text();
+        try {
+            result = text ? JSON.parse(text) : {};
+        } catch (e) {
+            result = { error: text || `HTTP ${response.status} ${response.statusText}` };
+        }
+
+        if (!response.ok) {
+            throw new Error(result.message || result.error || `API Request Failed (HTTP ${response.status})`);
+        }
+        return result;
+    } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+            throw new Error(`API request to ${endpoint} timed out after 4s`);
+        }
+        throw err;
     }
-    return result;
 }
 
 // ── Named exports (used by auth.html, checkout.html, etc.) ────
