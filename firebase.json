@@ -130,7 +130,7 @@
                 "headers": [
                     {
                         "key": "Cache-Control",
-                        "value": "max-age=86400"
+                        "value": "no-cache, no-store, must-revalidate"
                     }
                 ]
             },
