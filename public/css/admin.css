@@ -455,9 +455,42 @@ html {
 }
 
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.65rem; }
+  .stat-card { padding: 0.75rem 0.65rem; }
+  .stat-value { font-size: 1.25rem; }
+  .stat-label { font-size: 0.65rem; }
+  .stat-icon { font-size: 1.3rem; margin-bottom: 0.2rem; }
   .admin-tabs { font-size: 0.78rem; gap: 0.2rem; }
   .topbar-actions { width: 100%; justify-content: space-between; margin-top: 0.25rem; }
+}
+
+/* ── Mobile Floating Action Button (FAB) ── */
+.mobile-fab-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.25rem;
+  z-index: 400;
+  background: linear-gradient(135deg, #FFD700 0%, #B8980A 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 30px;
+  border: 1px solid var(--gold);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mobile-fab-btn:active {
+  transform: scale(0.94);
+}
+@media (min-width: 769px) {
+  .mobile-fab-btn {
+    display: none !important;
+  }
 }
 
 /* ============================================================

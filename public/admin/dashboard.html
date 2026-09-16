@@ -3394,15 +3394,17 @@
             }
             const lowStockItems = adminProducts.filter(p => p && p.stock !== 'in' && p.stock !== undefined && (typeof p.stock === 'number' ? p.stock <= 5 : true));
             el.innerHTML = !lowStockItems || lowStockItems.length === 0
-                ? '<p style="color:var(--green)">✓ All products are well stocked!</p>'
+                ? '<p style="color:var(--green);padding:0.5rem 0">✓ All products are well stocked!</p>'
                 : lowStockItems.map(p => `
-      <div class="notif-item urgent" style="margin-bottom:.7rem">
-        <span class="notif-icon">⚠️</span>
-        <div class="notif-body">
-          <div class="notif-title">${p.name || 'Product'}</div>
-          <div style="font-size:.78rem;color:#666">${p.category || 'Jewelry'} • <span class="stock-badge ${p.stock === 'low' ? 'stock-low' : 'stock-out'}" style="font-size:.72rem"><span class="dot"></span>${p.stock === 'low' ? 'Low Stock' : 'Out of Stock'}</span></div>
+      <div class="mobile-card-item" style="margin-bottom:.7rem;cursor:pointer" onclick="openProductDetailModal('${p.id}')">
+        <div class="mobile-card-left">
+          <span class="notif-icon" style="font-size:1.3rem">⚠️</span>
+          <div style="min-width:0">
+            <div class="mobile-card-title">${DOMPurify.sanitize(p.name || 'Product')}</div>
+            <div class="mobile-card-subtitle">${DOMPurify.sanitize(p.category || 'Jewelry')} • <span class="${p.stock === 'low' ? 'stock-low' : 'stock-out'}">${p.stock === 'low' ? 'Low Stock' : 'Out of Stock'}</span></div>
+          </div>
         </div>
-        <button class="tbl-btn edit" onclick="openEditProduct('${p.id}')">Update</button>
+        <button class="mobile-view-btn" onclick="event.stopPropagation(); openEditProduct('${p.id}')">Update Stock</button>
       </div>`).join('');
         }
 
@@ -3867,7 +3869,7 @@
                         const total = o.totalAmount || o.payment?.total || o.total || 0;
                         const orderDate = _fmtOrderDate(o.createdAt || o.date);
                         return `
-                            <div class="mobile-card-item">
+                            <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order', '${o.id}')">
                                 <div class="mobile-card-left">
                                     <div style="min-width:0">
                                         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
@@ -3878,7 +3880,7 @@
                                         <div class="mobile-card-price">₹${Number(total).toLocaleString()}</div>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="openMobileDetailModal('order', '${o.id}')">View Details</button>
+                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order', '${o.id}')">View Details</button>
                             </div>
                         `;
                     }).join('');
@@ -3893,7 +3895,7 @@
                     const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
                     const total = o.totalAmount || o.payment?.total || o.total || 0;
                     return `
-                        <div class="mobile-card-item">
+                        <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order', '${o.id}')">
                             <div class="mobile-card-left">
                                 <div style="min-width:0">
                                     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
@@ -3904,7 +3906,7 @@
                                     <div class="mobile-card-price">₹${Number(total).toLocaleString()}</div>
                                 </div>
                             </div>
-                            <button class="mobile-view-btn" onclick="openMobileDetailModal('order', '${o.id}')">View Details</button>
+                            <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order', '${o.id}')">View Details</button>
                         </div>
                     `;
                 }).join('');
@@ -5352,6 +5354,12 @@
             <div class="mobile-detail-actions" id="mobile-modal-actions"></div>
         </div>
     </div>
+
+    <!-- Mobile Floating Quick Action Button (+ Add Product) -->
+    <button class="mobile-fab-btn" id="mobile-fab-add-product" onclick="openAddProductModal()" aria-label="Add Product">
+        <span style="font-size:1.1rem;line-height:1">➕</span>
+        <span>Add Product</span>
+    </button>
 
 </body>
 
