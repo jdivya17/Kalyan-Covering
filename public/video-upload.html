@@ -949,9 +949,9 @@
             Toast.info('Submitting...', 'Saving details to database');
 
             try {
-                // Capture video duration from a temporary element if available
+                // Capture video duration from preview element if available
                 let duration = null;
-                const videoPreview = document.getElementById('video-preview');
+                const videoPreview = document.getElementById('preview-video') || document.getElementById('review-preview');
                 if (videoPreview && isFinite(videoPreview.duration) && videoPreview.duration > 0) {
                     duration = Math.round(videoPreview.duration);
                 }

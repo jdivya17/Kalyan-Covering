@@ -51,6 +51,26 @@
 }
 .admin-page-title span { color: var(--gold); }
 
+/* ---- 4-column stats grid (collapses to 2x2 on mobile) ---- */
+.stats-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 768px) {
+  .stats-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem;
+  }
+}
+@media (max-width: 480px) {
+  .stats-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.55rem;
+  }
+  .stats-grid-4 .stat-card { padding: 0.65rem 0.55rem; }
+  .stats-grid-4 .stat-label { font-size: 0.6rem; }
+  .stats-grid-4 .stat-value { font-size: 1.1rem; }
+}
+
 /* ---- Admin Tab Navigation ---- */
 .admin-tabs {
   display: flex;

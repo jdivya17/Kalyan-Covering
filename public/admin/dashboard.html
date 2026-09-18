@@ -824,11 +824,11 @@
 
         @media(max-width:480px) {
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
 
             .analytics-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
 
             .admin-topbar {
@@ -1147,7 +1147,7 @@
                         </div>
                     </div>
                     <!-- Revenue counters -->
-                    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.5rem">
+                    <div class="stats-grid stats-grid-4" style="margin-bottom:1.5rem">
                         <div class="stat-card">
                             <div class="stat-label">Today Revenue</div>
                             <div class="stat-value">₹<span class="counter" data-target="18450">0</span></div>
@@ -1216,7 +1216,7 @@
                     </div>
 
                     <!-- Invoice Stats -->
-                    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.5rem">
+                    <div class="stats-grid stats-grid-4" style="margin-bottom:1.5rem">
                         <div class="stat-card">
                             <div class="stat-label">Total Invoices</div>
                             <div class="stat-value" id="inv-stat-total">—</div>
@@ -2195,11 +2195,14 @@
                 <div class="form-group"><label class="form-label">Discount (%)</label>
                     <input type="number" class="form-input" id="pm-discount" placeholder="0">
                 </div>
+                <div class="form-group"><label class="form-label">Stock Units (இருப்பு எண்ணிக்கை) *</label>
+                    <input type="number" class="form-input" id="pm-stock-count" placeholder="e.g. 25" min="0" value="10" oninput="if(typeof window.autoUpdateStockStatus === 'function') window.autoUpdateStockStatus(this.value)">
+                </div>
                 <div class="form-group"><label class="form-label">Stock Status</label>
                     <select class="form-input" id="pm-stock">
-                        <option value="in">In Stock</option>
-                        <option value="low">Low Stock</option>
-                        <option value="out">Out of Stock</option>
+                        <option value="in">🟢 In Stock</option>
+                        <option value="low">🟡 Low Stock (≤ 5 units)</option>
+                        <option value="out">🔴 Out of Stock (0 units)</option>
                     </select>
                 </div>
                 <div class="form-group"><label class="form-label">Tags (comma separated)</label>
@@ -2444,16 +2447,16 @@
                 if (typeof renderBranchesTable === 'function') renderBranchesTable();
                 if (typeof window.generateAdminNotifications === 'function') window.generateAdminNotifications();
 
-                // Real-time Firestore Listeners (Orders & Products)
+                // Real-time Firestore Listeners (Orders, Products & Users)
                 if (typeof onSnapshot === 'function' && db && !window._adminSnapshotBound) {
                     window._adminSnapshotBound = true;
-                    let initialLoad = true;
+                    let initialOrdersLoad = true;
                     onSnapshot(collection(db, "orders"), (snap) => {
                         window.adminData.orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         window.ordersData = window.adminData.orders;
                         if (typeof ordersData !== 'undefined') ordersData = window.ordersData;
 
-                        if (!initialLoad) {
+                        if (!initialOrdersLoad) {
                             snap.docChanges().forEach(change => {
                                 if (change.type === 'added') {
                                     const ord = change.doc.data();
@@ -2461,13 +2464,43 @@
                                 }
                             });
                         }
-                        initialLoad = false;
+                        initialOrdersLoad = false;
 
                         if (typeof updateDashboardStats === 'function') updateDashboardStats();
                         if (typeof renderRecentOrders === 'function') renderRecentOrders();
                         if (typeof renderOrdersTable === 'function') renderOrdersTable(window.ordersData);
                         if (typeof window.generateAdminNotifications === 'function') window.generateAdminNotifications();
                     }, (err) => console.warn('Real-time orders error:', err));
+
+                    let initialProductsLoad = true;
+                    onSnapshot(collection(db, "products"), (snap) => {
+                        window.adminData.products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        window.adminProducts = window.adminData.products;
+                        if (typeof adminProducts !== 'undefined') adminProducts = window.adminProducts;
+
+                        if (!initialProductsLoad) {
+                            snap.docChanges().forEach(change => {
+                                if (change.type === 'added') {
+                                    const p = change.doc.data();
+                                    Toast.info('📦 Product Catalog Updated', `Product "${p.name || 'New Product'}" sync live.`);
+                                }
+                            });
+                        }
+                        initialProductsLoad = false;
+
+                        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+                        if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts);
+                        if (typeof renderLowStock === 'function') renderLowStock();
+                        if (typeof renderTopProducts === 'function') renderTopProducts();
+                    }, (err) => console.warn('Real-time products error:', err));
+
+                    onSnapshot(collection(db, "users"), (snap) => {
+                        window.adminData.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        window.usersData = window.adminData.users;
+                        window.totalCustomersCount = window.adminData.users.length > 0 ? window.adminData.users.length : 124;
+                        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+                        if (typeof renderUsersTable === 'function') renderUsersTable();
+                    }, (err) => console.warn('Real-time users error:', err));
                 }
 
                 console.log('Admin UI Refresh Complete');
@@ -2995,7 +3028,9 @@
 
                     if (window.adminData && window.adminData.products) {
                         adminProducts = window.adminData.products;
+                        window.adminProducts = adminProducts;
                         ordersData = window.adminData.orders;
+                        window.ordersData = ordersData;
                         videosMgmtData = window.adminData.videos;
                         if (typeof updateDashboardStats === 'function') updateDashboardStats();
                         if (typeof renderRecentOrders === 'function') renderRecentOrders();
@@ -3092,6 +3127,8 @@
 
             const gstEl = document.getElementById('pm-gst');
             if (gstEl) gstEl.value = '3';
+            const stockCountEl = document.getElementById('pm-stock-count');
+            if (stockCountEl) stockCountEl.value = '10';
             const stockEl = document.getElementById('pm-stock');
             if (stockEl) stockEl.value = 'in';
             const isNewEl = document.getElementById('pm-isnew');
@@ -3359,21 +3396,26 @@
 
         function renderRecentOrders() {
             const tbody = document.getElementById('recent-orders');
-            if (!tbody) return;
+            const mobileList = document.getElementById('mobile-recent-orders-list');
             if (!Array.isArray(ordersData) || ordersData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--white-dim)">No recent orders found</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--white-dim)">No recent orders found</td></tr>';
+                if (mobileList) mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No recent orders found.</div>';
                 return;
             }
             const statusClass = { delivered: 'os-delivered', shipped: 'os-shipped', pending: 'os-pending', cancelled: 'os-cancelled', processing: 'os-pending' };
-            tbody.innerHTML = ordersData.slice(0, 5).map(o => {
-                const orderId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
-                const custName = o.customerName || o.customer || (o.shippingAddress ? o.shippingAddress.fullName : 'Customer');
-                const itemLength = Array.isArray(o.items) ? o.items.length : (typeof o.items === 'number' ? o.items : 1);
-                const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
-                const rawStatus = (o.status || 'pending').toLowerCase();
-                const cls = statusClass[rawStatus] || 'os-pending';
-                const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString() : new Date(o.createdAt).toLocaleDateString()) : (o.date || 'Today');
-                return `
+            const recentOrders = ordersData.slice(0, 5);
+
+            // Desktop table
+            if (tbody) {
+                tbody.innerHTML = recentOrders.map(o => {
+                    const orderId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
+                    const custName = o.customerName || o.customer || (o.shippingAddress ? o.shippingAddress.fullName : 'Customer');
+                    const itemLength = Array.isArray(o.items) ? o.items.length : (typeof o.items === 'number' ? o.items : 1);
+                    const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
+                    const rawStatus = (o.orderStatus || o.status || 'pending').toLowerCase();
+                    const cls = statusClass[rawStatus] || 'os-pending';
+                    const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN') : new Date(o.createdAt).toLocaleDateString('en-IN')) : (o.date || 'Today');
+                    return `
     <tr style="cursor:pointer" onclick="openAdminOrderModal('${o.id}')">
       <td data-label="Order ID" style="color:var(--gold);font-weight:600">${orderId}</td>
       <td data-label="Customer">${custName}</td>
@@ -3382,7 +3424,34 @@
       <td data-label="Status"><span class="order-status ${cls}">${rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</span></td>
       <td data-label="Date">${dateStr}</td>
     </tr>`;
-            }).join('');
+                }).join('');
+            }
+
+            // Mobile card list
+            if (mobileList) {
+                mobileList.innerHTML = recentOrders.map(o => {
+                    const shortId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
+                    const custName = o.customerName || o.customer || (o.shippingAddress ? o.shippingAddress.fullName : 'Customer');
+                    const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
+                    const rawStatus = o.orderStatus || o.status || 'Order Placed';
+                    const displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+                    const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : new Date(o.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})) : '';
+                    return `
+                    <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order','${o.id}')">
+                        <div class="mobile-card-left">
+                            <div style="min-width:0">
+                                <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
+                                    <span class="mobile-card-title" style="color:var(--gold);font-family:monospace">#${shortId}</span>
+                                    <span class="order-status ${_getOrderStatusClass(rawStatus)}" style="font-size:0.65rem;padding:1px 6px">${displayStatus}</span>
+                                </div>
+                                <div class="mobile-card-subtitle">${custName} • ${dateStr}</div>
+                                <div class="mobile-card-price">₹${Number(amt).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order','${o.id}')">View</button>
+                    </div>`;
+                }).join('');
+            }
         }
 
         function renderLowStock() {
@@ -3488,38 +3557,63 @@
             }
         }
 
+        // Auto-update stock status dropdown based on unit count input
+        window.autoUpdateStockStatus = function (val) {
+            const stockEl = document.getElementById('pm-stock');
+            if (!stockEl) return;
+            const num = parseInt(val);
+            if (isNaN(num) || num <= 0) {
+                stockEl.value = 'out';
+            } else if (num <= 5) {
+                stockEl.value = 'low';
+            } else {
+                stockEl.value = 'in';
+            }
+        };
+
         // ---- Products Table ----
         function renderProductsTable(products) {
             const tbody = document.getElementById('products-table');
             const mobileList = document.getElementById('mobile-products-list');
             if (!tbody && !mobileList) return;
-            // Bug Fix #4: Resolve stock status from stockStatus (string) OR stock (number)
+
+            // Keep global window.adminProducts in sync
+            if (Array.isArray(products)) {
+                adminProducts = products;
+                window.adminProducts = products;
+            }
+
             function getStockStatus(p) {
-                if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
-                if (typeof p.stock === 'string') return p.stock;
                 if (typeof p.stock === 'number') {
                     if (p.stock <= 0) return 'out';
                     if (p.stock <= 5) return 'low';
                     return 'in';
                 }
+                if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
+                if (typeof p.stock === 'string') return p.stock;
                 return 'in';
             }
             const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
             const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
+
             if (tbody) {
                 tbody.innerHTML = products.map(p => {
                     const sName = DOMPurify.sanitize(p.name || 'Unnamed');
                     const sCat = DOMPurify.sanitize(p.category || 'Unknown');
                     const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
                     const ss = getStockStatus(p);
+                    const unitsCount = typeof p.stock === 'number' ? p.stock : (ss === 'in' ? 50 : (ss === 'low' ? 3 : 0));
                     return `
     <tr>
       <td data-label="Product"><div style="display:flex;align-items:center;gap:.8rem">
-        <img src="${mainImg}" style="width:44px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #222">
-        <div><div style="font-weight:600;font-size:.85rem">${sName}</div><div style="font-size:.72rem;color:#666">${sCat}</div></div>
+        <img src="${mainImg}" onclick="openProductDetailModal('${p.id}')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--gold);cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Click image to view details" alt="${sName}">
+        <div>
+          <div style="font-weight:600;font-size:.88rem;color:var(--white);cursor:pointer" onclick="openProductDetailModal('${p.id}')" title="Click name to view details">${sName}</div>
+          <div style="font-size:.75rem;color:#888">${sCat}</div>
+        </div>
       </div></td>
       <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
-      <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.72rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'}</span></td>
+      <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.75rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${unitsCount} units)</span></td>
       <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
         <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')" title="View details">👁️ View</button>
         <button class="tbl-btn edit" onclick="event.stopPropagation(); openEditProduct('${p.id}')" title="Edit product">✏️ Edit</button>
@@ -3536,17 +3630,18 @@
                         const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
                         const sName = DOMPurify.sanitize(p.name || 'Unnamed');
                         const ss = getStockStatus(p);
+                        const unitsCount = typeof p.stock === 'number' ? p.stock : (ss === 'in' ? 50 : (ss === 'low' ? 3 : 0));
                         return `
-                            <div class="mobile-card-item">
+                            <div class="mobile-card-item" onclick="openMobileDetailModal('product', '${p.id}')" style="cursor:pointer">
                                 <div class="mobile-card-left">
-                                    <img src="${mainImg}" class="mobile-card-img" alt="">
+                                    <img src="${mainImg}" class="mobile-card-img" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')" style="cursor:pointer" alt="${sName}">
                                     <div style="min-width:0">
-                                        <div class="mobile-card-title">${sName}</div>
-                                        <div class="mobile-card-subtitle">${p.category || 'Jewelry'} • <span class="${stockClass[ss] || 'stock-in'}">${stockLabel[ss] || 'In Stock'}</span></div>
+                                        <div class="mobile-card-title" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')">${sName}</div>
+                                        <div class="mobile-card-subtitle">${p.category || 'Jewelry'} • <span class="${stockClass[ss] || 'stock-in'}">${stockLabel[ss] || 'In Stock'} (${unitsCount} units)</span></div>
                                         <div class="mobile-card-price">₹${(p.price || 0).toLocaleString()}</div>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="openMobileDetailModal('product', '${p.id}')">View Details</button>
+                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')">View Details</button>
                             </div>
                         `;
                     }).join('');
@@ -3555,7 +3650,8 @@
         }
 
         window.openProductDetailModal = function (productId) {
-            const p = (window.adminProducts || []).find(x => x.id === productId);
+            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
+            const p = allProducts.find(x => String(x.id) === String(productId));
             if (!p) {
                 Toast.error('Product not found', 'Could not find product details.');
                 return;
@@ -3569,15 +3665,24 @@
             const isNew = p.isNewLaunch || p.isNew;
             const isFeatured = p.featured;
 
-            // Images
+            // Images & Videos Gallery
             const imgs = p.imageURLs || p.images || (p.image ? [p.image] : ['/img-fallback.svg']);
+            const vids = p.videoURLs || p.videos || [];
             const galleryEl = document.getElementById('pdm-gallery');
             if (galleryEl) {
-                galleryEl.innerHTML = imgs.map(url => `
+                let html = imgs.map(url => `
                     <a href="${url}" target="_blank" rel="noopener">
                         <img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #333;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     </a>
                 `).join('');
+                if (vids.length > 0) {
+                    html += vids.map(vUrl => `
+                        <div style="position:relative;display:inline-block;margin-left:0.5rem">
+                            <video src="${vUrl}" controls style="width:120px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--gold)"></video>
+                        </div>
+                    `).join('');
+                }
+                galleryEl.innerHTML = html;
             }
 
             document.getElementById('pdm-name').textContent = sName;
@@ -3600,13 +3705,16 @@
             if (!flagsHtml) flagsHtml = '<span style="color:#555;font-size:0.8rem">Standard Product</span>';
             flagsEl.innerHTML = flagsHtml;
 
-            // Stock Status
-            const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
-            const ss = p.stockStatus || (stockVal > 5 ? 'in' : (stockVal > 0 ? 'low' : 'out'));
+            // Stock Status & Unit Count
+            const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
+            const ss = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
             const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
             const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
-            document.getElementById('pdm-stock-badge').className = `stock-badge ${stockClass[ss] || 'stock-in'}`;
-            document.getElementById('pdm-stock-badge').innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockVal} units)`;
+            const badgeEl = document.getElementById('pdm-stock-badge');
+            if (badgeEl) {
+                badgeEl.className = `stock-badge ${stockClass[ss] || 'stock-in'}`;
+                badgeEl.innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockUnits} Units Available)`;
+            }
 
             // Timestamps
             let createdStr = 'N/A';
@@ -3639,7 +3747,8 @@
         // Bug Fix #3: Null-safe filter — won't crash if name/category is undefined
         function filterProducts(q) {
             const lq = (q || '').toLowerCase();
-            const f = adminProducts.filter(p =>
+            const allProducts = window.adminProducts || adminProducts || [];
+            const f = allProducts.filter(p =>
                 (p.name || '').toLowerCase().includes(lq) ||
                 (p.category || '').toLowerCase().includes(lq)
             );
@@ -3647,7 +3756,8 @@
         }
 
         function openEditProduct(id) {
-            const p = adminProducts.find(x => x.id === id);
+            const allProducts = window.adminProducts || adminProducts || [];
+            const p = allProducts.find(x => String(x.id) === String(id));
             if (!p) return;
             editingProductId = id;
             document.getElementById('product-modal-title').textContent = 'Edit Product';
@@ -3658,8 +3768,13 @@
             document.getElementById('pm-mrp').value = p.mrp || p.price || 0;
             document.getElementById('pm-gst').value = p.gst || 3;
             document.getElementById('pm-discount').value = p.discount || 0;
-            // Bug Fix #6: Use stockStatus (string) for the dropdown, not stock (number)
-            document.getElementById('pm-stock').value = p.stockStatus || (typeof p.stock === 'string' ? p.stock : 'in');
+
+            const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : (p.stockStatus === 'low' ? 5 : 0));
+            const stockCountEl = document.getElementById('pm-stock-count');
+            if (stockCountEl) stockCountEl.value = stockUnits;
+            const stockSelEl = document.getElementById('pm-stock');
+            if (stockSelEl) stockSelEl.value = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
+
             document.getElementById('pm-tags').value = (p.tags || []).join(', ');
             document.getElementById('pm-isnew').checked = p.isNewLaunch || p.isNew || false;
             document.getElementById('pm-featured').checked = p.featured || false;
@@ -3693,8 +3808,12 @@
                 const imageList = imagesStr ? imagesStr.split(',').map(s => s.trim()).filter(s => s) : [];
                 const videoList = videosStr ? videosStr.split(',').map(s => s.trim()).filter(s => s) : [];
 
-                const stockSel = document.getElementById('pm-stock').value;
-                const stockVal = stockSel === 'in' ? 50 : stockSel === 'low' ? 5 : 0;
+                let stockUnits = parseInt(document.getElementById('pm-stock-count')?.value);
+                if (isNaN(stockUnits)) stockUnits = 10;
+                let stockSel = document.getElementById('pm-stock').value;
+                if (stockUnits <= 0) stockSel = 'out';
+                else if (stockUnits <= 5 && stockSel !== 'out') stockSel = 'low';
+
                 const data = {
                     name,
                     productName: name,
@@ -3705,9 +3824,9 @@
                     mrp: parseInt(document.getElementById('pm-mrp').value) || 0,
                     gst: parseInt(document.getElementById('pm-gst').value) || 3,
                     discount: parseInt(document.getElementById('pm-discount').value) || 0,
-                    stock: stockVal,
+                    stock: stockUnits,
                     stockStatus: stockSel,
-                    status: stockVal > 0 ? 'active' : 'out_of_stock',
+                    status: stockUnits > 0 ? 'active' : 'out_of_stock',
                     tags: document.getElementById('pm-tags').value.split(',').map(t => t.trim()).filter(t => t),
                     isNewLaunch: document.getElementById('pm-isnew').checked,
                     featured: document.getElementById('pm-featured').checked,
@@ -3720,7 +3839,6 @@
                     isNew: document.getElementById('pm-isnew').checked,
                     rating: 4.5,
                     reviews: 0
-                    // Note: createdAt & lastUpdated are set server-side by the API
                 };
 
                 if (data.mrp > data.price) {
@@ -3730,8 +3848,9 @@
                 if (editingProductId) {
                     const success = await window.updateProductInFirebase(editingProductId, data);
                     if (success) {
-                        const idx = adminProducts.findIndex(p => p.id === editingProductId);
+                        const idx = adminProducts.findIndex(p => String(p.id) === String(editingProductId));
                         if (idx > -1) { adminProducts[idx] = { ...adminProducts[idx], ...data }; }
+                        window.adminProducts = adminProducts;
                         Toast.success('Product updated!', name);
                     }
                 } else {
@@ -3743,6 +3862,7 @@
                     if (newId) {
                         const newP = { ...data, id: newId };
                         adminProducts.push(newP);
+                        window.adminProducts = adminProducts;
                         Toast.success('Product added!', name);
                         launchConfetti(1000);
                     }
@@ -4562,6 +4682,7 @@
 
         // ---- Invoices (Admin) ----
         let adminInvoices = [];
+        window.adminInvoices = adminInvoices; // expose for mobile detail modal
         let invoiceLastDoc = null;
         let invoiceTotalGst = 0;
         let invoiceTotalAmount = 0;
@@ -4661,6 +4782,7 @@
                 }
 
                 adminInvoices = loadMore ? [...adminInvoices, ...invoices] : invoices;
+                window.adminInvoices = adminInvoices; // keep window ref in sync
 
                 if (invoices.length === limit) {
                     loadBtn.style.display = 'inline-flex';
@@ -5250,24 +5372,29 @@
             let actionsHTML = '';
 
             if (type === 'product' || type === 'top-product') {
-                const p = (window.adminProducts || []).find(x => x.id === itemId);
+                const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
+                const p = allProducts.find(x => String(x.id) === String(itemId));
                 if (!p) return;
                 title = p.name || 'Product Details';
                 const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
-                const stockStatus = p.stockStatus || (p.stock <= 0 ? 'Out of Stock' : p.stock <= 5 ? 'Low Stock' : 'In Stock');
+                const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
+                const ss = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
+                const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
+                const stockStatus = `${stockLabel[ss] || 'In Stock'} (${stockUnits} units available)`;
                 const revenue = ((p.price || 0) * (p.reviews || 0) * 0.3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                 bodyHTML = `
                     <div style="text-align:center;margin-bottom:0.5rem">
-                        <img src="${mainImg}" style="width:120px;height:120px;object-fit:cover;border-radius:12px;border:1px solid #333;margin:0 auto">
+                        <img src="${mainImg}" onclick="window.open('${mainImg}', '_blank')" style="width:130px;height:130px;object-fit:cover;border-radius:12px;border:1px solid var(--gold);margin:0 auto;cursor:pointer" title="Click image to open full size">
                         <h4 style="color:#fff;font-size:1.05rem;margin-top:0.6rem">${DOMPurify.sanitize(p.name || '')}</h4>
                         <p style="color:var(--gold);font-weight:700;font-size:1.1rem;margin-top:0.2rem">₹${(p.price || 0).toLocaleString()}</p>
                     </div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Category</span><span class="mobile-detail-val">${p.category || 'Jewelry'}</span></div>
-                    <div class="mobile-detail-row"><span class="mobile-detail-label">Stock Status</span><span class="mobile-detail-val">${stockStatus} (Qty: ${p.stock ?? 'N/A'})</span></div>
+                    <div class="mobile-detail-row"><span class="mobile-detail-label">Stock Status</span><span class="mobile-detail-val" style="color:${ss==='in'?'#4caf50':ss==='low'?'#f59e0b':'#ef5350'}">${stockStatus}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">SKU Code</span><span class="mobile-detail-val" style="font-family:monospace">${p.sku || 'N/A'}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Estimated Revenue</span><span class="mobile-detail-val" style="color:var(--gold)">₹${revenue}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Rating</span><span class="mobile-detail-val">⭐ ${p.rating || 4.5} (${p.reviews || 0} reviews)</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">GST Tax Rate</span><span class="mobile-detail-val">${p.gstRate || 3}% GST</span></div>
+                    ${(p.videoURLs?.length || p.videos?.length) ? `<div style="margin-top:0.75rem"><span class="mobile-detail-label">🎥 Product Video</span><div style="margin-top:0.4rem;border-radius:8px;overflow:hidden;border:1px solid var(--gold)"><video src="${(p.videoURLs || p.videos)[0]}" controls style="width:100%;max-height:180px;object-fit:cover"></video></div></div>` : ''}
                     ${p.description ? `<div style="margin-top:0.5rem"><span class="mobile-detail-label">Description</span><p style="color:#aaa;font-size:0.8rem;margin-top:0.3rem">${DOMPurify.sanitize(p.description)}</p></div>` : ''}
                 `;
                 actionsHTML = `
