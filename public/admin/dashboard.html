@@ -245,7 +245,7 @@
 
         .stat-label {
             font-size: .75rem;
-            color: #666;
+            color: var(--white-dim, #aaa);
             letter-spacing: 1px;
             text-transform: uppercase;
             margin-bottom: .3rem;
@@ -377,6 +377,44 @@
             border: 1px solid var(--black-border);
             border-radius: var(--radius);
             padding: 1.5rem;
+        }
+
+        /* Chart Empty State Styling */
+        .chart-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            min-height: 180px;
+            max-height: 220px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px dashed rgba(255, 215, 0, 0.2);
+            border-radius: var(--radius, 8px);
+            margin-top: 0.5rem;
+            box-sizing: border-box;
+        }
+
+        .chart-empty-icon {
+            font-size: 2.2rem;
+            margin-bottom: 0.4rem;
+            opacity: 0.85;
+        }
+
+        .chart-empty-title {
+            font-weight: 700;
+            color: var(--gold);
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            font-family: var(--font-sans);
+        }
+
+        .chart-empty-sub {
+            font-size: 0.8rem;
+            color: var(--white-dim, #888);
+            max-width: 280px;
+            line-height: 1.35;
         }
 
         .chart-card h3 {
@@ -713,7 +751,7 @@
 
         .analytics-mini h4 {
             font-size: .8rem;
-            color: #666;
+            color: var(--white-dim, #aaa);
             margin-bottom: .5rem;
         }
 
@@ -725,7 +763,7 @@
 
         .analytics-mini .sub {
             font-size: .72rem;
-            color: #555;
+            color: #999;
             margin-top: .2rem;
         }
 
@@ -2445,6 +2483,7 @@
                         if (typeof renderRecentOrders === 'function') renderRecentOrders();
                         if (typeof renderOrdersTable === 'function') renderOrdersTable(window.ordersData);
                         if (typeof window.generateAdminNotifications === 'function') window.generateAdminNotifications();
+                        if (typeof updateDashCharts === 'function') updateDashCharts();
                     }, (err) => console.warn('Real-time orders error:', err));
 
                     let initialProductsLoad = true;
@@ -2467,6 +2506,7 @@
                         if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts);
                         if (typeof renderLowStock === 'function') renderLowStock();
                         if (typeof renderTopProducts === 'function') renderTopProducts();
+                        if (typeof updateDashCharts === 'function') updateDashCharts();
                     }, (err) => console.warn('Real-time products error:', err));
 
                     onSnapshot(collection(db, "users"), (snap) => {
@@ -3011,6 +3051,7 @@
                         if (typeof renderRecentOrders === 'function') renderRecentOrders();
                         if (typeof renderLowStock === 'function') renderLowStock();
                         if (typeof initDashCharts === 'function') initDashCharts();
+                        if (typeof updateDashCharts === 'function') updateDashCharts();
                         const activeTheme = window.KC?.theme || localStorage.getItem('kc_theme') || 'normal';
                         if (activeTheme !== 'normal' && typeof previewTheme === 'function') previewTheme(activeTheme);
                         const themeLabel = document.getElementById('current-theme-label');
@@ -3312,8 +3353,8 @@
             document.getElementById('panel-title').textContent = titles[id] || '';
             document.getElementById('admin-sidebar').classList.remove('open');
 
-            if (id === 'dashboard') { renderRecentOrders(); renderLowStock(); initDashCharts(); }
-            if (id === 'analytics') { initAnalyticsCharts(); renderTopProducts(); }
+            if (id === 'dashboard') { renderRecentOrders(); renderLowStock(); initDashCharts(); if (typeof updateDashCharts === 'function') updateDashCharts(); }
+            if (id === 'analytics') { initAnalyticsCharts(); if (typeof updateDashCharts === 'function') updateDashCharts(); renderTopProducts(); }
             if (id === 'products') renderProductsTable(adminProducts);
             if (id === 'orders') renderOrdersTable(ordersData);
             if (id === 'invoices') { if (typeof window.loadAdminInvoices === 'function') window.loadAdminInvoices(); }
@@ -3373,8 +3414,14 @@
             const tbody = document.getElementById('recent-orders');
             const mobileList = document.getElementById('mobile-recent-orders-list');
             if (!Array.isArray(ordersData) || ordersData.length === 0) {
-                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--white-dim)">No recent orders found</td></tr>';
-                if (mobileList) mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No recent orders found.</div>';
+                const emptyHTML = `
+                    <div class="chart-empty-state" style="margin: 1rem 0; min-height: 160px;">
+                        <div class="chart-empty-icon">🛍️</div>
+                        <div class="chart-empty-title">No recent orders found</div>
+                        <div class="chart-empty-sub">New orders will appear here automatically.</div>
+                    </div>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:0;border:none;">${emptyHTML}</td></tr>`;
+                if (mobileList) mobileList.innerHTML = emptyHTML;
                 return;
             }
             const statusClass = { delivered: 'os-delivered', shipped: 'os-shipped', pending: 'os-pending', cancelled: 'os-cancelled', processing: 'os-pending' };
@@ -3452,44 +3499,395 @@
       </div>`).join('');
         }
 
+        // ---- Charts Data Helpers ----
+        function parseOrderDate(createdAt) {
+            if (!createdAt) return null;
+            if (typeof createdAt.toDate === 'function') return createdAt.toDate();
+            if (typeof createdAt.seconds === 'number') return new Date(createdAt.seconds * 1000);
+            if (createdAt instanceof Date) return createdAt;
+            const parsed = new Date(createdAt);
+            return isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function getRevenueLast7Days() {
+            const orders = window.ordersData || window.adminData?.orders || [];
+            const days = [];
+            const labels = [];
+            const sums = [];
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                d.setHours(0, 0, 0, 0);
+                days.push(d);
+                labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+                sums.push(0);
+            }
+
+            orders.forEach(order => {
+                const rawDate = order.createdAt || order.date;
+                const ordDate = parseOrderDate(rawDate);
+                if (!ordDate) return;
+
+                for (let i = 0; i < days.length; i++) {
+                    const targetDate = days[i];
+                    if (
+                        ordDate.getFullYear() === targetDate.getFullYear() &&
+                        ordDate.getMonth() === targetDate.getMonth() &&
+                        ordDate.getDate() === targetDate.getDate()
+                    ) {
+                        const amt = Number(order.totalAmount || order.total || 0);
+                        sums[i] += isNaN(amt) ? 0 : amt;
+                        break;
+                    }
+                }
+            });
+
+            return { labels, data: sums };
+        }
+
+        function getCategoryData() {
+            const products = window.adminProducts || window.adminData?.products || [];
+            const orders = window.ordersData || window.adminData?.orders || [];
+
+            const productCategoryMap = {};
+            const categoryCounts = {};
+
+            products.forEach(p => {
+                const rawCat = (p.category || 'Others').trim();
+                const displayCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+                if (p.id) productCategoryMap[p.id] = displayCat;
+                if (!categoryCounts[displayCat]) categoryCounts[displayCat] = 0;
+            });
+
+            let orderItemsCounted = 0;
+
+            orders.forEach(order => {
+                if (Array.isArray(order.items)) {
+                    order.items.forEach(item => {
+                        const pId = item.id || item.productId;
+                        const itemCat = item.category ? (item.category.trim().charAt(0).toUpperCase() + item.category.trim().slice(1)) : (pId ? productCategoryMap[pId] : null);
+                        if (itemCat) {
+                            categoryCounts[itemCat] = (categoryCounts[itemCat] || 0) + (Number(item.qty || item.quantity) || 1);
+                            orderItemsCounted++;
+                        }
+                    });
+                }
+            });
+
+            if (orderItemsCounted === 0 && products.length > 0) {
+                products.forEach(p => {
+                    const rawCat = (p.category || 'Others').trim();
+                    const displayCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+                    categoryCounts[displayCat] = (categoryCounts[displayCat] || 0) + 1;
+                });
+            }
+
+            const labels = Object.keys(categoryCounts);
+            const data = Object.values(categoryCounts);
+
+            if (labels.length === 0) {
+                return {
+                    labels: ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Others'],
+                    data: [0, 0, 0, 0, 0]
+                };
+            }
+
+            return { labels, data };
+        }
+
+        function getMonthlySalesTrendData() {
+            const orders = window.ordersData || window.adminData?.orders || [];
+            const months = [];
+            const revenueKData = [];
+            const ordersCountData = [];
+
+            const now = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push(d.toLocaleDateString('en-US', { month: 'short' }));
+                revenueKData.push(0);
+                ordersCountData.push(0);
+            }
+
+            orders.forEach(order => {
+                const ordDate = parseOrderDate(order.createdAt || order.date);
+                if (!ordDate) return;
+
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    if (ordDate.getFullYear() === d.getFullYear() && ordDate.getMonth() === d.getMonth()) {
+                        const index = 5 - i;
+                        const amt = Number(order.totalAmount || order.total || 0);
+                        revenueKData[index] += isNaN(amt) ? 0 : amt;
+                        ordersCountData[index] += 1;
+                        break;
+                    }
+                }
+            });
+
+            const revenueK = revenueKData.map(v => Math.round((v / 1000) * 10) / 10);
+            return { labels: months, revenueK, ordersCount: ordersCountData };
+        }
+
+        // ---- Chart Empty-State Helpers ----
+        function renderChartEmptyState(canvasId, message, subMessage, icon = '📊') {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            canvas.style.display = 'none';
+
+            const card = canvas.closest('.chart-card') || canvas.parentElement;
+            if (!card) return;
+
+            let emptyState = card.querySelector(`.chart-empty-state[data-for="${canvasId}"]`);
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.className = 'chart-empty-state';
+                emptyState.setAttribute('data-for', canvasId);
+                card.appendChild(emptyState);
+            }
+
+            emptyState.style.display = 'flex';
+            emptyState.innerHTML = `
+                <div class="chart-empty-icon">${icon}</div>
+                <div class="chart-empty-title">${DOMPurify.sanitize(message || 'No data available')}</div>
+                <div class="chart-empty-sub">${DOMPurify.sanitize(subMessage || 'Data will appear here automatically')}</div>
+            `;
+        }
+
+        function renderChartCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            canvas.style.display = 'block';
+
+            const card = canvas.closest('.chart-card') || canvas.parentElement;
+            if (!card) return;
+
+            const emptyState = card.querySelector(`.chart-empty-state[data-for="${canvasId}"]`);
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        }
+        window.renderChartEmptyState = renderChartEmptyState;
+        window.renderChartCanvas = renderChartCanvas;
+
         // ---- Charts ----
         let chartsInit = {};
+        let revenueChartInstance = null;
+        let categoryChartInstance = null;
+        let salesTrendChartInstance = null;
+        let trafficChartInstance = null;
+
+        const categoryPalette = ['#FFD700', '#B8980A', '#FFA500', '#FF8C00', '#E6C200', '#D4AF37', '#CD7F32', '#666'];
+
         function initDashCharts() {
-            if (chartsInit.dash) return; chartsInit.dash = true;
-            const gold = '#FFD700'; const darkGold = '#B8980A';
-            const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            new Chart(document.getElementById('revenueChart'), {
-                type: 'line',
-                data: { labels, datasets: [{ label: 'Revenue (₹)', data: [0, 0, 0, 0, 0, 0, 0], borderColor: gold, backgroundColor: 'rgba(255,215,0,.08)', tension: .4, fill: true, pointBackgroundColor: gold, pointRadius: 4 }] },
-                options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '₹' + ctx.parsed.y.toLocaleString() } } }, scales: { x: { grid: { color: '#111' }, ticks: { color: '#666' } }, y: { grid: { color: '#111' }, ticks: { color: '#666', callback: v => '₹' + v.toLocaleString() } } } }
-            });
-            new Chart(document.getElementById('categoryChart'), {
-                type: 'doughnut',
-                data: { labels: ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Others'], datasets: [{ data: [0, 0, 0, 0, 0], backgroundColor: ['#FFD700', '#B8980A', '#FFA500', '#FF8C00', '#666'], borderWidth: 0 }] },
-                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#aaa', padding: 12, font: { size: 11 } } } }, cutout: '65%' }
-            });
+            const revCanvas = document.getElementById('revenueChart');
+            const catCanvas = document.getElementById('categoryChart');
+            if (!revCanvas || !catCanvas) return;
+
+            const revData = getRevenueLast7Days();
+            const catData = getCategoryData();
+            const gold = '#FFD700';
+
+            // 1. Revenue Chart Empty-State vs Canvas Check
+            const isRevEmpty = !revData.data || revData.data.length === 0 || revData.data.every(v => Number(v) === 0);
+            if (isRevEmpty) {
+                renderChartEmptyState('revenueChart', 'No revenue recorded this week', 'Charts will populate automatically as new orders come in.', '📈');
+            } else {
+                renderChartCanvas('revenueChart');
+                if (!revenueChartInstance && typeof Chart.getChart === 'function') {
+                    revenueChartInstance = Chart.getChart(revCanvas);
+                }
+                if (!revenueChartInstance) {
+                    revenueChartInstance = new Chart(revCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: revData.labels,
+                            datasets: [{
+                                label: 'Revenue (₹)',
+                                data: revData.data,
+                                borderColor: gold,
+                                backgroundColor: 'rgba(255,215,0,.08)',
+                                tension: .4,
+                                fill: true,
+                                pointBackgroundColor: gold,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { callbacks: { label: ctx => '₹' + ctx.parsed.y.toLocaleString() } }
+                            },
+                            scales: {
+                                x: { grid: { color: '#111' }, ticks: { color: '#666' } },
+                                y: { grid: { color: '#111' }, ticks: { color: '#666', callback: v => '₹' + v.toLocaleString() } }
+                            }
+                        }
+                    });
+                } else {
+                    revenueChartInstance.data.labels = revData.labels;
+                    revenueChartInstance.data.datasets[0].data = revData.data;
+                    revenueChartInstance.update();
+                }
+            }
+
+            // 2. Category Chart Empty-State vs Canvas Check
+            const isCatEmpty = !catData.data || catData.data.length === 0 || catData.data.every(v => Number(v) === 0);
+            if (isCatEmpty) {
+                renderChartEmptyState('categoryChart', 'No category sales yet', 'Product category breakdown will appear here once orders are placed.', '📊');
+            } else {
+                renderChartCanvas('categoryChart');
+                if (!categoryChartInstance && typeof Chart.getChart === 'function') {
+                    categoryChartInstance = Chart.getChart(catCanvas);
+                }
+                if (!categoryChartInstance) {
+                    categoryChartInstance = new Chart(catCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: catData.labels,
+                            datasets: [{
+                                data: catData.data,
+                                backgroundColor: catData.labels.map((_, i) => categoryPalette[i % categoryPalette.length]),
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: '#aaa', padding: 12, font: { size: 11 } } }
+                            },
+                            cutout: '65%'
+                        }
+                    });
+                } else {
+                    categoryChartInstance.data.labels = catData.labels;
+                    categoryChartInstance.data.datasets[0].data = catData.data;
+                    categoryChartInstance.data.datasets[0].backgroundColor = catData.labels.map((_, i) => categoryPalette[i % categoryPalette.length]);
+                    categoryChartInstance.update();
+                }
+            }
+
+            chartsInit.dash = true;
         }
 
         function initAnalyticsCharts() {
-            if (chartsInit.analytics) return; chartsInit.analytics = true;
-            const gold = '#FFD700';
-            const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
-            new Chart(document.getElementById('salesTrendChart'), {
-                type: 'bar',
-                data: {
-                    labels: months, datasets: [
-                        { label: 'Revenue(₹K)', data: [0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(255,215,0,.7)', borderRadius: 6 },
-                        { label: 'Orders', data: [0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(255,165,0,.4)', borderRadius: 6 }
-                    ]
-                },
-                options: { responsive: true, plugins: { legend: { labels: { color: '#aaa' } } }, scales: { x: { grid: { color: '#111' }, ticks: { color: '#666' } }, y: { grid: { color: '#111' }, ticks: { color: '#666' } } } }
-            });
-            new Chart(document.getElementById('trafficChart'), {
-                type: 'pie',
-                data: { labels: ['Organic', 'Direct', 'Social', 'Referral'], datasets: [{ data: [42, 28, 20, 10], backgroundColor: ['#FFD700', '#FFA500', '#B8980A', '#665500'], borderWidth: 0 }] },
-                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#aaa', font: { size: 11 } } } } }
-            });
+            const trendCanvas = document.getElementById('salesTrendChart');
+            const trafficCanvas = document.getElementById('trafficChart');
+            if (!trendCanvas || !trafficCanvas) return;
+
+            const trendData = getMonthlySalesTrendData();
+
+            const isTrendEmpty = !trendData.revenueK || trendData.revenueK.length === 0 || (trendData.revenueK.every(v => Number(v) === 0) && trendData.ordersCount.every(v => Number(v) === 0));
+            if (isTrendEmpty) {
+                renderChartEmptyState('salesTrendChart', 'No sales trend data available', 'Monthly revenue and order volume will display here.', '📊');
+            } else {
+                renderChartCanvas('salesTrendChart');
+                if (!salesTrendChartInstance && typeof Chart.getChart === 'function') {
+                    salesTrendChartInstance = Chart.getChart(trendCanvas);
+                }
+                if (!salesTrendChartInstance) {
+                    salesTrendChartInstance = new Chart(trendCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: trendData.labels,
+                            datasets: [
+                                { label: 'Revenue(₹K)', data: trendData.revenueK, backgroundColor: 'rgba(255,215,0,.7)', borderRadius: 6 },
+                                { label: 'Orders', data: trendData.ordersCount, backgroundColor: 'rgba(255,165,0,.4)', borderRadius: 6 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { labels: { color: '#aaa' } } },
+                            scales: { x: { grid: { color: '#111' }, ticks: { color: '#666' } }, y: { grid: { color: '#111' }, ticks: { color: '#666' } } }
+                        }
+                    });
+                } else {
+                    salesTrendChartInstance.data.labels = trendData.labels;
+                    salesTrendChartInstance.data.datasets[0].data = trendData.revenueK;
+                    salesTrendChartInstance.data.datasets[1].data = trendData.ordersCount;
+                    salesTrendChartInstance.update();
+                }
+            }
+
+            if (!trafficChartInstance && typeof Chart.getChart === 'function') {
+                trafficChartInstance = Chart.getChart(trafficCanvas);
+            }
+            if (!trafficChartInstance) {
+                // NOTE: Needs real analytics tracking, e.g. Google Analytics or a custom analytics_visits Firestore collection, to become real
+                trafficChartInstance = new Chart(trafficCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Organic', 'Direct', 'Social', 'Referral'],
+                        datasets: [{ data: [42, 28, 20, 10], backgroundColor: ['#FFD700', '#FFA500', '#B8980A', '#665500'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#aaa', font: { size: 11 } } } } }
+                });
+            }
+
+            chartsInit.analytics = true;
         }
+
+        function updateDashCharts() {
+            if (!chartsInit.dash) {
+                initDashCharts();
+                initAnalyticsCharts();
+                return;
+            }
+
+            const revData = getRevenueLast7Days();
+            const isRevEmpty = !revData.data || revData.data.length === 0 || revData.data.every(v => Number(v) === 0);
+            if (isRevEmpty) {
+                renderChartEmptyState('revenueChart', 'No revenue recorded this week', 'Charts will populate automatically as new orders come in.', '📈');
+            } else {
+                renderChartCanvas('revenueChart');
+                if (!revenueChartInstance) {
+                    initDashCharts();
+                } else {
+                    revenueChartInstance.data.labels = revData.labels;
+                    revenueChartInstance.data.datasets[0].data = revData.data;
+                    revenueChartInstance.update();
+                }
+            }
+
+            const catData = getCategoryData();
+            const isCatEmpty = !catData.data || catData.data.length === 0 || catData.data.every(v => Number(v) === 0);
+            if (isCatEmpty) {
+                renderChartEmptyState('categoryChart', 'No category sales yet', 'Product category breakdown will appear here once orders are placed.', '📊');
+            } else {
+                renderChartCanvas('categoryChart');
+                if (!categoryChartInstance) {
+                    initDashCharts();
+                } else {
+                    categoryChartInstance.data.labels = catData.labels;
+                    categoryChartInstance.data.datasets[0].data = catData.data;
+                    categoryChartInstance.data.datasets[0].backgroundColor = catData.labels.map((_, i) => categoryPalette[i % categoryPalette.length]);
+                    categoryChartInstance.update();
+                }
+            }
+
+            if (chartsInit.analytics) {
+                const trendData = getMonthlySalesTrendData();
+                const isTrendEmpty = !trendData.revenueK || trendData.revenueK.length === 0 || (trendData.revenueK.every(v => Number(v) === 0) && trendData.ordersCount.every(v => Number(v) === 0));
+                if (isTrendEmpty) {
+                    renderChartEmptyState('salesTrendChart', 'No sales trend data available', 'Monthly revenue and order volume will display here.', '📊');
+                } else {
+                    renderChartCanvas('salesTrendChart');
+                    if (salesTrendChartInstance) {
+                        salesTrendChartInstance.data.labels = trendData.labels;
+                        salesTrendChartInstance.data.datasets[0].data = trendData.revenueK;
+                        salesTrendChartInstance.data.datasets[1].data = trendData.ordersCount;
+                        salesTrendChartInstance.update();
+                    } else {
+                        initAnalyticsCharts();
+                    }
+                }
+            }
+        }
+        window.updateDashCharts = updateDashCharts;
 
         function renderTopProducts() {
             const tbody = document.getElementById('top-products-table');
@@ -3515,17 +3913,17 @@
                     mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No top products.</div>';
                 } else {
                     mobileList.innerHTML = sorted.slice(0, 10).map((p, idx) => `
-                        <div class="mobile-card-item">
-                            <div class="mobile-card-left">
-                                <span style="font-weight:700;color:var(--gold);font-size:0.9rem;width:24px;text-align:center">#${idx + 1}</span>
+                        <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('top-product', '${p.id}')">
+                            <div class="mobile-card-left" style="flex:1;min-width:0">
+                                <span style="font-weight:700;color:var(--gold);font-size:0.9rem;width:24px;text-align:center;flex-shrink:0">#${idx + 1}</span>
                                 <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" class="mobile-card-img" alt="">
-                                <div style="min-width:0">
+                                <div style="min-width:0;flex:1">
                                     <div class="mobile-card-title">${DOMPurify.sanitize(p.name || 'Product')}</div>
                                     <div class="mobile-card-subtitle">Sales: ${p.reviews || 0} units</div>
                                     <div class="mobile-card-price">₹${(p.price || 0).toLocaleString()}</div>
                                 </div>
                             </div>
-                            <button class="mobile-view-btn" onclick="openMobileDetailModal('top-product', '${p.id}')">View Details</button>
+                            <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('top-product', '${p.id}')">View Details</button>
                         </div>
                     `).join('');
                 }
@@ -4927,7 +5325,7 @@
                             ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
                             : (inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—');
                         return `
-                            <div class="mobile-card-item">
+                            <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('invoice', '${inv.id}')">
                                 <div class="mobile-card-left">
                                     <div style="min-width:0">
                                         <div class="mobile-card-title" style="color:var(--gold);font-family:monospace">${invNo}</div>
@@ -4935,7 +5333,7 @@
                                         <div class="mobile-card-price" style="color:var(--green)">₹${(inv.grandTotal || 0).toLocaleString('en-IN')}</div>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="openMobileDetailModal('invoice', '${inv.id}')">View Details</button>
+                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('invoice', '${inv.id}')">View Details</button>
                             </div>
                         `;
                     }).join('');
@@ -5433,7 +5831,10 @@
             if (type === 'product' || type === 'top-product') {
                 const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
                 const p = allProducts.find(x => String(x.id) === String(itemId));
-                if (!p) return;
+                if (!p) {
+                    console.warn('[openMobileDetailModal] Product not found for itemId:', itemId, 'Type:', type);
+                    return;
+                }
                 title = p.name || 'Product Details';
                 const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
                 const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);

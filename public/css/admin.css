@@ -424,10 +424,12 @@ html {
     font-size: 0.88rem;
     font-weight: 600;
     color: var(--white, #fff);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
     line-height: 1.3;
+    word-break: break-word;
   }
 
   .mobile-card-subtitle {
@@ -463,6 +465,14 @@ html {
 
   /* ── Bigger tap targets for action buttons ── */
   .tbl-actions button { min-height: 40px; min-width: 40px; padding: 0.5rem; }
+}
+
+/* Mobile FAB padding clearance */
+@media (max-width: 1024px) {
+  .admin-content,
+  .admin-panel {
+    padding-bottom: 90px !important;
+  }
 }
 
 /* Desktop view: show desktop-table-wrap, hide mobile-data-list */
@@ -508,7 +518,7 @@ html {
 .mobile-fab-btn:active {
   transform: scale(0.94);
 }
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .mobile-fab-btn {
     display: none !important;
   }
