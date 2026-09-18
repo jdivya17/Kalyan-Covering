@@ -1971,86 +1971,61 @@
 
     <!-- Product Detail Modal -->
     <div class="modal-overlay" id="product-detail-modal">
-        <div class="modal" style="max-width:800px;width:95%">
+        <div class="modal" style="max-width:600px;width:95%;padding:1.5rem">
             <button class="modal-close" onclick="closeModal('product-detail-modal')">×</button>
-            <div
-                style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #222;padding-bottom:1rem;margin-bottom:1.2rem">
+            
+            <!-- 1. Header: Product Name + Category -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #222;padding-bottom:0.8rem;margin-bottom:1rem">
                 <div>
-                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin:0" id="pdm-name">Product Details
-                    </h3>
-                    <div style="font-size:0.8rem;color:#aaa;margin-top:0.2rem">
-                        <span id="pdm-category" style="color:var(--gold)">Category</span> · <span id="pdm-sku"
-                            style="font-family:monospace">SKU-000</span>
-                    </div>
+                    <h3 style="font-family:var(--font-serif);color:var(--gold);margin:0;font-size:1.3rem;font-weight:700" id="pdm-name">Product Name</h3>
+                    <div style="font-size:0.82rem;color:#888;margin-top:0.2rem" id="pdm-category">Category</div>
                 </div>
                 <div id="pdm-flags"></div>
             </div>
 
-            <div class="pdm-inner-grid"
-                style="display:grid;grid-template-columns:min(260px,100%) 1fr;gap:1.5rem;margin-bottom:1.5rem">
-                <!-- Gallery Column -->
+            <!-- 2. Prominent Price & Stock Badge -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;background:#111;padding:0.8rem 1rem;border-radius:6px;border:1px solid #222">
                 <div>
-                    <div
-                        style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem">
-                        Product Images</div>
-                    <div id="pdm-gallery" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.5rem"></div>
+                    <div style="font-size:1.5rem;font-weight:800;color:var(--gold)" id="pdm-price">₹0</div>
+                    <div style="font-size:0.75rem;color:#888" id="pdm-mrp-discount"></div>
                 </div>
-
-                <!-- Specs Column -->
-                <div style="display:flex;flex-direction:column;gap:1rem">
-                    <!-- Pricing & Inventory Card -->
-                    <div
-                        style="background:#141414;padding:1rem;border-radius:6px;border:1px solid #222;display:grid;grid-template-columns:repeat(2, 1fr);gap:0.8rem">
-                        <div>
-                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Selling Price</div>
-                            <div style="font-size:1.3rem;font-weight:700;color:var(--gold)" id="pdm-price">₹0</div>
-                            <div style="font-size:0.75rem;color:#666;text-decoration:line-through" id="pdm-mrp">₹0</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Stock Status</div>
-                            <div style="margin-top:0.3rem"><span class="stock-badge stock-in" id="pdm-stock-badge"><span
-                                        class="dot"></span>In Stock</span></div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Tax Rate</div>
-                            <div style="font-size:0.85rem;color:#ccc" id="pdm-gst">3% GST</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Discount</div>
-                            <div style="font-size:0.85rem;color:var(--green)" id="pdm-discount">0% OFF</div>
-                        </div>
-                    </div>
-
-                    <!-- Wishlist & Timestamps -->
-                    <div
-                        style="display:flex;justify-content:space-between;align-items:center;background:#141414;padding:0.8rem 1rem;border-radius:6px;border:1px solid #222">
-                        <div>
-                            <span style="font-size:0.75rem;color:#888;text-transform:uppercase">Wishlist Saves: </span>
-                            <strong style="color:var(--gold)" id="pdm-wishlist">0 ♥</strong>
-                        </div>
-                        <div style="font-size:0.75rem;color:#666">
-                            Created: <span id="pdm-created" style="color:#aaa">—</span> | Updated: <span
-                                id="pdm-updated" style="color:#aaa">—</span>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div>
-                        <div
-                            style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem">
-                            Full Description</div>
-                        <p id="pdm-description"
-                            style="font-size:0.85rem;color:#ccc;background:#050505;padding:0.8rem;border:1px solid #222;border-radius:4px;max-height:120px;overflow-y:auto;margin:0;white-space:pre-wrap">
-                            —</p>
-                    </div>
+                <div>
+                    <span class="stock-badge stock-in" id="pdm-stock-badge" style="font-size:0.75rem"><span class="dot"></span>In Stock</span>
                 </div>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:1rem;border-top:1px solid #222;padding-top:1rem">
-                <button class="btn btn-outline" id="pdm-btn-edit">✏️ Edit Product</button>
-                <button class="btn btn-outline" style="border-color:var(--red);color:var(--red)" id="pdm-btn-delete">🗑
-                    Delete</button>
-                <button class="btn btn-gold" onclick="closeModal('product-detail-modal')">Close</button>
+            <!-- 3. Description Text -->
+            <div style="margin-bottom:1.2rem">
+                <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem">Description</div>
+                <p id="pdm-description" style="font-size:0.85rem;color:#ccc;background:#050505;padding:0.8rem;border:1px solid #222;border-radius:6px;margin:0;white-space:pre-wrap;max-height:100px;overflow-y:auto">—</p>
+            </div>
+
+            <!-- 4. Photos Section (3-column Grid with Per-photo delete + upload tile) -->
+            <div style="margin-bottom:1.2rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                    <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px">Photos</div>
+                    <span style="font-size:0.72rem;color:#666" id="pdm-photo-count">0 photos</span>
+                </div>
+                <div id="pdm-photo-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.6rem"></div>
+                <input type="file" id="pdm-add-photo-file" accept="image/*" style="display:none" onchange="uploadProductDetailPhoto(this.files)">
+            </div>
+
+            <!-- 5. Two-column Stats Row (Wishlist & Reviews) -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;background:#141414;padding:0.8rem 1rem;border-radius:6px;border:1px solid #222;margin-bottom:1.5rem">
+                <div>
+                    <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Wishlist Saves</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:var(--gold);margin-top:0.2rem" id="pdm-wishlist">0 ♥</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Reviews & Rating</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-top:0.2rem" id="pdm-reviews">⭐ 4.5 (0 reviews)</div>
+                </div>
+            </div>
+
+            <!-- 6. Bottom: Edit & Delete Full-width Side-by-side buttons -->
+            <div style="display:flex;gap:0.8rem;border-top:1px solid #222;padding-top:1.2rem">
+                <button class="btn btn-gold" style="flex:1;padding:0.75rem;font-weight:600" id="pdm-btn-edit">✏️ Edit Product</button>
+                <button class="btn btn-outline" style="flex:1;padding:0.75rem;font-weight:600;border-color:var(--red);color:var(--red)" id="pdm-btn-delete">🗑️ Delete Product</button>
             </div>
         </div>
     </div>
@@ -3632,22 +3607,128 @@
                         const ss = getStockStatus(p);
                         const unitsCount = typeof p.stock === 'number' ? p.stock : (ss === 'in' ? 50 : (ss === 'low' ? 3 : 0));
                         return `
-                            <div class="mobile-card-item" onclick="openMobileDetailModal('product', '${p.id}')" style="cursor:pointer">
+                            <div class="mobile-card-item" onclick="openProductDetailModal('${p.id}')" style="cursor:pointer">
                                 <div class="mobile-card-left">
-                                    <img src="${mainImg}" class="mobile-card-img" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')" style="cursor:pointer" alt="${sName}">
+                                    <img src="${mainImg}" class="mobile-card-img" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')" style="cursor:pointer" alt="${sName}">
                                     <div style="min-width:0">
-                                        <div class="mobile-card-title" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')">${sName}</div>
+                                        <div class="mobile-card-title" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')">${sName}</div>
                                         <div class="mobile-card-subtitle">${p.category || 'Jewelry'} • <span class="${stockClass[ss] || 'stock-in'}">${stockLabel[ss] || 'In Stock'} (${unitsCount} units)</span></div>
                                         <div class="mobile-card-price">₹${(p.price || 0).toLocaleString()}</div>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('product', '${p.id}')">View Details</button>
+                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')">View Details</button>
                             </div>
                         `;
                     }).join('');
                 }
             }
         }
+
+        window._activeDetailProductId = null;
+
+        // Render photo grid inside product detail modal
+        window.renderPhotoGrid = function(p) {
+            const gridEl = document.getElementById('pdm-photo-grid');
+            const countEl = document.getElementById('pdm-photo-count');
+            if (!gridEl) return;
+
+            const imgs = p.imageURLs || p.images || (p.image ? [p.image] : []);
+            if (countEl) countEl.textContent = `${imgs.length} photo${imgs.length !== 1 ? 's' : ''}`;
+
+            let html = imgs.map((url, idx) => `
+                <div style="position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--black-border,#333);background:#000">
+                    <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer" onclick="window.open('${url}', '_blank')">
+                    <button type="button" onclick="event.stopPropagation(); window.removeProductPhoto('${p.id}', '${url}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.85);color:#ff4d4d;border:1px solid #ff4d4d;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2" title="Delete this photo">×</button>
+                </div>
+            `).join('');
+
+            // Plus tile at the end of the grid to upload photo
+            html += `
+                <div onclick="document.getElementById('pdm-add-photo-file').click()" style="width:100%;aspect-ratio:1;border-radius:8px;border:2px dashed var(--gold);background:rgba(255,215,0,0.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,215,0,0.12)'" onmouseout="this.style.background='rgba(255,215,0,0.05)'">
+                    <span style="font-size:1.5rem;color:var(--gold);line-height:1">+</span>
+                    <span style="font-size:0.68rem;color:var(--gold);margin-top:0.2rem">Add Photo</span>
+                </div>
+            `;
+
+            gridEl.innerHTML = html;
+        };
+
+        // Remove single photo from product
+        window.removeProductPhoto = async function(productId, imageUrl) {
+            if (!confirm('Remove this photo from product?')) return;
+
+            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
+            const p = allProducts.find(x => String(x.id) === String(productId));
+            if (!p) return;
+
+            let imgs = (p.imageURLs || p.images || []).filter(url => url !== imageUrl);
+            p.imageURLs = imgs;
+            p.images = imgs;
+            if (p.image === imageUrl) p.image = imgs[0] || '';
+            if (p.primaryImageURL === imageUrl) p.primaryImageURL = imgs[0] || '';
+
+            // Re-render photo grid immediately without closing modal
+            window.renderPhotoGrid(p);
+
+            // Update in Firestore
+            try {
+                if (typeof window.updateProductInFirebase === 'function') {
+                    await window.updateProductInFirebase(productId, {
+                        imageURLs: imgs,
+                        images: imgs,
+                        image: imgs[0] || '',
+                        primaryImageURL: imgs[0] || ''
+                    });
+                }
+                Toast.success('Photo removed');
+                renderProductsTable(adminProducts);
+            } catch (e) {
+                console.error('removeProductPhoto error:', e);
+                Toast.error('Failed to remove photo');
+            }
+        };
+
+        // Upload single additional photo from detail modal
+        window.uploadProductDetailPhoto = async function(files) {
+            if (!files || files.length === 0) return;
+            const activeProductId = window._activeDetailProductId;
+            if (!activeProductId) return;
+
+            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
+            const p = allProducts.find(x => String(x.id) === String(activeProductId));
+            if (!p) return;
+
+            Toast.info('Uploading photo...');
+            try {
+                if (typeof window.uploadImageToCloudinary !== 'function') {
+                    Toast.error('Upload Error', 'Cloudinary uploader not ready.');
+                    return;
+                }
+                const result = await window.uploadImageToCloudinary(files[0]);
+                if (result && result.url) {
+                    if (!Array.isArray(p.imageURLs)) p.imageURLs = [];
+                    p.imageURLs.push(result.url);
+                    p.images = p.imageURLs;
+                    if (!p.primaryImageURL) p.primaryImageURL = result.url;
+
+                    window.renderPhotoGrid(p);
+
+                    if (typeof window.updateProductInFirebase === 'function') {
+                        await window.updateProductInFirebase(activeProductId, {
+                            imageURLs: p.imageURLs,
+                            images: p.imageURLs,
+                            primaryImageURL: p.primaryImageURL || p.imageURLs[0]
+                        });
+                    }
+
+                    Toast.success('Photo added successfully!');
+                    renderProductsTable(adminProducts);
+                }
+            } catch (e) {
+                console.error('uploadProductDetailPhoto error:', e);
+                Toast.error('Failed to upload photo', e.message || '');
+            }
+        };
 
         window.openProductDetailModal = function (productId) {
             const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
@@ -3657,55 +3738,42 @@
                 return;
             }
 
+            window._activeDetailProductId = productId;
+
             const sName = DOMPurify.sanitize(p.name || 'Unnamed');
             const sCat = DOMPurify.sanitize(p.category || 'Uncategorized');
-            const desc = DOMPurify.sanitize(p.description || 'No description provided.');
-            const sku = p.sku || 'N/A';
-            const wishlist = p.wishlistCount || 0;
+            const desc = DOMPurify.sanitize(p.description || `${sCat} - ${sName}`);
+            const wishlist = p.wishlistCount || p.wishlist || 0;
+            const rating = p.rating || 4.5;
+            const reviewsCount = p.reviews || p.reviewsCount || 0;
             const isNew = p.isNewLaunch || p.isNew;
             const isFeatured = p.featured;
 
-            // Images & Videos Gallery
-            const imgs = p.imageURLs || p.images || (p.image ? [p.image] : ['/img-fallback.svg']);
-            const vids = p.videoURLs || p.videos || [];
-            const galleryEl = document.getElementById('pdm-gallery');
-            if (galleryEl) {
-                let html = imgs.map(url => `
-                    <a href="${url}" target="_blank" rel="noopener">
-                        <img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #333;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    </a>
-                `).join('');
-                if (vids.length > 0) {
-                    html += vids.map(vUrl => `
-                        <div style="position:relative;display:inline-block;margin-left:0.5rem">
-                            <video src="${vUrl}" controls style="width:120px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--gold)"></video>
-                        </div>
-                    `).join('');
-                }
-                galleryEl.innerHTML = html;
-            }
-
+            // 1. Name & Category Header
             document.getElementById('pdm-name').textContent = sName;
-            document.getElementById('pdm-category').textContent = sCat;
-            document.getElementById('pdm-sku').textContent = `SKU: ${sku}`;
-            document.getElementById('pdm-description').textContent = desc;
-
-            document.getElementById('pdm-price').textContent = `₹${(p.price || 0).toLocaleString()}`;
-            document.getElementById('pdm-mrp').textContent = `₹${(p.mrp || p.price || 0).toLocaleString()}`;
-            document.getElementById('pdm-gst').textContent = `${p.gst || 3}% GST`;
-            document.getElementById('pdm-discount').textContent = `${p.discount || 0}% OFF`;
-
-            document.getElementById('pdm-wishlist').textContent = `${wishlist} ♥`;
+            document.getElementById('pdm-category').textContent = `${sCat} · SKU: ${p.sku || 'N/A'}`;
 
             // Flags
             const flagsEl = document.getElementById('pdm-flags');
             let flagsHtml = '';
-            if (isNew) flagsHtml += '<span class="badge badge-gold" style="margin-right:0.4rem">NEW LAUNCH</span>';
-            if (isFeatured) flagsHtml += '<span class="badge" style="background:rgba(96,165,250,0.2);color:#60a5fa;border:1px solid #60a5fa">FEATURED</span>';
-            if (!flagsHtml) flagsHtml = '<span style="color:#555;font-size:0.8rem">Standard Product</span>';
+            if (isNew) flagsHtml += '<span class="badge badge-gold" style="margin-right:0.4rem">NEW</span>';
+            if (isFeatured) flagsHtml += '<span class="badge" style="background:rgba(96,165,250,0.2);color:#60a5fa">FEATURED</span>';
             flagsEl.innerHTML = flagsHtml;
 
-            // Stock Status & Unit Count
+            // 2. Price, MRP & Discount
+            document.getElementById('pdm-price').textContent = `₹${(p.price || 0).toLocaleString()}`;
+            const mrpVal = p.mrp || p.price || 0;
+            const discountVal = p.discount || (mrpVal > p.price ? Math.round((mrpVal - p.price) / mrpVal * 100) : 0);
+            const mrpDiscountEl = document.getElementById('pdm-mrp-discount');
+            if (mrpDiscountEl) {
+                if (mrpVal > p.price && discountVal > 0) {
+                    mrpDiscountEl.innerHTML = `<span style="text-decoration:line-through;margin-right:0.4rem">₹${mrpVal.toLocaleString()}</span> <span style="color:var(--green);font-weight:600">${discountVal}% OFF</span>`;
+                } else {
+                    mrpDiscountEl.textContent = `${p.gst || 3}% GST included`;
+                }
+            }
+
+            // Stock Badge
             const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
             const ss = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
             const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
@@ -3713,29 +3781,20 @@
             const badgeEl = document.getElementById('pdm-stock-badge');
             if (badgeEl) {
                 badgeEl.className = `stock-badge ${stockClass[ss] || 'stock-in'}`;
-                badgeEl.innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockUnits} Units Available)`;
+                badgeEl.innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockUnits} units)`;
             }
 
-            // Timestamps
-            let createdStr = 'N/A';
-            if (p.createdAt) {
-                try {
-                    const d = p.createdAt.seconds ? new Date(p.createdAt.seconds * 1000) : (p.createdAt.toDate ? p.createdAt.toDate() : new Date(p.createdAt));
-                    createdStr = isNaN(d) ? 'N/A' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                } catch (e) { }
-            }
-            let updatedStr = 'N/A';
-            if (p.lastUpdated || p.updatedAt) {
-                const ts = p.lastUpdated || p.updatedAt;
-                try {
-                    const d = ts.seconds ? new Date(ts.seconds * 1000) : (ts.toDate ? ts.toDate() : new Date(ts));
-                    updatedStr = isNaN(d) ? 'N/A' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                } catch (e) { }
-            }
-            document.getElementById('pdm-created').textContent = createdStr;
-            document.getElementById('pdm-updated').textContent = updatedStr;
+            // 3. Description
+            document.getElementById('pdm-description').textContent = desc;
 
-            // Connect action buttons inside modal
+            // 4. Photo Grid with per-photo delete
+            window.renderPhotoGrid(p);
+
+            // 5. Stats Row (Wishlist & Reviews)
+            document.getElementById('pdm-wishlist').textContent = `${wishlist} ♥ Saves`;
+            document.getElementById('pdm-reviews').textContent = `⭐ ${rating} (${reviewsCount} reviews)`;
+
+            // 6. Connect Edit and Delete buttons (close detail modal first, then invoke edit/delete)
             const editBtn = document.getElementById('pdm-btn-edit');
             if (editBtn) editBtn.onclick = () => { closeModal('product-detail-modal'); openEditProduct(productId); };
             const delBtn = document.getElementById('pdm-btn-delete');
