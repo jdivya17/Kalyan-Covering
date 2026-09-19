@@ -504,7 +504,7 @@
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
-            .products-layout { grid-template-columns: 1fr; }
+            .products-layout { grid-template-columns: 1fr; padding-bottom: 95px !important; }
 
             .filter-sidebar {
                 display: none;
@@ -525,13 +525,13 @@
 
             .floating-cart-bar { display: flex; }
 
-            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+            .products-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.9rem; padding-bottom: 95px !important; }
 
             .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 480px) {
-            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+            .products-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.7rem; padding-bottom: 95px !important; }
             .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
             .page-header { padding: 85px 0 1rem; }
         }

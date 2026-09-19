@@ -353,14 +353,30 @@ textarea.form-input {
 }
 .product-card .card-badge.new { background: var(--gold); color: #000; }
 
-.product-card .card-body { padding: 1.4rem; flex: 1; display: flex; flex-direction: column; }
-.product-card .card-title { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--white); }
+.product-card .card-body { padding: 1.2rem; flex: 1; display: flex; flex-direction: column; }
+/* card-title: allows up to 2 lines before truncating; min-height keeps card heights consistent */
+.product-card .card-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--white);
+  min-height: calc(1.1rem * 1.35 * 2); /* 2 lines × line-height */
+  line-height: 1.35;
+}
 .product-card .card-price-row { display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--gold-dim); padding-top: 0.6rem; margin-top: auto; flex-wrap: wrap; row-gap: 0.4rem; }
 .product-card .stock-badge { margin-left: auto; }
 .product-card .card-price { color: var(--gold); font-weight: 700; font-size: 1.1rem; display: inline-block; }
 .product-card .card-price-old { color: #666; text-decoration: line-through; font-size: 0.85rem; }
 .product-card .card-stars { color: var(--gold); font-size: 0.85rem; margin: 0.4rem 0; letter-spacing: 1px; }
 .product-card .card-discount { color: #4CAF50; font-size: 0.8rem; font-weight: 600; }
+.product-card .card-actions { margin-top: 0.75rem; }
+.product-card .card-actions .btn { width: 100%; justify-content: center; white-space: nowrap; }
+
 
 /* ---- Navbar Component ---- */
 .nav {
@@ -951,8 +967,8 @@ textarea.form-input {
   /* Stats */
   .stats-grid { grid-template-columns: 1fr 1fr; }
 
-  /* Products */
-  .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+  /* Products — keep 2–3 columns on tablets (600-768px), NOT 3 on small phones */
+  .products-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.2rem; }
   .product-card .card-body { padding: 1rem; }
 
   .hero-title { font-size: clamp(2rem, 8vw, 3rem); }
@@ -964,18 +980,34 @@ textarea.form-input {
   .section-title { font-size: clamp(1.8rem, 6vw, 2.5rem); }
 }
 
+@media (max-width: 600px) {
+  /* ===== MOBILE PRODUCT GRID FIX =====
+     Force exactly 2 columns on all small phones (360-600px).
+     minmax(160px,1fr) can produce 3 cols on 480px+ phones — use 1fr 1fr instead. */
+  .products-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .product-card .card-body { padding: 10px; }
+  /* Add-to-Cart button: full width + no wrap on mobile */
+  .product-card .card-actions { margin-top: 0.5rem; }
+  .product-card .card-actions .btn {
+    width: 100%;
+    white-space: nowrap;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   .footer-grid { grid-template-columns: 1fr; gap: 2rem; }
   .footer-main { grid-template-columns: 1fr; gap: 1.5rem; }
   .stats-grid { grid-template-columns: 1fr; }
-  .products-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .checkout-grid { grid-template-columns: 1fr; }
   .modal-container { padding: 1.5rem 1rem; }
   .toast { min-width: 250px; max-width: calc(100vw - 2rem); }
 }
 
 @media (max-width: 360px) {
-  .products-grid { grid-template-columns: 1fr; }
+  .products-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .btn { padding: 0.75rem 1.25rem; font-size: 0.82rem; }
 }
 
@@ -1089,4 +1121,20 @@ textarea.form-input {
 @keyframes livePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.6); }
+}
+
+/* ===== SITE-WIDE TEXT OVERFLOW & WRAPPING SAFETY ===== */
+h1, h2, h3, h4, h5, h6, p, span, a, label, td, th, div {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.product-name, .category-name, .customer-name, .order-id, .user-name, .table-cell {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
 }

@@ -30,6 +30,9 @@
             grid-template-columns: 1.1fr 0.9fr;
             gap: 4rem;
             padding-bottom: 2rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         /* Image carousel & Zoom */
@@ -37,6 +40,10 @@
             position: sticky;
             top: 100px;
             height: fit-content;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .pd-main-img-wrap {
@@ -47,6 +54,10 @@
             border: 1px solid var(--black-border);
             cursor: crosshair;
             background: var(--black-card);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            touch-action: pan-y;
         }
 
         .pd-main-img-wrap:hover {
@@ -189,6 +200,11 @@
 
         .pd-info {
             position: relative;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .pd-category {
@@ -202,9 +218,14 @@
 
         .pd-title {
             font-family: var(--font-serif);
-            font-size: clamp(1.8rem, 3vw, 2.5rem);
-            line-height: 1.2;
+            font-size: clamp(1.6rem, 3vw, 2.5rem);
+            line-height: 1.25;
             margin-bottom: 0.8rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            max-width: 100%;
         }
 
         .pd-rating-row {
@@ -749,10 +770,36 @@
             .fbt-details { padding-left: 0; border-left: none; border-top: 1px solid var(--black-border); padding-top: 1rem; }
         }
 
+        @media (max-width: 600px) {
+            /* ===== BUTTON ROW FIX: keep Add-to-Cart + Buy Now side by side on small phones ===== */
+            .pd-btn-row {
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            .pd-btn-row .btn {
+                flex: 1 1 0;
+                padding: 0.85rem 0.5rem;
+                font-size: 0.78rem;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+                min-width: 0;
+            }
+            /* Shrink icon-only buttons so text buttons get more room */
+            .pd-icon-btn-sq {
+                width: 42px;
+                height: 42px;
+                flex: 0 0 42px;
+            }
+            /* Hide cart icon inside Add-to-Cart on very small screens */
+            #pd-add-to-cart-btn svg {
+                display: none;
+            }
+        }
+
         @media (max-width: 480px) {
-            .pd-btn-row { flex-wrap: wrap; gap: 0.6rem; align-items: stretch; }
-            .pd-btn-row .btn { flex: 1 1 100%; width: 100%; padding: 0.9rem; font-size: 0.95rem; }
-            .pd-icon-btn-sq { flex: 0 0 48px; height: 48px; }
+            .pd-btn-row { flex-wrap: nowrap; gap: 0.4rem; align-items: stretch; }
+            .pd-btn-row .btn { flex: 1 1 0; width: auto; padding: 0.8rem 0.4rem; font-size: 0.74rem; }
+            .pd-icon-btn-sq { flex: 0 0 40px; height: 40px; }
             .pd-price { font-size: 1.8rem; }
             .pd-title { font-size: 1.5rem; }
             .review-summary { flex-direction: column; gap: 1.5rem; padding: 1.25rem; }
@@ -1151,9 +1198,9 @@
                         <img src="${getOptimizedUrl(img, 200)}" alt="Thumb ${i + 1}">
                       </div>`).join('')}
                     ${productVideos.map((vid, i) => `
-                      <div class="pd-thumb" data-type="video" data-idx="${i}" onclick="pdSelectVideo(${i})">
-                        <div class="thumb-vid-overlay">▶</div>
-                        <video src="${vid}"></video>
+                      <div class="pd-thumb" data-type="video" data-idx="${i}" onclick="pdSelectVideo(${i})" title="Play video">
+                        <video src="${vid}" muted preload="none" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>
+                        <div class="thumb-vid-overlay" style="background:rgba(0,0,0,0.55);font-size:1.4rem">▶</div>
                       </div>`).join('')}
                   </div>
                 </div>
@@ -1258,6 +1305,7 @@
             `;
 
             renderReviews();
+            initGallerySwipe();
         }
 
         // --- Magnifier Zoom Logic ---
@@ -1330,7 +1378,25 @@
             const container = document.getElementById('pd-main-content');
             container.style.opacity = '0';
             setTimeout(() => {
-                container.innerHTML = `<video src="${productVideos[idx]}" controls autoplay class="pd-main-img" style="object-fit:contain"></video>`;
+                // muted + playsinline required for mobile browsers (autoplay policy).
+                // We use controls so user can tap play — no autoplay to avoid policy blocks.
+                container.innerHTML = `<video
+                    src="${productVideos[idx]}"
+                    controls
+                    muted
+                    playsinline
+                    preload="metadata"
+                    class="pd-main-img"
+                    style="object-fit:contain;width:100%;height:100%;background:#000"
+                    onerror="this.closest('#pd-main-content').innerHTML='<div style=\'color:#888;text-align:center;padding:2rem;\'>Video unavailable. <a href=\'${productVideos[idx]}\' target=\'_blank\' style=\'color:var(--gold)\'>Open in browser</a></div>'"
+                ></video>`;
+                // Attempt to play after render (mobile-safe: muted allows autoplay)
+                const vid = container.querySelector('video');
+                if (vid) {
+                    vid.play().catch(() => {
+                        // Silently fail — user will tap play button via controls
+                    });
+                }
                 container.style.opacity = '1';
             }, 200);
             updateThumbs(idx, 'video');
@@ -1346,6 +1412,45 @@
         function pdChangeImage(dir) {
             currentImageIdx = (currentImageIdx + dir + productImages.length) % productImages.length;
             pdSelectImage(currentImageIdx);
+        }
+
+        function initGallerySwipe() {
+            const mainContainer = document.getElementById('pd-main-container');
+            if (!mainContainer || mainContainer.dataset.swipeInitialized) return;
+            mainContainer.dataset.swipeInitialized = 'true';
+
+            let startX = 0;
+            let startY = 0;
+            let distX = 0;
+            let distY = 0;
+
+            mainContainer.addEventListener('touchstart', function(e) {
+                if (e.touches.length !== 1) return;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                distX = 0;
+                distY = 0;
+            }, { passive: true });
+
+            mainContainer.addEventListener('touchmove', function(e) {
+                if (!startX || !startY || e.touches.length !== 1) return;
+                distX = e.touches[0].clientX - startX;
+                distY = e.touches[0].clientY - startY;
+            }, { passive: true });
+
+            mainContainer.addEventListener('touchend', function() {
+                if (Math.abs(distX) > 40 && Math.abs(distX) > Math.abs(distY)) {
+                    if (distX < 0) {
+                        pdChangeImage(1); // Swipe left -> next image
+                    } else {
+                        pdChangeImage(-1); // Swipe right -> prev image
+                    }
+                }
+                startX = 0;
+                startY = 0;
+                distX = 0;
+                distY = 0;
+            });
         }
 
         function pdOpenLightbox(idx) {

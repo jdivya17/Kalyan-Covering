@@ -320,15 +320,50 @@
         .wishlist-item-img { width: 100%; aspect-ratio: 1; object-fit: cover; }
         .wishlist-item-body { padding: 1rem; }
 
-        /* Responsive */
+        /* Responsive & Sidebar Drawer */
         .mobile-nav-toggle { display: none; }
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1040;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .sidebar-close-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1051;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .sidebar-close-btn:hover {
+            color: var(--white);
+            transform: scale(1.1);
+        }
         @media (max-width: 900px) {
             .dashboard-container { grid-template-columns: 1fr; padding-top: 120px; }
             .sidebar {
-                position: fixed; top: 70px; left: -100%; width: 280px; z-index: 100;
-                transition: 0.3s ease; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+                position: fixed; top: 0; left: -100%; width: 290px; height: 100vh; z-index: 1050;
+                transition: left 0.35s ease; box-shadow: 5px 0 25px rgba(0,0,0,0.7);
+                background: var(--black-soft); overflow-y: auto; padding: 2rem 1.25rem 1.5rem;
             }
             .sidebar.open { left: 0; }
+            .sidebar-close-btn { display: block; }
             .mobile-nav-toggle {
                 display: flex; position: fixed; top: 70px; left: 0; right: 0; background: var(--black-card);
                 padding: 1rem; border-bottom: 1px solid var(--gold); z-index: 99; justify-content: space-between; align-items: center;
@@ -422,9 +457,13 @@
         <button class="btn btn-outline btn-sm" onclick="toggleSidebar()">☰ Menu</button>
     </div>
 
+    <!-- Sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()" aria-hidden="true"></div>
+
     <div class="dashboard-container">
         <!-- SIDEBAR -->
         <aside class="sidebar" id="dashboard-sidebar">
+            <button class="sidebar-close-btn" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
             <div class="user-quick-profile">
                 <div class="sidebar-avatar" id="sidebar-initials">U</div>
                 <div class="sidebar-user-info">
@@ -637,8 +676,35 @@
 
         // Toggle Mobile Sidebar
         window.toggleSidebar = function() {
-            document.getElementById('dashboard-sidebar').classList.toggle('open');
+            const sidebar = document.getElementById('dashboard-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar) return;
+            const isOpen = sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active', isOpen);
+            document.body.style.overflow = isOpen ? 'hidden' : '';
         };
+
+        // Touch Swipe-to-close for Dashboard Sidebar
+        (function initSidebarSwipe() {
+            let touchStartX = 0;
+            let touchCurrentX = 0;
+            document.addEventListener('DOMContentLoaded', () => {
+                const sidebarEl = document.getElementById('dashboard-sidebar');
+                if (!sidebarEl) return;
+                sidebarEl.addEventListener('touchstart', e => {
+                    touchStartX = e.touches[0].clientX;
+                    touchCurrentX = touchStartX;
+                }, { passive: true });
+                sidebarEl.addEventListener('touchmove', e => {
+                    touchCurrentX = e.touches[0].clientX;
+                }, { passive: true });
+                sidebarEl.addEventListener('touchend', () => {
+                    if (touchStartX - touchCurrentX > 50 && sidebarEl.classList.contains('open')) {
+                        window.toggleSidebar();
+                    }
+                });
+            });
+        })();
 
         // Tab Switching Logic
         window.switchTab = function(tabId, el) {
@@ -655,7 +721,11 @@
             
             // Close sidebar on mobile after selection
             if(window.innerWidth <= 900) {
-                document.getElementById('dashboard-sidebar').classList.remove('open');
+                const sidebar = document.getElementById('dashboard-sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
             }
         };
 
