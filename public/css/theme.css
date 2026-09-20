@@ -1969,14 +1969,257 @@ section {
   margin-top: 1rem;
 }
 
+/* Account & Orders Layout */
+.acc {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: clamp(20px, 4vw, 48px);
+  padding: 32px 0 72px;
+  align-items: start;
+}
+.accnav {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  padding: 8px;
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+}
+.accnav a, .accnav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.8rem 0.9rem;
+  border-radius: 2px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  text-align: left;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.accnav a:hover, .accnav button:hover {
+  color: var(--gold-hi);
+  background: rgba(214, 178, 94, 0.07);
+}
+.accnav a.active, .accnav a[aria-current="true"] {
+  color: #160f03;
+  background: var(--foil);
+  font-weight: 600;
+}
+.accmain h2.t {
+  font-size: 2rem;
+  margin-bottom: 18px;
+  color: var(--ivory);
+}
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--foil);
+  color: #160f03;
+  display: grid;
+  place-items: center;
+  font: 600 1.8rem var(--serif);
+}
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1.6rem;
+}
+
+/* Order Cards & 5-Step Progress Track */
+.order {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  padding: clamp(16px, 3vw, 26px);
+  margin-bottom: 18px;
+}
+.ohead {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 0.8rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.ohead b {
+  color: var(--gold-hi);
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  display: block;
+}
+.oact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 1.1rem;
+}
+.track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 1.4rem 0 0.6rem;
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.track div {
+  position: relative;
+  padding-top: 24px;
+}
+.track div::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.track div::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line2);
+}
+.track div:last-child::after {
+  display: none;
+}
+.track div.on {
+  color: var(--gold-hi);
+  font-weight: 500;
+}
+.track div.on::before {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.track div.on::after {
+  background: var(--gold);
+}
+
+/* Vertical Timeline (Detailed Tracking View) */
+.tl {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+}
+.tl li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+.tl li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line2);
+}
+.tl li.done::before {
+  background: var(--gold);
+}
+.tl li:last-child {
+  padding-bottom: 0;
+}
+.tl li:last-child::before {
+  display: none;
+}
+.tl i {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+}
+.tl li.done i {
+  background: var(--gold);
+  color: #160f03;
+  border-color: transparent;
+}
+.tl li.now i {
+  border-color: var(--gold-hi);
+  box-shadow: 0 0 10px rgba(214, 178, 94, 0.4);
+}
+.tl b {
+  display: block;
+  font: 500 1.15rem var(--serif);
+  color: var(--ivory);
+}
+.tl small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.tl p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.2rem 0 0;
+}
+
+/* Address Cards Grid */
+.agrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-top: 1rem;
+}
+.acard {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.acard b {
+  font-size: 1.15rem;
+  font-family: var(--serif);
+  color: var(--gold-hi);
+}
+.acard p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 @media (max-width: 860px) {
-  .co {
+  .acc {
     grid-template-columns: 1fr;
   }
-  .fgrid2 {
+  .accnav {
+    position: static;
+    display: flex;
+    overflow-x: auto;
+    padding: 6px;
+  }
+  .agrid {
     grid-template-columns: 1fr;
   }
 }
+
 
 
 
