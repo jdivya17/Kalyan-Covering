@@ -1555,42 +1555,191 @@ section {
   display: none;
 }
 
+/* Product Detail Layout & Gallery */
+.pd {
+  display: grid;
+  grid-template-columns: 1.02fr 0.98fr;
+  gap: clamp(24px, 5vw, 72px);
+  padding: 28px 0 64px;
+}
+.gal {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+  align-self: start;
+}
+.gal .main {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--surface);
+  aspect-ratio: 1/1;
+}
+.gal .main img, .gal .main video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumbs {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.thumb {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border: 1px solid var(--line2);
+  padding: 0;
+  background: var(--surface);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.thumb[aria-current="true"], .thumb.active {
+  border-color: var(--gold);
+  opacity: 1;
+}
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb .pl {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 5, 3, 0.45);
+  color: var(--gold-hi);
+}
+
+.pd h1 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  margin: 0.4rem 0 0.8rem;
+}
+.pd .pr {
+  margin: 1rem 0 1.2rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+}
+.pd .pr strong {
+  font-size: 2rem;
+  font-family: var(--serif);
+  font-weight: 500;
+  color: var(--gold-hi);
+}
+.pd .desc {
+  color: var(--muted);
+  max-width: 34rem;
+  line-height: 1.7;
+}
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+}
+.qty button {
+  background: none;
+  border: 0;
+  width: 40px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--ivory);
+  cursor: pointer;
+}
+.qty button:hover {
+  color: var(--gold-hi);
+}
+.qty output {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 500;
+}
+.buy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 1.6rem 0 1rem;
+  align-items: stretch;
+}
+.buy .btn {
+  flex: 1;
+  min-width: 140px;
+}
+.pin {
+  display: flex;
+  gap: 8px;
+  margin: 1.2rem 0 0.4rem;
+}
+.pin input {
+  flex: 1;
+  min-width: 0;
+  max-width: 220px;
+}
+.pinres {
+  font-size: 0.9rem;
+  min-height: 1.4em;
+  color: var(--ok);
+}
+.assure {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 1.6rem 0;
+  border-block: 1px solid var(--line);
+  padding: 1.1rem 0;
+}
+.assure div {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.assure .ic {
+  color: var(--gold);
+}
+
+.pd details {
+  border-bottom: 1px solid var(--line2);
+  padding: 0.9rem 0;
+}
+.pd summary {
+  font-size: 1.2rem;
+  font-family: var(--serif);
+  color: var(--ivory);
+  cursor: pointer;
+}
+.pd table {
+  width: 100%;
+  margin-top: 0.8rem;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.pd table td {
+  padding: 0.4rem 0;
+  color: var(--muted);
+}
+.pd table td:last-child {
+  color: var(--ivory);
+  text-align: right;
+}
+
 @media (max-width: 860px) {
-  .fbtn {
-    display: inline-flex;
-  }
-  .shop-body {
+  .pd {
     grid-template-columns: 1fr;
   }
-  .results .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .fpanel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    max-height: 86vh;
-    z-index: 70;
-    background: var(--bg2);
-    border: 0;
-    border-top: 1px solid var(--gold);
-    border-radius: 14px 14px 0 0;
-    transform: translateY(105%);
-    transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    overflow: hidden;
-  }
-  .fpanel.open {
-    transform: none;
-  }
-  .ff {
-    display: block;
-    padding: 14px 18px;
-    border-top: 1px solid var(--line);
+  .gal {
+    position: static;
   }
 }
+
 
