@@ -1733,13 +1733,250 @@ section {
   text-align: right;
 }
 
+/* Checkout & Form Layouts */
+.fgrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.fgrid2 .full {
+  grid-column: 1/-1;
+}
+.f {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.err {
+  color: var(--danger);
+  font-size: 0.8rem;
+  min-height: 1.2em;
+}
+
+.co {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(24px, 5vw, 64px);
+  padding: 32px 0 72px;
+  align-items: start;
+}
+.box {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  padding: clamp(18px, 3vw, 30px);
+}
+.box + .box {
+  margin-top: 18px;
+}
+.box h2 {
+  font-size: 1.7rem;
+  margin-bottom: 1.2rem;
+  color: var(--ivory);
+}
+.steps {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  color: var(--muted);
+  margin-top: 1rem;
+}
+.steps span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.steps i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 0.74rem;
+}
+.steps .on {
+  color: var(--gold-hi);
+}
+.steps .on i {
+  background: var(--gold);
+  color: #140e03;
+  border-color: transparent;
+  font-weight: 600;
+}
+.steps em {
+  width: 26px;
+  height: 1px;
+  background: var(--line);
+  align-self: center;
+}
+.pay {
+  display: grid;
+  gap: 10px;
+}
+.opt {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.opt.active, .opt:has(input:checked) {
+  border-color: var(--gold);
+  background: rgba(214, 178, 94, 0.08);
+}
+.opt input {
+  accent-color: var(--gold);
+  margin-top: 4px;
+}
+.opt b {
+  font-weight: 500;
+  display: block;
+  color: var(--ivory);
+}
+.opt small {
+  color: var(--muted);
+}
+.sumcol {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+}
+.li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line2);
+}
+.li img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid var(--line2);
+  border-radius: 2px;
+  display: block;
+}
+.li b {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.1rem;
+  display: block;
+  color: var(--ivory);
+  line-height: 1.15;
+}
+.li small {
+  color: var(--muted);
+}
+.tot {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+.tot div {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+.tot .grand {
+  color: var(--ivory);
+  font: 500 1.5rem var(--serif);
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
+  margin-top: 0.3rem;
+}
+.tot .grand span:last-child {
+  color: var(--gold-hi);
+}
+.cpn {
+  display: flex;
+  gap: 8px;
+  margin-top: 1rem;
+}
+.cpn input {
+  flex: 1;
+}
+
+/* Saved Address Chips */
+.saved-addrs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 1rem;
+}
+.addr-chip {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface2);
+  padding: 0.8rem 1rem;
+  min-width: 180px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+}
+.addr-chip:hover, .addr-chip.active {
+  border-color: var(--gold);
+  background: rgba(214, 178, 94, 0.08);
+}
+.addr-chip b {
+  display: block;
+  font: 500 1.05rem var(--serif);
+  color: var(--gold-hi);
+}
+.addr-chip small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Order Success Screen */
+.thanks {
+  text-align: center;
+  padding: clamp(48px, 8vw, 96px) 16px;
+  max-width: 580px;
+  margin: 0 auto;
+}
+.tick {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: rgba(214, 178, 94, 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--gold-hi);
+  margin: 0 auto 1.5rem;
+}
+.oid {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--gold-hi);
+  font-family: monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  margin-top: 1rem;
+}
+
 @media (max-width: 860px) {
-  .pd {
+  .co {
     grid-template-columns: 1fr;
   }
-  .gal {
-    position: static;
+  .fgrid2 {
+    grid-template-columns: 1fr;
   }
 }
+
 
 
