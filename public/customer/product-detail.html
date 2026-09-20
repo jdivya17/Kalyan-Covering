@@ -5,14 +5,287 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Product Details | Kalyan Covering Jewellery</title>
-  <meta name="description" content="View exquisite gold-covering jewellery details, pricing, delivery options, and size guide at Kalyan Covering.">
+  <meta name="description" content="View exquisite gold-covering jewellery details, pricing, delivery options, customer photo reviews, and size guide at Kalyan Covering.">
   <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
 
   <!-- Fonts & Stylesheets -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap">
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/design-system.css">
+
+  <style>
+    /* Stock & Scarcity Badges */
+    .stock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .stock-badge.in-stock {
+      background: rgba(40, 167, 69, 0.12);
+      color: #2ecc71;
+      border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .stock-badge.low-stock {
+      background: rgba(214, 178, 94, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(214, 178, 94, 0.4);
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    .stock-badge.out-of-stock {
+      background: rgba(220, 53, 69, 0.12);
+      color: #ff6b6b;
+      border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+
+    /* Customer Reviews Section */
+    .reviews-section {
+      padding: 4rem 0;
+      border-top: 1px solid var(--border-color);
+      margin-top: 3rem;
+    }
+
+    .reviews-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .reviews-title h2 {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+
+    .reviews-rating-summary {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      margin-top: 0.5rem;
+    }
+
+    .overall-score {
+      font-family: var(--font-serif);
+      font-size: 2.8rem;
+      color: var(--gold);
+      line-height: 1;
+      font-weight: 600;
+    }
+
+    .review-stars {
+      color: var(--gold);
+      font-size: 1.1rem;
+      display: flex;
+      gap: 2px;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .review-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      transition: border-color 0.25s ease;
+    }
+
+    .review-card:hover {
+      border-color: var(--gold);
+    }
+
+    .review-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .reviewer-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .reviewer-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(214, 178, 94, 0.15);
+      border: 1px solid var(--border-color);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .reviewer-name {
+      font-weight: 600;
+      color: var(--text-color);
+      font-size: 0.92rem;
+    }
+
+    .verified-buyer-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.68rem;
+      color: #2ecc71;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .review-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .review-text {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .review-photos-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .review-photo-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .review-photo-thumb:hover {
+      transform: scale(1.05);
+      border-color: var(--gold);
+    }
+
+    /* Modal Styling */
+    .review-form-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .review-form-modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .review-form-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.2rem;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .star-picker {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 1.8rem;
+      color: #444;
+      cursor: pointer;
+      margin: 0.5rem 0 1.2rem;
+    }
+
+    .star-picker span {
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+
+    .star-picker span.active, .star-picker span:hover {
+      color: var(--gold);
+      transform: scale(1.15);
+    }
+
+    .photo-upload-box {
+      border: 1.5px dashed var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      background: #090807;
+      transition: border-color 0.2s ease;
+      margin-bottom: 1rem;
+    }
+
+    .photo-upload-box:hover {
+      border-color: var(--gold);
+    }
+
+    .photo-previews {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+    }
+
+    .photo-preview-item {
+      position: relative;
+      width: 55px;
+      height: 55px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .photo-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
 </head>
 
 <body>
@@ -52,10 +325,96 @@
           <tr><td>18.9</td><td>59.5</td><td style="text-align:right;">Large (US 9)</td></tr>
         </tbody>
       </table>
-      <p class="sub" style="margin-top:1.2rem;font-size:0.85rem;color:var(--muted)">Between two sizes? Choose the larger one. Message us on WhatsApp for guide support!</p>
       <div class="mact" style="margin-top:1.5rem;text-align:right;">
         <button class="btn solid sm" onclick="closeRingModal()">Got It</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Write Review Modal -->
+  <div class="review-form-modal-overlay" id="review-modal" onclick="if(event.target===this)closeReviewModal()">
+    <div class="review-form-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:var(--text-color);">Write a Review</h3>
+        <button onclick="closeReviewModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      
+      <form id="review-form" onsubmit="handleReviewSubmit(event)">
+        <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.2rem;">Overall Rating</label>
+        <div class="star-picker" id="star-picker">
+          <span onclick="setReviewRating(1)" data-val="1">★</span>
+          <span onclick="setReviewRating(2)" data-val="2">★</span>
+          <span onclick="setReviewRating(3)" data-val="3">★</span>
+          <span onclick="setReviewRating(4)" data-val="4">★</span>
+          <span onclick="setReviewRating(5)" data-val="5" class="active">★</span>
+        </div>
+        <input type="hidden" id="review-rating-val" value="5" />
+
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Review Title</label>
+          <input type="text" id="review-title" placeholder="e.g. Stunning finish, looks just like real gold!" class="form-input" style="width:100%;" required />
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Your Feedback</label>
+          <textarea id="review-text" rows="4" placeholder="Tell us about the craftsmanship, shine, and fit..." class="form-input" style="width:100%; resize:vertical;" required></textarea>
+        </div>
+
+        <div style="margin-bottom:1.2rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Add Photos (Optional)</label>
+          <div class="photo-upload-box" onclick="document.getElementById('review-photo-input').click()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.4rem; color:var(--gold);">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <div style="font-size:0.8rem; color:var(--text-dim);">Click to attach jewellery photos (auto-compressed)</div>
+          </div>
+          <input type="file" id="review-photo-input" accept="image/*" multiple style="display:none;" onchange="handlePhotoSelect(event)" />
+          <div class="photo-previews" id="photo-previews"></div>
+        </div>
+
+        <div style="display:flex; gap:0.8rem;">
+          <button type="submit" class="btn btn-gold" id="btn-submit-review" style="flex:1; padding:0.85rem;">
+            SUBMIT REVIEW
+          </button>
+          <button type="button" class="btn btn-outline" onclick="closeReviewModal()" style="padding:0.85rem 1.2rem;">
+            CANCEL
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Back in Stock Alert Modal -->
+  <div class="review-form-modal-overlay" id="stock-modal" onclick="if(event.target===this)closeStockModal()">
+    <div class="review-form-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:var(--gold);">Back in Stock Alert</h3>
+        <button onclick="closeStockModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      <p style="color:var(--text-dim); font-size:0.85rem; line-height:1.5; margin-bottom:1.2rem;">
+        Leave your email or WhatsApp number and we will notify you instantly when this piece is restocked.
+      </p>
+      <form id="stock-alert-form" onsubmit="handleStockAlertSubmit(event)">
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Email Address</label>
+          <input type="email" id="stock-email" placeholder="name@example.com" class="form-input" style="width:100%;" required />
+        </div>
+        <div style="margin-bottom:1.2rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">WhatsApp Number (Optional)</label>
+          <input type="tel" id="stock-phone" placeholder="10-digit mobile number" class="form-input" style="width:100%;" />
+        </div>
+        <button type="submit" class="btn btn-gold" id="btn-stock-alert" style="width:100%; padding:0.85rem;">
+          NOTIFY ME WHEN AVAILABLE
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Photo Lightbox Modal -->
+  <div class="review-form-modal-overlay" id="lightbox-modal" onclick="closeLightbox()">
+    <div style="max-width:800px; max-height:85vh; display:flex; align-items:center; justify-content:center;">
+      <img id="lightbox-img" src="" alt="Enlarged review photo" style="max-width:100%; max-height:85vh; border-radius:var(--radius-md); border:1px solid var(--border-color); object-fit:contain;" />
     </div>
   </div>
 
@@ -68,8 +427,12 @@
     import { Wishlist } from '../js/services/wishlistService.js';
     import { ic } from '../js/utils/icons.js';
     import { formatCurrency, escapeHtml } from '../js/utils/helpers.js';
+    import { getProductReviews, submitReview } from '../js/services/reviewService.js';
+    import { getStockInfo, subscribeBackInStock } from '../js/services/stockService.js';
 
     let currentQty = 1;
+    let selectedPhotos = [];
+    let currentProduct = null;
 
     async function initProductDetailPage() {
       const params = new URLSearchParams(window.location.search);
@@ -89,10 +452,10 @@
         return;
       }
 
-      // Track Recently Viewed (localStorage)
+      currentProduct = product;
       trackRecentlyViewed(productId);
 
-      // Related Products & Recently Viewed
+      // Related Products
       const related = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
       const rvIds = JSON.parse(localStorage.getItem('kc_rv') || '[]').filter(id => id !== product.id);
       const recentlyViewed = allProducts.filter(p => rvIds.includes(p.id)).slice(0, 4);
@@ -101,6 +464,9 @@
       const mrp = product.mrp || Math.round(product.price * 1.2);
       const discount = Math.round(((mrp - product.price) / mrp) * 100);
       const mainImage = product.image || product.primaryImageURL || product.images?.[0] || '/img-fallback.svg';
+
+      // Stock Status
+      const stockInfo = getStockInfo(product);
 
       container.innerHTML = `
         <!-- Breadcrumbs -->
@@ -127,11 +493,7 @@
                 <button class="thumb" onclick="switchMedia('${product.images[1]}', 'image', this)" aria-label="Close-up view">
                   <img src="${product.images[1]}" alt="Close-up View" onerror="this.src='/img-fallback.svg'" />
                 </button>
-              ` : `
-                <button class="thumb" onclick="switchMedia('${mainImage}', 'image', this)" aria-label="Close-up view">
-                  <img src="${mainImage}" alt="Close-up View" onerror="this.src='/img-fallback.svg'" />
-                </button>
-              `}
+              ` : ''}
               ${product.videoUrl ? `
                 <button class="thumb" onclick="switchMedia('${product.videoUrl}', 'video', this)" aria-label="Play video">
                   <img src="${mainImage}" alt="Video thumbnail" />
@@ -148,6 +510,14 @@
               ${product.isNew ? '<span class="badge">New Arrival</span>' : (product.popular ? '<span class="badge">Bestseller</span>' : '')}
             </div>
             <h1>${escapeHtml(product.name)}</h1>
+
+            <!-- Stock Scarcity Badge -->
+            <div>
+              <span class="stock-badge ${stockInfo.badgeClass}">
+                ● ${stockInfo.label}
+              </span>
+            </div>
+
             <div class="pr">
               <strong>${formatCurrency(product.price)}</strong>
               ${mrp > product.price ? `<s>${formatCurrency(mrp)}</s> <span class="off">${discount}% off</span>` : ''}
@@ -155,15 +525,23 @@
             <p class="sub" style="margin-top:-0.6rem;margin-bottom:1rem;font-size:0.86rem;">Inclusive of all government taxes & GST</p>
             <p class="desc">${escapeHtml(product.description || 'Authentic gold covering jewellery handcrafted with 100% micro-gold plating for long-lasting sheen.')}</p>
 
-            <div class="buy">
-              <div class="qty">
-                <button onclick="updatePdQty(-1)" aria-label="Decrease quantity">${ic('minus', 16)}</button>
-                <output id="pq">1</output>
-                <button onclick="updatePdQty(1)" aria-label="Increase quantity">${ic('plus', 16)}</button>
+            ${stockInfo.isOutOfStock ? `
+              <div class="buy">
+                <button class="btn solid" style="background:var(--gold-gradient); color:#000; flex:1;" onclick="openStockModal()">
+                  NOTIFY ME WHEN IN STOCK
+                </button>
               </div>
-              <button class="btn solid" onclick="handlePdAddToCart('${product.id}')">Add to bag</button>
-              <button class="btn" onclick="handleBuyNow('${product.id}')">Buy Now</button>
-            </div>
+            ` : `
+              <div class="buy">
+                <div class="qty">
+                  <button onclick="updatePdQty(-1)" aria-label="Decrease quantity">${ic('minus', 16)}</button>
+                  <output id="pq">1</output>
+                  <button onclick="updatePdQty(1)" aria-label="Increase quantity">${ic('plus', 16)}</button>
+                </div>
+                <button class="btn solid" onclick="handlePdAddToCart('${product.id}')">Add to bag</button>
+                <button class="btn" onclick="handleBuyNow('${product.id}')">Buy Now</button>
+              </div>
+            `}
 
             <button class="btn block ghost" onclick="handlePdWishToggle('${product.id}', this)" aria-pressed="${isWish}">
               ${ic('heart', 18)} <span id="wtxt">${isWish ? 'Saved to Wishlist' : 'Save to Wishlist'}</span>
@@ -208,15 +586,31 @@
                 Keep away from direct perfume, water, and body sweat. Wipe gently with a soft dry cloth after use and store in a sealed velvet box.
               </p>
             </details>
-
-            <details>
-              <summary>Delivery & Free Returns</summary>
-              <p style="color:var(--muted);margin-top:0.6rem;font-size:0.92rem;line-height:1.6;">
-                Free delivery on all orders above ₹999 across India. Return or exchange within 7 days of delivery if not satisfied.
-              </p>
-            </details>
           </div>
         </div>
+
+        <!-- Real Customer Reviews Section -->
+        <section class="reviews-section" id="reviews-section">
+          <div class="reviews-header">
+            <div class="reviews-title">
+              <h2>Customer Reviews</h2>
+              <div class="reviews-rating-summary">
+                <div class="overall-score" id="avg-score">4.9</div>
+                <div>
+                  <div class="review-stars">★★★★★</div>
+                  <div style="font-size:0.82rem; color:var(--text-dim); margin-top:0.2rem;" id="reviews-count-text">Based on customer feedback</div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-gold" onclick="openReviewModal()">
+              ★ WRITE A REVIEW
+            </button>
+          </div>
+
+          <div id="reviews-list-container">
+            <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">Loading customer reviews...</div>
+          </div>
+        </section>
 
         <!-- Related Products -->
         ${related.length ? `
@@ -227,16 +621,70 @@
             </div>
           </div>
         ` : ''}
+      `;
 
-        <!-- Recently Viewed -->
-        ${recentlyViewed.length ? `
-          <div style="padding: 1rem 0 4rem;">
-            <h2 style="font-size: 2rem; margin-bottom: 1.5rem;">Recently Viewed</h2>
-            <div class="grid">
-              ${recentlyViewed.map(p => renderMiniCard(p)).join('')}
-            </div>
+      loadReviewsForProduct(productId);
+    }
+
+    async function loadReviewsForProduct(productId) {
+      const container = document.getElementById('reviews-list-container');
+      const reviews = await getProductReviews(productId);
+
+      if (!reviews || reviews.length === 0) {
+        container.innerHTML = `
+          <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:3rem 1.5rem; text-align:center;">
+            <p style="color:var(--text-dim); margin-bottom:1rem;">Be the first to share a review with a photo for this jewellery piece!</p>
+            <button class="btn btn-outline" onclick="openReviewModal()">Write the First Review</button>
           </div>
-        ` : ''}
+        `;
+        return;
+      }
+
+      const totalRating = reviews.reduce((sum, r) => sum + (r.rating || 5), 0);
+      const avg = (totalRating / reviews.length).toFixed(1);
+      const avgEl = document.getElementById('avg-score');
+      const countEl = document.getElementById('reviews-count-text');
+      if (avgEl) avgEl.textContent = avg;
+      if (countEl) countEl.textContent = `Based on ${reviews.length} verified ${reviews.length === 1 ? 'review' : 'reviews'}`;
+
+      container.innerHTML = `
+        <div class="review-grid">
+          ${reviews.map(r => {
+            const initial = (r.reviewerName || 'C').charAt(0).toUpperCase();
+            const dateStr = r.createdAt?.seconds
+              ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+              : 'Recent review';
+            const starsStr = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+            const photos = r.photos || (r.photoUrl ? [r.photoUrl] : []);
+
+            return `
+              <div class="review-card">
+                <div class="review-card-top">
+                  <div class="reviewer-info">
+                    <div class="reviewer-avatar">${initial}</div>
+                    <div>
+                      <div class="reviewer-name">${escapeHtml(r.reviewerName || 'Customer')}</div>
+                      ${r.verifiedBuyer ? `<span class="verified-buyer-tag">✓ Verified Purchase</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="review-date">${dateStr}</div>
+                </div>
+
+                <div style="color:var(--gold); font-size:0.95rem;">${starsStr}</div>
+                ${r.title ? `<strong style="color:var(--text-color); font-size:0.95rem;">${escapeHtml(r.title)}</strong>` : ''}
+                <p class="review-text">${escapeHtml(r.text || r.reviewText || '')}</p>
+
+                ${photos.length ? `
+                  <div class="review-photos-row">
+                    ${photos.map(url => `
+                      <img src="${url}" class="review-photo-thumb" alt="Customer review photo" onclick="openLightbox('${url}')" loading="lazy" />
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
       `;
     }
 
@@ -326,20 +774,121 @@
 
       const code = input.value.trim();
       if (!/^\d{6}$/.test(code)) {
-        res.style.color = 'var(--danger)';
+        res.style.color = '#ff6b6b';
         res.textContent = 'Please enter a valid 6-digit Pincode.';
         return;
       }
 
-      res.style.color = 'var(--ok)';
+      res.style.color = '#2ecc71';
       res.textContent = `✓ Shipping available to ${code}! Delivery in 3 to 5 business days.`;
+    };
+
+    // Review Modal Functions
+    window.openReviewModal = function() {
+      document.getElementById('review-modal').classList.add('open');
+    };
+    window.closeReviewModal = function() {
+      document.getElementById('review-modal').classList.remove('open');
+      selectedPhotos = [];
+      document.getElementById('photo-previews').innerHTML = '';
+    };
+
+    window.setReviewRating = function(rating) {
+      document.getElementById('review-rating-val').value = rating;
+      const stars = document.querySelectorAll('#star-picker span');
+      stars.forEach((s, idx) => {
+        s.classList.toggle('active', idx < rating);
+      });
+    };
+
+    window.handlePhotoSelect = function(e) {
+      const files = Array.from(e.target.files);
+      selectedPhotos = files;
+      const previewsContainer = document.getElementById('photo-previews');
+      previewsContainer.innerHTML = '';
+
+      files.forEach(file => {
+        const url = URL.createObjectURL(file);
+        const div = document.createElement('div');
+        div.className = 'photo-preview-item';
+        div.innerHTML = `<img src="${url}" alt="Preview" />`;
+        previewsContainer.appendChild(div);
+      });
+    };
+
+    window.handleReviewSubmit = async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-review');
+      const title = document.getElementById('review-title').value;
+      const text = document.getElementById('review-text').value;
+      const rating = Number(document.getElementById('review-rating-val').value);
+
+      btn.disabled = true;
+      btn.textContent = 'SUBMITTING & COMPRESSING...';
+
+      const res = await submitReview({
+        productId: currentProduct.id,
+        title,
+        text,
+        rating,
+        photos: selectedPhotos
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'SUBMIT REVIEW';
+
+      if (res.success) {
+        if (window.Toast) Toast.success('Review Published!', 'Thank you for your feedback.');
+        closeReviewModal();
+        loadReviewsForProduct(currentProduct.id);
+      } else {
+        if (window.Toast) Toast.error('Error', res.error || 'Failed to submit review');
+      }
+    };
+
+    // Stock Modal
+    window.openStockModal = function() {
+      document.getElementById('stock-modal').classList.add('open');
+    };
+    window.closeStockModal = function() {
+      document.getElementById('stock-modal').classList.remove('open');
+    };
+    window.handleStockAlertSubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('stock-email').value;
+      const phone = document.getElementById('stock-phone').value;
+      const btn = document.getElementById('btn-stock-alert');
+
+      btn.disabled = true;
+      const res = await subscribeBackInStock({
+        productId: currentProduct.id,
+        productName: currentProduct.name,
+        email,
+        phone
+      });
+      btn.disabled = false;
+
+      if (res.success) {
+        if (window.Toast) Toast.success('Subscribed!', "We'll notify you as soon as this piece is back in stock.");
+        closeStockModal();
+      } else {
+        if (window.Toast) Toast.error('Error', res.error || 'Could not subscribe');
+      }
+    };
+
+    // Lightbox
+    window.openLightbox = function(url) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-modal').classList.add('open');
+    };
+    window.closeLightbox = function() {
+      document.getElementById('lightbox-modal').classList.remove('open');
     };
 
     window.openRingModal = function() {
       const modal = document.getElementById('ring-modal');
       if (modal) modal.classList.add('on');
     };
-
     window.closeRingModal = function() {
       const modal = document.getElementById('ring-modal');
       if (modal) modal.classList.remove('on');

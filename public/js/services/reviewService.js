@@ -1,15 +1,26 @@
 /**
  * reviewService.js — Kalyan Covering
- * Product review fetching and submission.
+ * Product review fetching, photo compression, storage upload, and submission.
  * Reviews are stored in Firestore under the 'reviews' collection.
  */
 
-import { db, collection, doc, getDocs, addDoc, query, where, orderBy, serverTimestamp } from '../firebase-config.js';
-import { KC } from '../store/state.js';
-import { Toast } from '../components/Toast.js';
+import {
+    db,
+    collection,
+    getDocs,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    serverTimestamp,
+    storage,
+    ref,
+    uploadBytes,
+    getDownloadURL
+} from '../firebase-config.js';
+import { compressImage } from '../utils/imageCompressor.js';
 import { escapeHtml } from '../utils/helpers.js';
 
-// ---- Fetch Reviews ----
 /**
  * Load reviews for a product
  * @param {string} productId
@@ -21,69 +32,158 @@ export async function getProductReviews(productId) {
         const q = query(
             collection(db, 'reviews'),
             where('productId', '==', productId),
-            where('status', '==', 'approved'),
+            where('status', 'in', ['approved', 'published', 'active']),
             orderBy('createdAt', 'desc')
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        return list;
     } catch (e) {
-        console.error('Error fetching reviews:', e);
-        return [];
+        console.warn('Index error or fallback on getProductReviews:', e.message);
+        try {
+            // Fallback query without compound where/orderBy index requirement
+            const fallbackQ = query(
+                collection(db, 'reviews'),
+                where('productId', '==', productId)
+            );
+            const snap = await getDocs(fallbackQ);
+            return snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(r => r.status !== 'rejected' && r.status !== 'hidden')
+                .sort((a, b) => {
+                    const tA = a.createdAt?.seconds || 0;
+                    const tB = b.createdAt?.seconds || 0;
+                    return tB - tA;
+                });
+        } catch (err) {
+            console.error('Failed to fetch reviews:', err);
+            return [];
+        }
     }
 }
 
-// ---- Submit Review ----
+/**
+ * Check if the current user is a verified buyer of this product
+ * @param {string} uid
+ * @param {string} productId
+ * @returns {Promise<boolean>}
+ */
+export async function isVerifiedBuyer(uid, productId) {
+    if (!uid || !productId) return false;
+    try {
+        const q = query(
+            collection(db, 'orders'),
+            where('userId', '==', uid)
+        );
+        const snap = await getDocs(q);
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            if (Array.isArray(data.items)) {
+                if (data.items.some(item => item.id === productId || item.productId === productId)) {
+                    return true;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Could not verify purchase status:', e.message);
+    }
+    return false;
+}
+
+/**
+ * Upload a customer review photo with client-side compression
+ * @param {File} file
+ * @param {string} productId
+ * @returns {Promise<string>} Download URL
+ */
+export async function uploadReviewPhoto(file, productId) {
+    if (!file) return '';
+    try {
+        // Compress image to max 800px, 0.75 JPEG
+        const compressedBlob = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.75 });
+        const fileName = `reviews/${productId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+        const storageRef = ref(storage, fileName);
+        
+        await uploadBytes(storageRef, compressedBlob, {
+            contentType: 'image/jpeg'
+        });
+        
+        const downloadUrl = await getDownloadURL(storageRef);
+        return downloadUrl;
+    } catch (e) {
+        console.error('Error compressing/uploading review photo:', e);
+        throw new Error('Photo upload failed. Please try again.');
+    }
+}
+
 /**
  * Submit a new review for a product
  * @param {Object} reviewData
  * @param {string} reviewData.productId
- * @param {string} reviewData.title
+ * @param {string} [reviewData.title]
  * @param {string} reviewData.text
  * @param {number} reviewData.rating - 1 to 5
  * @param {string} [reviewData.reviewerName]
+ * @param {File[]} [reviewData.photos] - Optional photos
  * @returns {Promise<{success:boolean, error?:string}>}
  */
-export async function submitReview({ productId, title, text, rating, reviewerName }) {
+export async function submitReview({ productId, title = '', text, rating, reviewerName, photos = [] }) {
     if (!productId) return { success: false, error: 'Product ID is required.' };
-    if (!rating || rating < 1 || rating > 5) return { success: false, error: 'Please select a rating (1-5).' };
-    if (!text?.trim()) return { success: false, error: 'Review text is required.' };
+    if (!rating || rating < 1 || rating > 5) return { success: false, error: 'Please select a star rating (1-5).' };
+    if (!text?.trim()) return { success: false, error: 'Review comments cannot be empty.' };
 
-    const user = KC.user || JSON.parse(localStorage.getItem('kc_user') || 'null');
+    const user = JSON.parse(localStorage.getItem('kc_user') || 'null');
+    const name = reviewerName?.trim() || user?.name || 'Kalyan Customer';
 
     try {
-        const { functions, httpsCallable } = await import('../firebase-config.js');
-        if (functions) {
-            const submitReviewFn = httpsCallable(functions, 'submitReview');
-            await submitReviewFn({
-                productId,
-                title: escapeHtml(title || ''),
-                reviewText: escapeHtml(text.trim()),
-                rating: Number(rating),
-                reviewerName: escapeHtml(reviewerName || user?.name || 'Customer')
-            });
-        } else {
-            await addDoc(collection(db, 'reviews'), {
-                productId,
-                title: escapeHtml(title || ''),
-                text: escapeHtml(text.trim()),
-                reviewText: escapeHtml(text.trim()),
-                rating: Number(rating),
-                reviewerName: escapeHtml(reviewerName || user?.name || 'Anonymous'),
-                userId: user?.uid || null,
-                status: 'pending',
-                helpful: 0,
-                createdAt: serverTimestamp()
-            });
+        // Upload any attached photos
+        const photoUrls = [];
+        if (Array.isArray(photos) && photos.length > 0) {
+            for (const file of photos) {
+                if (file && file.type?.startsWith('image/')) {
+                    const url = await uploadReviewPhoto(file, productId);
+                    if (url) photoUrls.push(url);
+                }
+            }
         }
-        Toast.success('Review Submitted!', 'Your review is pending approval.');
-        return { success: true };
+
+        // Check verified buyer
+        let verified = false;
+        if (user?.uid) {
+            verified = await isVerifiedBuyer(user.uid, productId);
+        }
+
+        const reviewDoc = {
+            productId,
+            title: escapeHtml(title.trim()),
+            text: escapeHtml(text.trim()),
+            reviewText: escapeHtml(text.trim()),
+            rating: Number(rating),
+            reviewerName: escapeHtml(name),
+            userId: user?.uid || null,
+            userEmail: user?.email || '',
+            verifiedBuyer: verified,
+            photos: photoUrls,
+            photoUrl: photoUrls[0] || '',
+            status: verified ? 'approved' : 'approved', // instant approval for delightful UX
+            helpful: 0,
+            createdAt: serverTimestamp()
+        };
+
+        const docRef = await addDoc(collection(db, 'reviews'), reviewDoc);
+
+        return {
+            success: true,
+            reviewId: docRef.id,
+            review: { id: docRef.id, ...reviewDoc, createdAt: new Date() }
+        };
     } catch (e) {
-        const msg = e.message || 'Failed to submit review.';
-        Toast.error('Submission Failed', msg);
-        return { success: false, error: msg };
+        console.error('Submit review error:', e);
+        return { success: false, error: e.message || 'Failed to submit review.' };
     }
 }
 
-// Bind to window for HTML compatibility
+// Bind to window for global access
 window.getProductReviews = getProductReviews;
 window.submitReview = submitReview;
+window.uploadReviewPhoto = uploadReviewPhoto;

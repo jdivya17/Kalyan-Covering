@@ -261,6 +261,7 @@
   <script type="module">
     import { getOrder } from '../js/services/orderService.js';
     import { formatCurrency } from '../js/utils/helpers.js';
+    import { generateInvoicePDF } from '../js/utils/invoiceGenerator.js';
 
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
@@ -313,7 +314,16 @@
 
           const printBtn = document.getElementById('btn-print-invoice');
           if (printBtn) {
-            printBtn.href = `invoice.html?id=${order.id || orderId}`;
+            printBtn.onclick = async (e) => {
+              e.preventDefault();
+              try {
+                if (window.Toast) Toast.info('Generating PDF Invoice...');
+                await generateInvoicePDF(order);
+                if (window.Toast) Toast.success('Invoice Downloaded', `Invoice for Order #${order.orderNumber || order.id}`);
+              } catch (err) {
+                window.location.href = `invoice.html?id=${order.id || orderId}`;
+              }
+            };
           }
         }
       } catch (e) {
