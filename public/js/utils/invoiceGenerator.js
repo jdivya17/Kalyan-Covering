@@ -1,10 +1,20 @@
 /**
  * invoiceGenerator.js — Kalyan Covering
- * Client-side GST-compliant PDF Invoice Generator using jsPDF.
+ * Client-side GST Tax Invoice PDF Generator using pinned jsPDF CDN (v2.5.1).
+ * All store identity, tax rates, GSTIN placeholders, and HSN codes are loaded from STORE_CONFIG.
+ * 
+ * NOTE: For production go-live, sequential invoice numbering (e.g. INV-YYYY-NNNN)
+ * must be generated server-side via a Firestore transaction or Cloud Function
+ * to guarantee strict sequential ordering and compliance without client-side race conditions.
  */
 
+import { STORE_CONFIG } from '../config/storeConfig.js';
+
+// Pinned jsPDF CDN URL
+const JSPDF_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+
 /**
- * Load jsPDF dynamically if not already loaded
+ * Load pinned jsPDF library dynamically if not already present
  */
 export async function loadJsPDF() {
     if (window.jspdf && window.jspdf.jsPDF) {
@@ -12,7 +22,7 @@ export async function loadJsPDF() {
     }
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.src = JSPDF_CDN_URL;
         script.onload = () => {
             if (window.jspdf && window.jspdf.jsPDF) {
                 resolve(window.jspdf.jsPDF);
@@ -20,7 +30,7 @@ export async function loadJsPDF() {
                 reject(new Error('jsPDF loaded but constructor not found'));
             }
         };
-        script.onerror = () => reject(new Error('Failed to load jsPDF library'));
+        script.onerror = () => reject(new Error('Failed to load jsPDF library from pinned CDN'));
         document.head.appendChild(script);
     });
 }
@@ -44,7 +54,6 @@ export async function generateInvoicePDF(order) {
     const primaryGold = [214, 178, 94];     // #D6B25E
     const darkBg = [15, 14, 12];           // #0F0E0C
     const darkText = [30, 30, 30];
-    const lightText = [120, 120, 120];
 
     const orderId = order.orderNumber || order.id || 'KC-ORD';
     const invoiceNum = order.invoiceNumber || `INV-${new Date().getFullYear()}-${orderId.slice(-6).toUpperCase()}`;
@@ -55,17 +64,19 @@ export async function generateInvoicePDF(order) {
     const customer = order.shippingAddress || order.address || {};
     const items = order.items || [];
     
+    // Total amounts
     const subtotal = order.subtotal || items.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || item.quantity || 1)), 0);
     const discount = order.discount || 0;
-    const giftWrap = order.giftWrap ? 99 : 0;
-    const shipping = order.shippingFee !== undefined ? order.shippingFee : (subtotal >= 999 ? 0 : 99);
+    const giftWrap = order.giftWrap ? STORE_CONFIG.shipping.giftWrapFee : 0;
+    const shipping = order.shippingFee !== undefined ? order.shippingFee : (subtotal >= STORE_CONFIG.shipping.freeShippingThreshold ? 0 : STORE_CONFIG.shipping.standardDeliveryFee);
     const grandTotal = order.total || order.grandTotal || (subtotal - discount + giftWrap + shipping);
 
-    // GST Calculation (12% Jewellery Covering rate: 6% CGST + 6% SGST included)
-    const gstRate = 0.12;
+    // Accurate Tax Calculation from Gross Tax-Inclusive Prices
+    const gstRate = STORE_CONFIG.tax.gstRate || 0.12;
     const taxableBase = Math.round((subtotal / (1 + gstRate)) * 100) / 100;
-    const cgst = Math.round(((subtotal - taxableBase) / 2) * 100) / 100;
-    const sgst = cgst;
+    const totalGst = Math.round((subtotal - taxableBase) * 100) / 100;
+    const cgst = Math.round((totalGst / 2) * 100) / 100;
+    const sgst = Math.round((totalGst - cgst) * 100) / 100;
 
     // --- Header Banner ---
     doc.setFillColor(...darkBg);
@@ -78,13 +89,13 @@ export async function generateInvoicePDF(order) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
     doc.setTextColor(...primaryGold);
-    doc.text('KALYAN COVERING', 15, 18);
+    doc.text(STORE_CONFIG.storeName.toUpperCase(), 15, 18);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(200, 200, 200);
-    doc.text('South Indian Gold Covering Jewellers • Est. 2000', 15, 24);
-    doc.text('124, Nethaji Road, Erode, Tamil Nadu 638001 | GSTIN: 33AAAAK1234A1Z5', 15, 29);
+    doc.text(STORE_CONFIG.storeSubtitle, 15, 24);
+    doc.text(`${STORE_CONFIG.address.fullAddress} | GSTIN: ${STORE_CONFIG.tax.gstin}`, 15, 29);
 
     // Invoice Title
     doc.setFont('helvetica', 'bold');
@@ -137,11 +148,11 @@ export async function generateInvoicePDF(order) {
     doc.setTextColor(80, 80, 80);
 
     // Store Details
-    doc.text('Kalyan Covering Jewellers', 15, y);
-    doc.text('124, Nethaji Road, Clock Tower', 15, y + 4);
-    doc.text('Erode, Tamil Nadu - 638001', 15, y + 8);
-    doc.text('State Code: 33 (Tamil Nadu)', 15, y + 12);
-    doc.text('Email: orders@kalyancovering.com | Tel: +91 98765 43210', 15, y + 16);
+    doc.text(STORE_CONFIG.storeName, 15, y);
+    doc.text(STORE_CONFIG.address.line1, 15, y + 4);
+    doc.text(`${STORE_CONFIG.address.city}, ${STORE_CONFIG.address.state} - ${STORE_CONFIG.address.pincode}`, 15, y + 8);
+    doc.text(`State Code: ${STORE_CONFIG.address.stateCode}`, 15, y + 12);
+    doc.text(`Email: ${STORE_CONFIG.contact.email} | Tel: ${STORE_CONFIG.contact.phone}`, 15, y + 16);
 
     // Customer Details
     const custName = customer.fullName || customer.name || order.customerName || 'Valued Customer';
@@ -189,10 +200,10 @@ export async function generateInvoicePDF(order) {
 
         doc.text(String(index + 1), 18, y + 5);
         doc.text(String(item.name || 'Gold Covering Jewellery').slice(0, 45), 26, y + 5);
-        doc.text('711790', 110, y + 5);
+        doc.text(STORE_CONFIG.tax.hsnCode, 110, y + 5);
         doc.text(String(itemQty), 125, y + 5, { align: 'right' });
         doc.text(itemPrice.toLocaleString('en-IN'), 148, y + 5, { align: 'right' });
-        doc.text('12%', 165, y + 5, { align: 'right' });
+        doc.text(`${(STORE_CONFIG.tax.gstRate * 100)}%`, 165, y + 5, { align: 'right' });
         doc.text(lineTotal.toLocaleString('en-IN'), 190, y + 5, { align: 'right' });
 
         y += 7.5;
@@ -207,13 +218,13 @@ export async function generateInvoicePDF(order) {
 
     doc.setFontSize(8);
     doc.setTextColor(80, 80, 80);
-    doc.text('Subtotal (Taxable Base):', 124, totalsY + 6);
+    doc.text('Taxable Base (excl. GST):', 124, totalsY + 6);
     doc.text(`₹${taxableBase.toLocaleString('en-IN')}`, 190, totalsY + 6, { align: 'right' });
 
-    doc.text('CGST (6%):', 124, totalsY + 12);
+    doc.text(`CGST (${STORE_CONFIG.tax.cgstRate * 100}%):`, 124, totalsY + 12);
     doc.text(`₹${cgst.toLocaleString('en-IN')}`, 190, totalsY + 12, { align: 'right' });
 
-    doc.text('SGST (6%):', 124, totalsY + 18);
+    doc.text(`SGST (${STORE_CONFIG.tax.sgstRate * 100}%):`, 124, totalsY + 18);
     doc.text(`₹${sgst.toLocaleString('en-IN')}`, 190, totalsY + 18, { align: 'right' });
 
     if (discount > 0) {
@@ -257,7 +268,7 @@ export async function generateInvoicePDF(order) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(...primaryGold);
-    doc.text('KALYAN COVERING JEWELLERS', 47.5, totalsY + 31, { align: 'center' });
+    doc.text(STORE_CONFIG.storeName.toUpperCase(), 47.5, totalsY + 31, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(120, 120, 120);
@@ -269,7 +280,7 @@ export async function generateInvoicePDF(order) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(180, 180, 180);
-    doc.text('Thank you for choosing Kalyan Covering. For support: info@kalyancovering.com | +91 98765 43210', 105, 290, { align: 'center' });
+    doc.text(`Thank you for choosing Kalyan Covering. For support: ${STORE_CONFIG.contact.supportEmail} | ${STORE_CONFIG.contact.phone}`, 105, 290, { align: 'center' });
 
     // Save PDF
     const filename = `Kalyan_Covering_Invoice_${orderId}.pdf`;

@@ -9,6 +9,7 @@ import {
     addDoc,
     serverTimestamp
 } from '../firebase-config.js';
+import { STORE_CONFIG } from '../config/storeConfig.js';
 
 /**
  * Get formatted stock status information
@@ -43,9 +44,13 @@ export function getStockInfo(product) {
         };
     }
 
+    const dispatchText = STORE_CONFIG.shipping?.showShipsIn24Hours
+        ? `In Stock — ${STORE_CONFIG.shipping.dispatchTimeText || 'Ships in 24 hrs'}`
+        : 'In Stock';
+
     return {
         status: 'in',
-        label: 'In Stock — Ships in 24 hrs',
+        label: dispatchText,
         badgeClass: 'in-stock',
         isOutOfStock: false
     };

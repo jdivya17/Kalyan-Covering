@@ -938,6 +938,10 @@
                         class="icon">🧾</span>Invoices</button>
                 <button class="sidebar-link" onclick="showPanel('coupons',this)" data-rbac="coupons"><span
                         class="icon">🎟️</span>Coupons</button>
+                <button class="sidebar-link" onclick="showPanel('reviews',this)" data-rbac="products"><span
+                        class="icon">⭐</span>Customer Reviews</button>
+                <button class="sidebar-link" onclick="showPanel('stockalerts',this)" data-rbac="products"><span
+                        class="icon">🔔</span>Stock Alerts</button>
                 <button class="sidebar-link" onclick="showPanel('users',this)" data-rbac="users"><span
                         class="icon">👥</span>Registered Users</button>
                 <button class="sidebar-link" onclick="showPanel('audit',this)" data-rbac="audit"><span
@@ -1667,6 +1671,72 @@
                                         <div class="spinner" style="margin:0 auto 1rem"></div>Loading coupons...
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== CUSTOMER REVIEWS MODERATION ===== -->
+                <div class="admin-panel" id="panel-reviews">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+                        <div>
+                            <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">⭐ Customer Review Moderation</h2>
+                            <p style="color:#666;font-size:.82rem;margin:.3rem 0 0">Approve or reject customer submitted reviews and photos</p>
+                        </div>
+                        <div style="display:flex;gap:0.5rem">
+                            <select class="form-input" id="review-filter-status" onchange="loadAdminReviews()" style="width:170px">
+                                <option value="pending">⏳ Pending Approval</option>
+                                <option value="approved">✅ Approved</option>
+                                <option value="rejected">❌ Rejected</option>
+                                <option value="all">All Reviews</option>
+                            </select>
+                            <button class="btn btn-gold btn-sm" onclick="loadAdminReviews()">🔄 Refresh</button>
+                        </div>
+                    </div>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Reviewer</th>
+                                    <th>Rating</th>
+                                    <th>Review Content</th>
+                                    <th>Photos</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-reviews-table-body">
+                                <tr><td colspan="8" style="text-align:center;padding:3rem;color:#555">Loading reviews...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== STOCK ALERTS ===== -->
+                <div class="admin-panel" id="panel-stockalerts">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+                        <div>
+                            <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">🔔 Back-in-Stock Customer Alerts</h2>
+                            <p style="color:#666;font-size:.82rem;margin:.3rem 0 0">Customer waiting list notifications when products are restocked</p>
+                        </div>
+                        <button class="btn btn-gold btn-sm" onclick="loadAdminStockAlerts()">🔄 Refresh</button>
+                    </div>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Customer Email</th>
+                                    <th>WhatsApp Phone</th>
+                                    <th>Requested On</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-stockalerts-table-body">
+                                <tr><td colspan="6" style="text-align:center;padding:3rem;color:#555">Loading stock alerts...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -3349,7 +3419,7 @@
             document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             if (btn) btn.classList.add('active');
 
-            const titles = { dashboard: 'Dashboard', analytics: 'Analytics', products: 'Products & Stock', orders: 'Orders & Payments', invoices: 'Invoice Management', coupons: 'Coupon Management', theme: 'Seasonal Theme', social: 'Social Media Settings', notifications: 'Notifications', users: 'User Analytics', settings: 'General Settings', audit: 'System Audit Logs' };
+            const titles = { dashboard: 'Dashboard', analytics: 'Analytics', products: 'Products & Stock', orders: 'Orders & Payments', invoices: 'Invoice Management', coupons: 'Coupon Management', reviews: 'Customer Review Moderation', stockalerts: 'Back-in-Stock Alerts', theme: 'Seasonal Theme', social: 'Social Media Settings', notifications: 'Notifications', users: 'User Analytics', settings: 'General Settings', audit: 'System Audit Logs' };
             document.getElementById('panel-title').textContent = titles[id] || '';
             document.getElementById('admin-sidebar').classList.remove('open');
 
@@ -3359,6 +3429,8 @@
             if (id === 'orders') renderOrdersTable(ordersData);
             if (id === 'invoices') { if (typeof window.loadAdminInvoices === 'function') window.loadAdminInvoices(); }
             if (id === 'coupons') { if (typeof window.loadCoupons === 'function') window.loadCoupons(); }
+            if (id === 'reviews') { if (typeof window.loadAdminReviews === 'function') window.loadAdminReviews(); }
+            if (id === 'stockalerts') { if (typeof window.loadAdminStockAlerts === 'function') window.loadAdminStockAlerts(); }
             if (id === 'notifications') renderNotifications();
             if (id === 'users') renderUsersTable();
             if (id === 'settings') renderBranchesTable();
@@ -5784,6 +5856,169 @@
             } catch (err) {
                 console.error('deleteCoupon:', err);
                 Toast.error('Delete Failed', err.message);
+            }
+        };
+
+        // ============================================================
+        // CUSTOMER REVIEW MODERATION
+        // ============================================================
+
+        window.loadAdminReviews = async function () {
+            const tbody = document.getElementById('admin-reviews-table-body');
+            if (!tbody) return;
+            const statusFilter = document.getElementById('review-filter-status')?.value || 'pending';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:3rem;color:#555"><div class="spinner" style="margin:0 auto 1rem"></div>Loading reviews...</td></tr>';
+            try {
+                let q;
+                const reviewsCol = collection(db, 'reviews');
+                if (statusFilter === 'all') {
+                    q = query(reviewsCol, orderBy('createdAt', 'desc'));
+                } else {
+                    q = query(reviewsCol, where('status', '==', statusFilter), orderBy('createdAt', 'desc'));
+                }
+                const snap = await getDocs(q);
+                const reviews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                if (reviews.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#666">No ${statusFilter === 'all' ? '' : statusFilter} reviews found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = reviews.map(r => {
+                    const safeName = DOMPurify.sanitize(r.reviewerName || r.userName || 'Customer');
+                    const safeText = DOMPurify.sanitize(r.text || r.reviewText || '');
+                    const safeTitle = DOMPurify.sanitize(r.title || '');
+                    const stars = '★'.repeat(Math.min(5, Math.max(0, Number(r.rating) || 0)));
+                    const dateStr = r.createdAt?.seconds
+                        ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : '—';
+                    const statusColor = { approved: 'var(--green)', pending: 'var(--orange)', rejected: 'var(--red)' }[r.status] || '#888';
+                    const photoCount = (r.photos || []).length;
+                    const photosHtml = photoCount > 0
+                        ? `<div style="display:flex;gap:4px;flex-wrap:wrap">${(r.photos || []).slice(0, 3).map(u => `<img src="${u}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #333" onerror="this.style.display='none'">`).join('')}${photoCount > 3 ? `<span style="color:#888;font-size:.75rem">+${photoCount - 3}</span>` : ''}</div>`
+                        : '<span style="color:#555;font-size:.78rem">—</span>';
+
+                    return `<tr>
+                        <td data-label="Product" style="font-size:.8rem;color:#aaa;font-family:monospace">${r.productId ? r.productId.substring(0, 10) : '—'}</td>
+                        <td data-label="Reviewer"><div style="font-weight:600">${safeName}</div><div style="font-size:.7rem;color:#555">${DOMPurify.sanitize(r.userEmail || '')}</div></td>
+                        <td data-label="Rating" style="color:var(--gold)">${stars} (${r.rating || 0})</td>
+                        <td data-label="Review" style="max-width:200px"><div style="font-size:.8rem;font-weight:600;margin-bottom:.2rem">${safeTitle}</div><div style="font-size:.78rem;color:#aaa;white-space:pre-wrap;max-height:60px;overflow:hidden">${safeText}</div></td>
+                        <td data-label="Photos">${photosHtml}</td>
+                        <td data-label="Date" style="color:#666;font-size:.78rem">${dateStr}</td>
+                        <td data-label="Status"><span style="color:${statusColor};font-weight:700;font-size:.78rem;text-transform:uppercase">${r.status || 'pending'}</span></td>
+                        <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end;gap:.4rem">
+                            ${r.status !== 'approved' ? `<button class="tbl-btn approve" onclick="approveAdminReview('${r.id}')">✓ Approve</button>` : ''}
+                            ${r.status !== 'rejected' ? `<button class="tbl-btn" style="border-color:rgba(255,138,0,.4);color:var(--orange)" onclick="rejectAdminReview('${r.id}')">✗ Reject</button>` : ''}
+                            <button class="tbl-btn delete" onclick="deleteAdminReview('${r.id}')">🗑</button>
+                        </div></td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('loadAdminReviews:', err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--red)">Failed to load reviews: ${err.message}</td></tr>`;
+            }
+        };
+
+        window.approveAdminReview = async function (reviewId) {
+            try {
+                await updateDoc(doc(db, 'reviews', reviewId), { status: 'approved', moderatedAt: serverTimestamp() });
+                Toast.success('Review Approved', 'The review is now visible to customers.');
+                await window.loadAdminReviews();
+            } catch (err) {
+                console.error('approveAdminReview:', err);
+                Toast.error('Error', err.message);
+            }
+        };
+
+        window.rejectAdminReview = async function (reviewId) {
+            try {
+                await updateDoc(doc(db, 'reviews', reviewId), { status: 'rejected', moderatedAt: serverTimestamp() });
+                Toast.info('Review Rejected', 'The review has been rejected and will not be shown.');
+                await window.loadAdminReviews();
+            } catch (err) {
+                console.error('rejectAdminReview:', err);
+                Toast.error('Error', err.message);
+            }
+        };
+
+        window.deleteAdminReview = async function (reviewId) {
+            if (!confirm('Permanently delete this review? This cannot be undone.')) return;
+            try {
+                await deleteDoc(doc(db, 'reviews', reviewId));
+                Toast.success('Review Deleted');
+                await window.loadAdminReviews();
+            } catch (err) {
+                console.error('deleteAdminReview:', err);
+                Toast.error('Error', err.message);
+            }
+        };
+
+        // ============================================================
+        // BACK-IN-STOCK ALERTS MANAGEMENT
+        // ============================================================
+
+        window.loadAdminStockAlerts = async function () {
+            const tbody = document.getElementById('admin-stockalerts-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:3rem;color:#555"><div class="spinner" style="margin:0 auto 1rem"></div>Loading stock alerts...</td></tr>';
+            try {
+                const snap = await getDocs(query(collection(db, 'stockAlerts'), orderBy('createdAt', 'desc')));
+                const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                if (alerts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:3rem;color:#666">No stock alerts registered yet.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = alerts.map(a => {
+                    const dateStr = a.createdAt?.seconds
+                        ? new Date(a.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+                        : '—';
+                    const safeProduct = DOMPurify.sanitize(a.productName || a.productId || '—');
+                    const safeEmail = DOMPurify.sanitize(a.email || '—');
+                    const safePhone = DOMPurify.sanitize(a.phone || '—');
+                    const statusHtml = a.notified
+                        ? '<span style="color:var(--green);font-weight:700;font-size:.78rem">✅ Notified</span>'
+                        : '<span style="color:var(--orange);font-weight:700;font-size:.78rem">⏳ Waiting</span>';
+
+                    return `<tr>
+                        <td data-label="Product">${safeProduct}</td>
+                        <td data-label="Email"><a href="mailto:${safeEmail}" style="color:var(--gold);font-size:.85rem">${safeEmail}</a></td>
+                        <td data-label="Phone" style="font-size:.85rem;color:#aaa">${safePhone || '—'}</td>
+                        <td data-label="Requested On" style="color:#666;font-size:.78rem">${dateStr}</td>
+                        <td data-label="Status">${statusHtml}</td>
+                        <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end;gap:.4rem">
+                            ${!a.notified ? `<button class="tbl-btn approve" onclick="markAlertNotified('${a.id}')">✓ Mark Notified</button>` : ''}
+                            <button class="tbl-btn delete" onclick="deleteStockAlert('${a.id}')">🗑</button>
+                        </div></td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('loadAdminStockAlerts:', err);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--red)">Failed to load alerts: ${err.message}</td></tr>`;
+            }
+        };
+
+        window.markAlertNotified = async function (alertId) {
+            try {
+                await updateDoc(doc(db, 'stockAlerts', alertId), { notified: true, notifiedAt: serverTimestamp() });
+                Toast.success('Alert Marked', 'Customer has been marked as notified.');
+                await window.loadAdminStockAlerts();
+            } catch (err) {
+                console.error('markAlertNotified:', err);
+                Toast.error('Error', err.message);
+            }
+        };
+
+        window.deleteStockAlert = async function (alertId) {
+            if (!confirm('Delete this stock alert? This cannot be undone.')) return;
+            try {
+                await deleteDoc(doc(db, 'stockAlerts', alertId));
+                Toast.success('Alert Deleted');
+                await window.loadAdminStockAlerts();
+            } catch (err) {
+                console.error('deleteStockAlert:', err);
+                Toast.error('Error', err.message);
             }
         };
 

@@ -2,6 +2,7 @@
  * reviewService.js — Kalyan Covering
  * Product review fetching, photo compression, storage upload, and submission.
  * Reviews are stored in Firestore under the 'reviews' collection.
+ * Status workflow: All new reviews are saved with status "pending" and only displayed when "approved".
  */
 
 import {
@@ -22,7 +23,7 @@ import { compressImage } from '../utils/imageCompressor.js';
 import { escapeHtml } from '../utils/helpers.js';
 
 /**
- * Load reviews for a product
+ * Load approved reviews for a product (strictly status === 'approved')
  * @param {string} productId
  * @returns {Promise<Array>}
  */
@@ -32,14 +33,14 @@ export async function getProductReviews(productId) {
         const q = query(
             collection(db, 'reviews'),
             where('productId', '==', productId),
-            where('status', 'in', ['approved', 'published', 'active']),
+            where('status', '==', 'approved'),
             orderBy('createdAt', 'desc')
         );
         const snapshot = await getDocs(q);
         const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         return list;
     } catch (e) {
-        console.warn('Index error or fallback on getProductReviews:', e.message);
+        console.warn('Compound index notice or fallback on getProductReviews:', e.message);
         try {
             // Fallback query without compound where/orderBy index requirement
             const fallbackQ = query(
@@ -49,7 +50,7 @@ export async function getProductReviews(productId) {
             const snap = await getDocs(fallbackQ);
             return snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .filter(r => r.status !== 'rejected' && r.status !== 'hidden')
+                .filter(r => r.status === 'approved') // Strictly approved only
                 .sort((a, b) => {
                     const tA = a.createdAt?.seconds || 0;
                     const tB = b.createdAt?.seconds || 0;
@@ -91,7 +92,7 @@ export async function isVerifiedBuyer(uid, productId) {
 }
 
 /**
- * Upload a customer review photo with client-side compression
+ * Upload a customer review photo with client-side compression (max 800px, JPEG 0.75, < 500KB)
  * @param {File} file
  * @param {string} productId
  * @returns {Promise<string>} Download URL
@@ -112,12 +113,12 @@ export async function uploadReviewPhoto(file, productId) {
         return downloadUrl;
     } catch (e) {
         console.error('Error compressing/uploading review photo:', e);
-        throw new Error('Photo upload failed. Please try again.');
+        throw new Error('Photo upload failed. Please ensure photo is an image under 5MB.');
     }
 }
 
 /**
- * Submit a new review for a product
+ * Submit a new review for a product (always saved with status 'pending')
  * @param {Object} reviewData
  * @param {string} reviewData.productId
  * @param {string} [reviewData.title]
@@ -165,7 +166,7 @@ export async function submitReview({ productId, title = '', text, rating, review
             verifiedBuyer: verified,
             photos: photoUrls,
             photoUrl: photoUrls[0] || '',
-            status: verified ? 'approved' : 'approved', // instant approval for delightful UX
+            status: 'pending', // REQUIRED: All reviews are saved with status 'pending'
             helpful: 0,
             createdAt: serverTimestamp()
         };
@@ -175,7 +176,8 @@ export async function submitReview({ productId, title = '', text, rating, review
         return {
             success: true,
             reviewId: docRef.id,
-            review: { id: docRef.id, ...reviewDoc, createdAt: new Date() }
+            status: 'pending',
+            message: 'Your review has been submitted and will appear once approved by our moderation team.'
         };
     } catch (e) {
         console.error('Submit review error:', e);

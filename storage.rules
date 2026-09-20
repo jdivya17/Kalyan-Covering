@@ -45,10 +45,12 @@ service firebase.storage {
       allow write: if isAdmin() && isVideo() && isUnder100MB();
     }
 
-    // --- User Avatars (authenticated users can upload their own) ---
-    match /avatars/{userId}/{allPaths=**} {
+    // --- Customer Review Photos (public read, authenticated write restricted to JPEG < 500KB) ---
+    match /reviews/{productId}/{photoName} {
       allow read: if true;
-      allow write: if isAuthenticated() && request.auth.uid == userId && isImage() && isUnder10MB();
+      allow write: if isAuthenticated() 
+        && request.resource.contentType == 'image/jpeg' 
+        && request.resource.size < 500 * 1024;
     }
 
     // --- General Assets (admin only) ---

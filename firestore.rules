@@ -82,19 +82,28 @@ service cloud.firestore {
       allow write: if isOwnerOrManager();
     }
     
-    match /reviews/{document=**} {
-      allow read: if true;
-      // Reviews must be submitted via Cloud Function to ensure one-review-per-order validation.
-      allow create: if false;
-      // Users can edit ONLY review content fields on their own reviews.
-      // Prevents tampering with customerId, userId, productId, orderId, or any other metadata.
+    // --- Reviews: Public can read approved reviews only; authenticated users create with status 'pending' ---
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if isAuthenticated() 
+        && request.resource.data.status == 'pending'
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
       allow update: if isAdmin() || (
         isAuthenticated() && 
-        (resource.data.customerId == request.auth.uid || resource.data.userId == request.auth.uid) &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['rating', 'comment', 'reviewText', 'reviewerName', 'images', 'title', 'updatedAt'])
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpful'])
       );
-      allow delete: if isAdmin() || (isAuthenticated() && (resource.data.customerId == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow delete: if isAdmin();
+    }
+
+    // --- Stock Alerts: Customers can submit back-in-stock alerts (write-only); admin read/manage ---
+    match /stockAlerts/{alertId} {
+      allow create: if request.resource.data.email is string 
+        && request.resource.data.productId is string
+        && request.resource.data.notified == false;
+      allow read, update, delete: if isAdmin();
     }
 
     // --- Protected User Collections ---
