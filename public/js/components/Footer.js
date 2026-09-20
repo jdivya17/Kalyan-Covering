@@ -1,103 +1,68 @@
 /**
  * Footer.js — Kalyan Covering
- * Reusable footer component.
- * Handles dynamic social links and store info injected from Firestore config.
+ * Global Luxury Footer Component.
  */
 
-export const Footer = {
-    /**
-     * Apply dynamic social/contact links to footer and other elements.
-     * Called after config/social is fetched from Firestore.
-     * @param {Object} data - Social config from Firestore config/social document
-     */
-    applySocialLinks(data) {
-        if (!data) return;
+import { ic } from '../utils/icons.js';
 
-        const instaUser = data.instagram || 'kalyan_covering';
-        const instaUrl = instaUser.startsWith('http')
-            ? instaUser
-            : `https://www.instagram.com/${instaUser.replace('@', '')}/`;
-
-        const waNum = (data.whatsapp || '919876543210').replace(/\D/g, '');
-        const waUrl = `https://wa.me/${waNum}?text=${encodeURIComponent("Hi Kalyan Covering, I'm interested in your jewellery!")}`;
-
-        const fbUrl = data.facebook || 'https://www.facebook.com/kalyan_covering';
-        const ytUrl = data.youtube || 'https://www.youtube.com/@kalyancovering';
-        const twUrl = data.twitter || 'https://twitter.com/kalyan_covering';
-
-        // Apply to anchor elements with dynamic link classes
-        document.querySelectorAll('.dynamic-insta').forEach(el => {
-            if (el.tagName === 'A') el.href = instaUrl;
-            if (el.classList.contains('insta-handle-text'))
-                el.textContent = `@${instaUser.replace('@', '')}`;
-        });
-        document.querySelectorAll('.dynamic-wa').forEach(el => {
-            if (el.tagName === 'A') el.href = waUrl;
-        });
-        document.querySelectorAll('.dynamic-fb').forEach(el => {
-            if (el.tagName === 'A') el.href = fbUrl;
-        });
-        document.querySelectorAll('.dynamic-yt').forEach(el => {
-            if (el.tagName === 'A') el.href = ytUrl;
-        });
-        document.querySelectorAll('.dynamic-tw').forEach(el => {
-            if (el.tagName === 'A') el.href = twUrl;
-        });
-
-        // Instagram onclick handler (for non-anchor click targets)
-        document.querySelectorAll('.dynamic-insta-click').forEach(el => {
-            el.onclick = () => window.open(instaUrl, '_blank', 'noopener,noreferrer');
-        });
-
-        // Sync admin social media form inputs if present (admin.html)
-        this._syncAdminInputs({ instaUser, waNum, fbUrl, ytUrl, twUrl });
-    },
-
-    /**
-     * Sync admin settings form inputs for social media
-     * @private
-     */
-    _syncAdminInputs({ instaUser, waNum, fbUrl, ytUrl, twUrl }) {
-        const fields = {
-            'sm-insta': instaUser,
-            'sm-wa': waNum,
-            'sm-fb': fbUrl,
-            'sm-yt': ytUrl,
-            'sm-tw': twUrl
-        };
-        Object.entries(fields).forEach(([id, val]) => {
-            const el = document.getElementById(id);
-            if (el && !el.value) el.value = val;
-        });
-    },
-
-    /**
-     * Render branch cards into #branches-grid
-     * @param {Array} branches - Branch objects from Firestore
-     */
-    renderBranches(branches = []) {
-        const grid = document.getElementById('branches-grid');
-        if (!grid) return;
-
-        if (!branches.length) {
-            grid.innerHTML = '<p style="color:var(--white-dim);text-align:center;grid-column:1/-1">No branches listed yet.</p>';
-            return;
-        }
-
-        grid.innerHTML = branches.map(b => `
-            <div class="branch-card reveal">
-                <div class="branch-icon" aria-hidden="true">🏪</div>
-                <div class="branch-name">${b.name || ''}</div>
-                <div class="branch-addr">${b.address || ''}<br>PIN: ${b.pin || ''}</div>
-                <a href="tel:${b.phone || ''}" class="branch-tel" aria-label="Call ${b.name}">📞 ${b.phone || ''}</a>
+export function renderFooter() {
+  return `
+    <footer class="foot">
+      <div class="wrap">
+        <div class="fgrid">
+          <!-- Brand Column -->
+          <div class="fbrand">
+            <b>KALYAN COVERING</b>
+            <p>Erode's premier destination for 100% authentic gold-covering and micro-plated traditional jewellery. Crafted with perfection since 2012.</p>
+            <div class="soc">
+              <a href="https://instagram.com/kalyan_covering" target="_blank" rel="noopener" aria-label="Instagram">${ic('ig', 20)}</a>
+              <a href="https://facebook.com/kalyan_covering" target="_blank" rel="noopener" aria-label="Facebook">${ic('fb', 20)}</a>
+              <a href="https://youtube.com/@kalyancovering" target="_blank" rel="noopener" aria-label="YouTube">${ic('yt', 20)}</a>
+              <a href="https://wa.me/919876543210" target="_blank" rel="noopener" aria-label="WhatsApp">${ic('wa', 20)}</a>
             </div>
-        `).join('');
+          </div>
 
-        if (typeof window.initReveal === 'function') window.initReveal();
-    }
-};
+          <!-- Quick Links -->
+          <div class="fcol">
+            <h4>Quick Links</h4>
+            <ul>
+              <li><a href="index.html">Home</a></li>
+              <li><a href="products.html">All Jewellery Catalog</a></li>
+              <li><a href="products.html?tag=Bridal">Bridal Collections</a></li>
+              <li><a href="products.html?tag=New">New Arrivals</a></li>
+            </ul>
+          </div>
 
-// Bind to window for HTML compatibility
-window.Footer = Footer;
-window.applySocialLinks = (data) => Footer.applySocialLinks(data);
-window.renderBranches = () => Footer.renderBranches(window.KC?.branches || []);
+          <!-- Customer Service -->
+          <div class="fcol">
+            <h4>Customer Care</h4>
+            <ul>
+              <li><a href="profile.html">My Account</a></li>
+              <li><a href="my-orders.html">Track Order</a></li>
+              <li><a href="my-orders.html#returns">Returns & Refunds</a></li>
+              <li><a href="wishlist.html">My Wishlist</a></li>
+            </ul>
+          </div>
+
+          <!-- Showroom & Contact -->
+          <div class="fcol">
+            <h4>Visit Showroom</h4>
+            <ul>
+              <li style="color:var(--muted);">${ic('pin', 16)} Main Branch: Bazaar Street, Erode, Tamil Nadu - 638001</li>
+              <li style="color:var(--muted);">${ic('phone', 16)} Support: +91 98765 43210</li>
+              <li style="color:var(--muted);">${ic('clock', 16)} Open: 9:30 AM – 9:00 PM (Daily)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Footer Bottom Bar -->
+        <div class="fbot">
+          <div>© ${new Date().getFullYear()} Kalyan Covering Store. All rights reserved.</div>
+          <div>Guaranteed Premium Micro Gold Plating • Handcrafted in Tamil Nadu</div>
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
+window.renderFooter = renderFooter;

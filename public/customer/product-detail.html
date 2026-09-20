@@ -19,6 +19,7 @@
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
     <!-- Google Fonts: weights 300-800 used in CSS; display:swap prevents FOIT -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="../css/theme.css">
     <link rel="stylesheet" href="../css/design-system.css">
     <link rel="stylesheet" href="../css/components.css">
     <link rel="stylesheet" href="../css/customer.css">
@@ -794,6 +795,24 @@
             #pd-add-to-cart-btn svg {
                 display: none;
             }
+            /* ===== REVIEW FORM MOBILE POLISH ===== */
+            #add-review-section {
+                padding: 1.25rem !important;
+                margin-top: 1.5rem !important;
+            }
+            #add-review-section .star-picker {
+                font-size: 2.2rem !important;
+                gap: 0.6rem !important;
+                margin-bottom: 1.25rem !important;
+            }
+            #add-review-section .review-form-actions {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            #add-review-section .review-form-actions button {
+                width: 100% !important;
+                margin-left: 0 !important;
+            }
         }
 
         @media (max-width: 480px) {
@@ -961,16 +980,18 @@
                             <span class="star-pick" onclick="setReviewRating(4)">★</span>
                             <span class="star-pick" onclick="setReviewRating(5)">★</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Review Title</label>
-                            <input type="text" class="form-input" id="review-title" placeholder="Sum up your experience">
+                        <div class="form-group" style="margin-bottom:1.25rem;">
+                            <label class="form-label" style="display:block;margin-bottom:0.4rem;color:var(--gold-light);font-size:0.9rem;">Review Title</label>
+                            <input type="text" class="form-input" id="review-title" placeholder="Sum up your experience (e.g. Beautiful quality!)">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Your Review</label>
+                        <div class="form-group" style="margin-bottom:1.5rem;">
+                            <label class="form-label" style="display:block;margin-bottom:0.4rem;color:var(--gold-light);font-size:0.9rem;">Your Review</label>
                             <textarea class="form-input" id="review-text" rows="4" placeholder="Tell others about your experience..." style="resize:vertical"></textarea>
                         </div>
-                        <button class="btn btn-gold" onclick="submitReview()">Submit Review</button>
-                        <button class="btn btn-ghost" onclick="toggleReviewForm()" style="margin-left:1rem;">Cancel</button>
+                        <div class="review-form-actions" style="display:flex;gap:1rem;align-items:center;">
+                            <button class="btn btn-gold" id="btn-submit-review" onclick="submitReview()" style="min-width:140px;justify-content:center;">Submit Review</button>
+                            <button class="btn btn-ghost" onclick="toggleReviewForm()" style="min-width:100px;justify-content:center;">Cancel</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1088,6 +1109,7 @@
         function initPage(id) {
             const allProducts = window.KC ? window.KC.products : [];
             currentProduct = id ? allProducts.find(p => p.id == id) : allProducts[0];
+            if (currentProduct) window.currentProduct = currentProduct;
             
             const sk = document.getElementById('pd-skeleton');
             const layout = document.getElementById('pd-layout');
@@ -1614,6 +1636,7 @@
 
         function setReviewRating(n) {
             reviewRating = n;
+            window.reviewRating = n;
             document.querySelectorAll('.star-pick').forEach((s, i) => {
                 s.style.color = i < n ? 'var(--gold)' : '#333';
                 s.style.textShadow = i < n ? '0 0 10px rgba(212,175,55,0.4)' : 'none';
@@ -1676,30 +1699,96 @@
         import { functions, httpsCallable } from '../js/firebase-config.js';
         
         window.submitReview = async function () {
-            const text = document.getElementById('review-text').value.trim();
-            const rating = window.reviewRating || 0;
+            const titleInput = document.getElementById('review-title');
+            const textInput = document.getElementById('review-text');
+            const title = titleInput ? titleInput.value.trim() : '';
+            const text = textInput ? textInput.value.trim() : '';
+            const rating = window.reviewRating || (typeof reviewRating !== 'undefined' ? reviewRating : 0);
+            const prod = window.currentProduct || (typeof currentProduct !== 'undefined' ? currentProduct : null);
 
-            if (!rating || !text) { alert('Rating and Review text are required.'); return; }
-            const btn = document.querySelector('#add-review-section .btn-gold');
-            btn.innerHTML = 'Submitting...'; btn.disabled = true;
+            if (!rating) {
+                if (window.Toast) window.Toast.error('Rating Required', 'Please select a star rating (1-5 stars).');
+                else alert('Please select a star rating.');
+                return;
+            }
+
+            if (!text) {
+                if (window.Toast) window.Toast.error('Review Required', 'Please write your review thoughts before submitting.');
+                else alert('Please write your review thoughts.');
+                return;
+            }
+
+            if (!prod || !prod.id) {
+                if (window.Toast) window.Toast.error('Submission Failed', 'Product details not loaded. Please refresh the page.');
+                else alert('Product details not loaded.');
+                return;
+            }
+
+            const btn = document.querySelector('#add-review-section .btn-gold') || document.getElementById('btn-submit-review');
+            if (btn) {
+                btn.innerHTML = 'Submitting...';
+                btn.disabled = true;
+            }
 
             try {
+                const { functions, httpsCallable, auth } = await import('../js/firebase-config.js');
+                const user = auth?.currentUser;
+
                 const submitReviewFn = httpsCallable(functions, 'submitReview');
                 await submitReviewFn({
-                    productId: window.currentProduct.id,
-                    rating: rating,
-                    comment: text,
+                    productId: String(prod.id),
+                    title: title,
+                    reviewText: text,
+                    rating: Number(rating),
+                    reviewerName: user?.displayName || user?.email?.split('@')[0] || 'Customer',
                     images: []
                 });
-                alert('Review Posted Successfully!');
-                toggleReviewForm();
+
+                if (btn) btn.innerHTML = '✓ Submitted!';
+                if (window.Toast) {
+                    window.Toast.success('Review Submitted!', 'Thank you! Your review has been submitted for approval.');
+                } else {
+                    alert('Review Submitted Successfully!');
+                }
+
+                if (titleInput) titleInput.value = '';
+                if (textInput) textInput.value = '';
+                if (typeof setReviewRating === 'function') setReviewRating(0);
+
+                setTimeout(() => {
+                    if (typeof toggleReviewForm === 'function') toggleReviewForm();
+                }, 1200);
+
             } catch (e) {
-                console.error('Review error:', e);
-                alert(e.message || 'Failed to post review.');
+                console.error('Review submission error:', e);
+                let errorMsg = e.message || 'Failed to post review.';
+                if (e.code === 'functions/unauthenticated') {
+                    errorMsg = 'Please sign in to your account to submit a product review.';
+                } else if (e.code === 'functions/invalid-argument') {
+                    errorMsg = 'Please ensure rating and review text are provided.';
+                } else if (e.code === 'functions/not-found' || e.code === 'functions/unavailable') {
+                    errorMsg = 'Review service is temporarily unavailable. Please try again shortly.';
+                }
+                if (window.Toast) {
+                    window.Toast.error('Submission Failed', errorMsg);
+                } else {
+                    alert(errorMsg);
+                }
             } finally {
-                btn.innerHTML = 'Submit Review'; btn.disabled = false;
+                if (btn) {
+                    if (btn.innerHTML !== '✓ Submitted!') {
+                        btn.innerHTML = 'Submit Review';
+                        btn.disabled = false;
+                    } else {
+                        setTimeout(() => {
+                            btn.innerHTML = 'Submit Review';
+                            btn.disabled = false;
+                        }, 1500);
+                    }
+                }
             }
         };
     </script>
+    <script type="module" src="../js/utils/shellInit.js"></script>
 </body>
 </html>
