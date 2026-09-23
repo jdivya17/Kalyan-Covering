@@ -999,6 +999,81 @@
     });
     </script>
 
+
+    <script>
+    window.statusPill = function(s, label) {
+      const st = String(s || '').toLowerCase();
+      const pillType = {
+        delivered: 'ok',
+        active: 'ok',
+        approved: 'ok',
+        shipped: 'warn',
+        packed: 'warn',
+        low: 'warn',
+        cancelled: 'danger',
+        rejected: 'danger',
+        out_of_stock: 'danger',
+        draft: 'muted',
+        pending: 'muted'
+      }[st] || '';
+      const displayLabel = label || (st ? st.charAt(0).toUpperCase() + st.slice(1) : '—');
+      return `<span class="pill ${pillType}"><i></i>${displayLabel}</span>`;
+    };
+
+    window.renderNeedsAttention = function() {
+      const container = document.getElementById('needs-attention-container');
+      if (!container) return;
+
+      const prods = window.adminProducts || (window.adminData && window.adminData.products) || [];
+      const revs = window.adminReviews || [];
+
+      const lowStock = prods.filter(p => {
+        const s = typeof p.stock === 'number' ? p.stock : (p.stock === 'out_of_stock' ? 0 : 10);
+        return s <= 5;
+      }).slice(0, 4);
+
+      const pendingRevs = revs.filter(r => (r.status || 'pending').toLowerCase() === 'pending').slice(0, 3);
+
+      let html = '';
+
+      if (lowStock.length > 0) {
+        html += lowStock.map(p => {
+          const stockVal = typeof p.stock === 'number' ? p.stock : 0;
+          const stClass = stockVal === 0 ? 'cancelled' : 'warn';
+          const stLabel = stockVal === 0 ? 'Out of stock' : `${stockVal} left`;
+          const img = (p.imageURLs && p.imageURLs[0]) || p.image || '../assets/kalyan_logo.png';
+          const nameClean = String(p.name || 'Product').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+          return `
+            <div style="display:flex;align-items:center;gap:11px;padding:.4rem 0;border-bottom:1px solid var(--line2)">
+              <img src="${img}" alt="" style="width:34px;height:34px;border-radius:6px;object-fit:cover;border:1px solid var(--line);flex:none" onerror="this.src='../assets/kalyan_logo.png'">
+              <div style="flex:1;min-width:0">
+                <b style="display:block;font-size:.86rem;color:var(--ivory);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nameClean}</b>
+                <span style="color:var(--muted2);font-size:.76rem">${stLabel}</span>
+              </div>
+              ${window.statusPill(stClass, stockVal === 0 ? 'Out' : 'Low')}
+            </div>`;
+        }).join('');
+      } else {
+        html += `<div style="color:var(--ok);font-size:.84rem;padding:.3rem 0">✓ All products are well stocked!</div>`;
+      }
+
+      if (pendingRevs.length > 0) {
+        html += `
+          <div style="border-top:1px solid var(--line2);margin-top:4px;padding-top:10px">
+            <b style="display:block;font-size:.86rem;color:var(--gold);margin-bottom:6px">Reviews waiting (${pendingRevs.length})</b>
+            ${pendingRevs.map(r => `
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);padding:.35rem 0">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px"><b>${String(r.userName || r.cust || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</b> on ${String(r.productName || 'Product').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
+                <a class="lb" href="#reviews" onclick="showPanel('reviews'); return false;" style="font-size:.78rem;color:var(--gold-hi)">Review →</a>
+              </div>
+            `).join('')}
+          </div>`;
+      }
+
+      container.innerHTML = html;
+    };
+    </script>
+
 </head>
 
 <body>
@@ -1145,79 +1220,93 @@
             <main class="view" id="view">
   <div class="admin-content">
                 <!-- ===== DASHBOARD ===== -->
-                <div class="admin-panel active" id="panel-dashboard">
-                    <div class="stats-grid">
-                        <div class="stat-card reveal">
-                            <div class="stat-icon">💰</div>
-                            <div class="stat-label">Total Revenue</div>
-                            <div class="stat-value">₹<span class="counter" data-target="284350" data-prefix="">0</span>
-                            </div>
-                            <div class="stat-change up">↑ 18.2% vs last month</div>
-                        </div>
-                        <div class="stat-card reveal delay-1">
-                            <div class="stat-icon">🛍</div>
-                            <div class="stat-label">Total Orders</div>
-                            <div class="stat-value"><span class="counter" data-target="1243">0</span></div>
-                            <div class="stat-change up">↑ 24 new today</div>
-                        </div>
-                        <div class="stat-card reveal delay-2">
-                            <div class="stat-icon">👥</div>
-                            <div class="stat-label">Total Customers</div>
-                            <div class="stat-value"><span class="counter" data-target="5028">0</span></div>
-                            <div class="stat-change up">↑ 7.4% this week</div>
-                        </div>
-                        <div class="stat-card reveal delay-3">
-                            <div class="stat-icon">📦</div>
-                            <div class="stat-label">Products Listed</div>
-                            <div class="stat-value"><span class="counter" data-target="214">0</span></div>
-                            <div class="stat-change down">↓ 3 low stock</div>
-                        </div>
-                    </div>
+                <!-- ===== DASHBOARD ===== -->
+<div class="admin-panel active" id="panel-dashboard">
+    <div class="vhead">
+        <div>
+            <h1>Dashboard</h1>
+            <p>Here is what is happening at Kalyan Covering today.</p>
+        </div>
+        <button class="tbtn solid" onclick="openAddProductModal()">
+            <span class="nav-ic" data-ic="plus"></span>
+            <span>Add product</span>
+        </button>
+    </div>
 
-                    <!-- Charts -->
-                    <div class="chart-grid">
-                        <div class="chart-card reveal">
-                            <h3>Revenue – Last 7 Days</h3>
-                            <canvas id="revenueChart" height="100"></canvas>
-                        </div>
-                        <div class="chart-card reveal delay-1">
-                            <h3>Sales by Category</h3>
-                            <canvas id="categoryChart" height="100"></canvas>
-                        </div>
-                    </div>
+    <!-- 4 Stat Cards Grid -->
+    <div class="stats">
+        <div class="card stat">
+            <div class="top">
+                <span class="ic" data-ic="box"></span>
+                <span class="delta up" id="dash-stat-orders-delta">+12%</span>
+            </div>
+            <b id="dash-stat-orders-val">0</b>
+            <span>Today's orders</span>
+        </div>
+        <div class="card stat">
+            <div class="top">
+                <span class="ic" data-ic="tag"></span>
+                <span class="delta up" id="dash-stat-revenue-delta">+8.4%</span>
+            </div>
+            <b id="dash-stat-revenue-val">₹0</b>
+            <span>Revenue this month</span>
+        </div>
+        <div class="card stat">
+            <div class="top">
+                <span class="ic" data-ic="star"></span>
+                <span class="delta warn" id="dash-stat-reviews-delta">Needs action</span>
+            </div>
+            <b id="dash-stat-reviews-val">0</b>
+            <span>Pending reviews</span>
+        </div>
+        <div class="card stat">
+            <div class="top">
+                <span class="ic" data-ic="alert"></span>
+                <span class="delta down" id="dash-stat-stock-delta">Restock soon</span>
+            </div>
+            <b id="dash-stat-stock-val">0</b>
+            <span>Low stock items</span>
+        </div>
+    </div>
 
-                    <!-- Recent Orders -->
-                    <div class="chart-card reveal" style="margin-bottom:1.5rem">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-                            <h3 style="margin:0">Recent Orders</h3>
-                            <button class="btn btn-outline btn-sm" onclick="showPanel('orders',null)">View All</button>
-                        </div>
-                        <div class="admin-table-wrap desktop-table-wrap">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Order ID</th>
-                                        <th>Customer</th>
-                                        <th>Product</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recent-orders"></tbody>
-                            </table>
-                        </div>
-                        <div class="mobile-data-list" id="mobile-recent-orders-list"></div>
-                    </div>
+    <!-- Grid Layout: Recent Orders & Needs Attention -->
+    <div class="grid2">
+        <!-- Recent Orders Panel -->
+        <div class="card panel">
+            <div class="panel-h">
+                <h2>Recent orders</h2>
+                <a class="lb" href="#orders" onclick="showPanel('orders'); return false;">View all</a>
+            </div>
+            <div class="twrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-orders"></tbody>
+                </table>
+            </div>
+            <div class="mobile-data-list" id="mobile-recent-orders-list"></div>
+        </div>
 
-                    <!-- Low Stock Alert -->
-                    <div class="chart-card reveal">
-                        <h3>⚠️ Low Stock Alerts</h3>
-                        <div id="low-stock-list"></div>
-                    </div>
-                </div>
+        <!-- Needs Attention Panel -->
+        <div class="card panel">
+            <div class="panel-h">
+                <h2>Needs attention</h2>
+            </div>
+            <div id="needs-attention-container" style="display:grid;gap:12px">
+                <div style="color:var(--muted);font-size:0.86rem">Checking low stock items &amp; pending reviews...</div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                <!-- ===== ANALYTICS ===== -->
+<!-- ===== ANALYTICS ===== -->
                 <div class="admin-panel" id="panel-analytics">
                     <h2 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem">Analytics &amp;
                         Insights</h2>
@@ -3626,27 +3715,66 @@
 
         // ---- Dashboard ----
         function updateDashboardStats() {
-            const totalRevenue = ordersData.reduce((sum, o) => sum + (o.totalAmount || o.total || 0), 0);
-            const totalOrders = ordersData.length;
-            const totalProducts = adminProducts.length;
-            const lowStockCount = adminProducts.filter(p => (typeof p.stock === 'number' ? p.stock <= 0 : p.stock === 'out_of_stock')).length;
-            const liveCustomersCount = window.adminData && window.adminData.users ? window.adminData.users.length : (window.totalCustomersCount || 0);
+            const orders = window.ordersData || (window.adminData && window.adminData.orders) || [];
+            const prods = window.adminProducts || (window.adminData && window.adminData.products) || [];
+            const revs = window.adminReviews || [];
 
-            const counters = document.querySelectorAll('.counter');
-            counters.forEach(c => {
-                // Only update counters inside .stat-card (not analytics-mini cards)
-                const statCard = c.closest('.stat-card');
-                if (!statCard) return;
-                const labelEl = statCard.querySelector('.stat-label');
-                if (!labelEl) return;
-                const label = labelEl.textContent;
-                if (label.includes('Revenue')) c.setAttribute('data-target', totalRevenue);
-                if (label.includes('Orders')) c.setAttribute('data-target', totalOrders);
-                if (label.includes('Customers')) c.setAttribute('data-target', liveCustomersCount);
-                if (label.includes('Products') || label.includes('Listed')) {
-                    c.setAttribute('data-target', totalProducts);
-                    const change = statCard.querySelector('.stat-change');
-                    if (change) change.textContent = `↓ ${lowStockCount} low stock`;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            const todayOrders = orders.filter(o => {
+                const d = parseOrderDate(o.createdAt || o.date);
+                return d && d >= today;
+            });
+
+            const monthRevenue = orders
+                .filter(o => {
+                    const d = parseOrderDate(o.createdAt || o.date);
+                    return d && d >= firstOfMonth && String(o.orderStatus || o.status || '').toLowerCase() !== 'cancelled';
+                })
+                .reduce((sum, o) => sum + Number(o.totalAmount || o.total || 0), 0);
+
+            const pendingReviewsCount = revs.filter(r => String(r.status || 'pending').toLowerCase() === 'pending').length;
+
+            const lowStockCount = prods.filter(p => {
+                const s = typeof p.stock === 'number' ? p.stock : (p.stock === 'out_of_stock' ? 0 : 10);
+                return s <= 5;
+            }).length;
+
+            const ordersEl = document.getElementById('dash-stat-orders-val');
+            const revenueEl = document.getElementById('dash-stat-revenue-val');
+            const reviewsEl = document.getElementById('dash-stat-reviews-val');
+            const stockEl = document.getElementById('dash-stat-stock-val');
+
+            if (ordersEl) ordersEl.textContent = todayOrders.length > 0 ? todayOrders.length : orders.length;
+            if (revenueEl) revenueEl.textContent = '₹' + Math.round(monthRevenue > 0 ? monthRevenue : orders.reduce((s,o)=>s+Number(o.totalAmount||o.total||0), 0)).toLocaleString('en-IN');
+            if (reviewsEl) reviewsEl.textContent = pendingReviewsCount;
+            if (stockEl) stockEl.textContent = lowStockCount;
+
+            // Update badges in navigation
+            const stockBadge = document.getElementById('nav-stock-badge');
+            if (stockBadge) {
+                if (lowStockCount > 0) { stockBadge.textContent = lowStockCount; stockBadge.style.display = 'inline-block'; }
+                else { stockBadge.style.display = 'none'; }
+            }
+
+            const reviewsBadge = document.getElementById('nav-reviews-badge');
+            if (reviewsBadge) {
+                if (pendingReviewsCount > 0) { reviewsBadge.textContent = pendingReviewsCount; reviewsBadge.style.display = 'inline-block'; }
+                else { reviewsBadge.style.display = 'none'; }
+            }
+
+            const ordersBadge = document.getElementById('nav-orders-badge');
+            if (ordersBadge) {
+                const pendingOrders = orders.filter(o => ['placed', 'pending', 'order placed'].includes(String(o.orderStatus || o.status || '').toLowerCase())).length;
+                if (pendingOrders > 0) { ordersBadge.textContent = pendingOrders; ordersBadge.style.display = 'inline-block'; }
+                else { ordersBadge.style.display = 'none'; }
+            }
+
+            if (typeof window.renderNeedsAttention === 'function') window.renderNeedsAttention();
+        } low stock`;
                 }
             });
             const dashPanel = document.getElementById('panel-dashboard');
@@ -3666,135 +3794,59 @@
         function renderRecentOrders() {
             const tbody = document.getElementById('recent-orders');
             const mobileList = document.getElementById('mobile-recent-orders-list');
-            if (!Array.isArray(ordersData) || ordersData.length === 0) {
+            const orders = window.ordersData || (window.adminData && window.adminData.orders) || [];
+            
+            if (!tbody) return;
+
+            if (!Array.isArray(orders) || orders.length === 0) {
                 const emptyHTML = `
-                    <div class="chart-empty-state" style="margin: 1rem 0; min-height: 160px;">
-                        <div class="chart-empty-icon">🛍️</div>
-                        <div class="chart-empty-title">No recent orders found</div>
-                        <div class="chart-empty-sub">New orders will appear here automatically.</div>
+                    <div style="text-align:center;padding:2rem;color:var(--muted2)">
+                        <div>No recent orders found</div>
                     </div>`;
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:0;border:none;">${emptyHTML}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="padding:0;border:none;">${emptyHTML}</td></tr>`;
                 if (mobileList) mobileList.innerHTML = emptyHTML;
                 return;
             }
-            const statusClass = { delivered: 'os-delivered', shipped: 'os-shipped', pending: 'os-pending', cancelled: 'os-cancelled', processing: 'os-pending' };
-            const recentOrders = ordersData.slice(0, 5);
+
+            const recentOrders = orders.slice(0, 5);
 
             // Desktop table
-            if (tbody) {
-                tbody.innerHTML = recentOrders.map(o => {
-                    const orderId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
-                    const custName = o.customerName || o.customer || (o.shippingAddress ? o.shippingAddress.fullName : 'Customer');
-                    const itemLength = Array.isArray(o.items) ? o.items.length : (typeof o.items === 'number' ? o.items : 1);
-                    const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
-                    const rawStatus = (o.orderStatus || o.status || 'pending').toLowerCase();
-                    const cls = statusClass[rawStatus] || 'os-pending';
-                    const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN') : new Date(o.createdAt).toLocaleDateString('en-IN')) : (o.date || 'Today');
-                    return `
-    <tr style="cursor:pointer" onclick="openAdminOrderModal('${o.id}')">
-      <td data-label="Order ID" style="color:var(--gold);font-weight:600">${orderId}</td>
-      <td data-label="Customer">${custName}</td>
-      <td data-label="Product">${itemLength} item${itemLength > 1 ? 's' : ''}</td>
-      <td data-label="Amount" style="color:var(--gold)">₹${amt.toLocaleString()}</td>
-      <td data-label="Status"><span class="order-status ${cls}">${rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</span></td>
-      <td data-label="Date">${dateStr}</td>
-    </tr>`;
-                }).join('');
-            }
+            tbody.innerHTML = recentOrders.map(o => {
+                const orderId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
+                const custName = o.customerName || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer');
+                const itemLength = Array.isArray(o.items) ? o.items.length : (typeof o.items === 'number' ? o.items : 1);
+                const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
+                const rawStatus = (o.orderStatus || o.status || 'placed').toLowerCase();
 
-            // Mobile card list
+                return `
+                    <tr style="cursor:pointer" onclick="openAdminOrderModal('${o.id}')">
+                        <td class="mono" style="color:var(--gold-hi)">#${orderId}</td>
+                        <td>${String(custName).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</td>
+                        <td>${itemLength}</td>
+                        <td class="mono">₹${Number(amt).toLocaleString('en-IN')}</td>
+                        <td>${window.statusPill(rawStatus)}</td>
+                    </tr>`;
+            }).join('');
+
             if (mobileList) {
                 mobileList.innerHTML = recentOrders.map(o => {
                     const shortId = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
-                    const custName = o.customerName || o.customer || (o.shippingAddress ? o.shippingAddress.fullName : 'Customer');
+                    const custName = o.customerName || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer');
                     const amt = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
-                    const rawStatus = o.orderStatus || o.status || 'Order Placed';
-                    const displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
-                    const dateStr = o.createdAt ? (o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : new Date(o.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})) : '';
+                    const rawStatus = (o.orderStatus || o.status || 'placed').toLowerCase();
                     return `
-                    <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order','${o.id}')">
-                        <div class="mobile-card-left">
-                            <div style="min-width:0">
-                                <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
-                                    <span class="mobile-card-title" style="color:var(--gold);font-family:monospace">#${shortId}</span>
-                                    <span class="order-status ${_getOrderStatusClass(rawStatus)}" style="font-size:0.65rem;padding:1px 6px">${displayStatus}</span>
+                        <div class="mobile-card-item" style="cursor:pointer;padding:12px;border-bottom:1px solid var(--line2)" onclick="openAdminOrderModal('${o.id}')">
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <div>
+                                    <b style="color:var(--gold-hi)">#${shortId}</b> • ${String(custName).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
                                 </div>
-                                <div class="mobile-card-subtitle">${custName} • ${dateStr}</div>
-                                <div class="mobile-card-price">₹${Number(amt).toLocaleString()}</div>
+                                ${window.statusPill(rawStatus)}
                             </div>
-                        </div>
-                        <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order','${o.id}')">View</button>
-                    </div>`;
-                }).join('');
+                            <div style="margin-top:6px;font-size:0.84rem;color:var(--muted)">₹${Number(amt).toLocaleString('en-IN')}</div>
+                        </div>`;
+            }).join('');
             }
-        }
-
-        function renderLowStock() {
-            const el = document.getElementById('low-stock-list');
-            if (!el) return;
-            if (!Array.isArray(adminProducts)) {
-                el.innerHTML = '<p style="color:var(--green)">✓ All products are well stocked!</p>';
-                return;
-            }
-            const lowStockItems = adminProducts.filter(p => p && p.stock !== 'in' && p.stock !== undefined && (typeof p.stock === 'number' ? p.stock <= 5 : true));
-            el.innerHTML = !lowStockItems || lowStockItems.length === 0
-                ? '<p style="color:var(--green);padding:0.5rem 0">✓ All products are well stocked!</p>'
-                : lowStockItems.map(p => `
-      <div class="mobile-card-item" style="margin-bottom:.7rem;cursor:pointer" onclick="openProductDetailModal('${p.id}')">
-        <div class="mobile-card-left">
-          <span class="notif-icon" style="font-size:1.3rem">⚠️</span>
-          <div style="min-width:0">
-            <div class="mobile-card-title">${DOMPurify.sanitize(p.name || 'Product')}</div>
-            <div class="mobile-card-subtitle">${DOMPurify.sanitize(p.category || 'Jewelry')} • <span class="${p.stock === 'low' ? 'stock-low' : 'stock-out'}">${p.stock === 'low' ? 'Low Stock' : 'Out of Stock'}</span></div>
-          </div>
-        </div>
-        <button class="mobile-view-btn" onclick="event.stopPropagation(); openEditProduct('${p.id}')">Update Stock</button>
-      </div>`).join('');
-        }
-
-        // ---- Charts Data Helpers ----
-        function parseOrderDate(createdAt) {
-            if (!createdAt) return null;
-            if (typeof createdAt.toDate === 'function') return createdAt.toDate();
-            if (typeof createdAt.seconds === 'number') return new Date(createdAt.seconds * 1000);
-            if (createdAt instanceof Date) return createdAt;
-            const parsed = new Date(createdAt);
-            return isNaN(parsed.getTime()) ? null : parsed;
-        }
-
-        function getRevenueLast7Days() {
-            const orders = window.ordersData || window.adminData?.orders || [];
-            const days = [];
-            const labels = [];
-            const sums = [];
-
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                d.setHours(0, 0, 0, 0);
-                days.push(d);
-                labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
-                sums.push(0);
-            }
-
-            orders.forEach(order => {
-                const rawDate = order.createdAt || order.date;
-                const ordDate = parseOrderDate(rawDate);
-                if (!ordDate) return;
-
-                for (let i = 0; i < days.length; i++) {
-                    const targetDate = days[i];
-                    if (
-                        ordDate.getFullYear() === targetDate.getFullYear() &&
-                        ordDate.getMonth() === targetDate.getMonth() &&
-                        ordDate.getDate() === targetDate.getDate()
-                    ) {
-                        const amt = Number(order.totalAmount || order.total || 0);
-                        sums[i] += isNaN(amt) ? 0 : amt;
-                        break;
-                    }
-                }
-            });
+        });
 
             return { labels, data: sums };
         }
