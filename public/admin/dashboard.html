@@ -2383,88 +2383,84 @@
 
                 <!-- ===== USERS PANEL ===== -->
                 <div class="admin-panel" id="panel-users">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">👥</div>
-                            <div class="stat-label">Total Registered Users</div>
-                            <div class="stat-value"><span class="counter" id="total-users-val" data-target="0">0</span>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">⚡</div>
-                            <div class="stat-label">Active Users (30d)</div>
-                            <div class="stat-value"><span>12</span></div>
-                            <div class="stat-change up">↑ 4 new today</div>
-                        </div>
-                    </div>
 
-                    <div class="admin-block" style="margin-top:2rem">
-                        <div class="block-header" style="margin-bottom:1.5rem">
-                            <h3 style="font-family:var(--font-serif);color:var(--gold)">User Login Analytics</h3>
-                        </div>
-                        <div class="admin-table-wrap">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>User Name</th>
-                                        <th>Phone Number</th>
-                                        <th>Last Login</th>
-                                        <th>Total Orders</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-table-body">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+    <div class="vhead">
+        <div>
+            <h1>Customers</h1>
+            <p id="total-users-label">0 registered customers.</p>
+        </div>
+    </div>
+    <div class="toolbar">
+        <div class="searchbox">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" placeholder="Search customers">
+        </div>
+    </div>
+    <div class="card">
+        <div class="twrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Orders / Logins</th>
+                        <th>Total spend</th>
+                        <th>Customer since</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <tr><td colspan="5" style="text-align:center;padding:3rem;color:var(--muted2)">Loading customers...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
                 </div>
+                
+<div class="admin-panel" id="panel-settings">
 
-                <!-- ===== GENERAL SETTINGS ===== -->
-                <div class="admin-panel" id="panel-settings">
-                    <h2 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem">General Settings
-                    </h2>
-
-                    <!-- Admin Keyword Section -->
-                    <div class="card" style="padding:2rem;margin-bottom:2rem;max-width:600px">
-                        <h3 style="color:var(--gold);margin-bottom:1rem">Admin Redirect Settings</h3>
-                        <p style="color:var(--white-dim);font-size:0.9rem;margin-bottom:1.5rem">Set the secret word that
-                            opens the admin panel when typed in search bars.</p>
-                        <div class="form-group">
-                            <label class="form-label">Secret Keyword</label>
-                            <input type="text" id="setting-admin-keyword" class="form-input" placeholder="e.g. admin">
-                        </div>
-                        <button class="btn btn-gold" onclick="saveGeneralSettings()">💾 Save Secret Keyword</button>
-                    </div>
-
-                    <!-- Branches Section -->
-                    <div class="card" style="padding:2rem">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
-                            <h3 style="color:var(--gold)">Manage Branches</h3>
-                            <button class="btn btn-gold btn-sm" onclick="openBranchModal()">+ Add Branch</button>
-                        </div>
-                        <div id="branches-list-admin" class="admin-table-wrap">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Branch Name</th>
-                                        <th>Address</th>
-                                        <th>PIN Code</th>
-                                        <th>Phone</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="branches-table-body">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+    <div class="vhead">
+        <div>
+            <h1>Store settings</h1>
+            <p>Admin security and branch management.</p>
+        </div>
+    </div>
+    <div class="grid2">
+        <div class="card panel">
+            <div class="panel-h"><h2>Admin Security</h2></div>
+            <p style="color:var(--muted2);font-size:0.85rem;margin-bottom:1rem">Set the secret word that opens the admin panel when typed in search bars.</p>
+            <div class="frow2">
+                <div class="f">
+                    <label>Secret Keyword</label>
+                    <input type="text" id="setting-admin-keyword" placeholder="e.g. admin">
                 </div>
-
-                <!-- ===== AUDIT LOGS ===== -->
-                <div class="admin-panel" id="panel-audit">
+            </div>
+            <button class="tbtn solid" onclick="saveGeneralSettings()" style="width:fit-content;margin-top:10px">Save Secret Keyword</button>
+        </div>
+        
+        <div class="card panel">
+            <div class="panel-h" style="display:flex;justify-content:space-between;align-items:center;">
+                <h2>Manage Branches</h2>
+                <button class="tbtn ghost sm" onclick="openBranchModal()">+ Add Branch</button>
+            </div>
+            <div class="twrap" style="margin-top:1rem">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Branch Name</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="branches-table-body">
+                        <tr><td colspan="3" style="text-align:center;color:var(--muted2)">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+                </div>
+                
+<div class="admin-panel" id="panel-audit">
                     <div
                         style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
                         <div>
@@ -2654,44 +2650,28 @@
 
                 <!-- ===== CUSTOMER REVIEWS MODERATION ===== -->
                 <div class="admin-panel" id="panel-reviews">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
-                        <div>
-                            <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">⭐ Customer Review Moderation</h2>
-                            <p style="color:#666;font-size:.82rem;margin:.3rem 0 0">Approve or reject customer submitted reviews and photos</p>
-                        </div>
-                        <div style="display:flex;gap:0.5rem">
-                            <select class="form-input" id="review-filter-status" onchange="loadAdminReviews()" style="width:170px">
-                                <option value="pending">⏳ Pending Approval</option>
-                                <option value="approved">✅ Approved</option>
-                                <option value="rejected">❌ Rejected</option>
-                                <option value="all">All Reviews</option>
-                            </select>
-                            <button class="btn btn-gold btn-sm" onclick="loadAdminReviews()">🔄 Refresh</button>
-                        </div>
-                    </div>
-                    <div class="admin-table-wrap">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Reviewer</th>
-                                    <th>Rating</th>
-                                    <th>Review Content</th>
-                                    <th>Photos</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th style="text-align:right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-reviews-table-body">
-                                <tr><td colspan="8" style="text-align:center;padding:3rem;color:#555">Loading reviews...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
 
-                <!-- ===== STOCK ALERTS ===== -->
-                <div class="admin-panel" id="panel-stockalerts">
+    <div class="vhead">
+        <div>
+            <h1>Reviews</h1>
+            <p id="reviews-count-label">0 reviews waiting for approval.</p>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+            <select class="select" id="review-filter-status" onchange="loadAdminReviews()" style="width:170px">
+                <option value="pending">⏳ Pending</option>
+                <option value="approved">✅ Approved</option>
+                <option value="rejected">❌ Rejected</option>
+                <option value="all">All Reviews</option>
+            </select>
+            <button class="tbtn ghost" onclick="loadAdminReviews()">Refresh</button>
+        </div>
+    </div>
+    <div id="admin-reviews-list">
+        <div class="card empty"><h3>Loading...</h3><p>Fetching customer reviews.</p></div>
+    </div>
+                </div>
+                
+<div class="admin-panel" id="panel-stockalerts">
     <div class="vhead">
         <div>
             <h1>Stock alerts</h1>
@@ -3873,29 +3853,44 @@
         };
 
         window.renderUsersTable = function () {
+
             const tbody = document.getElementById('users-table-body');
-            const counter = document.getElementById('total-users-val');
+            const counter = document.getElementById('total-users-label');
             if (!tbody) return;
 
-            const users = window.adminData.users || [];
-            if (counter) counter.setAttribute('data-target', users.length);
+            const users = window.adminData?.users || [];
+            if (counter) counter.textContent = users.length + ' registered customers.';
 
             if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--white-dim)">No registered users found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted2)">No registered users found.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = users.map(u => `
-                <tr class="reveal" style="cursor:pointer" onclick="openUserDetailModal('${u.id}')">
-                    <td data-label="User Name"><div style="font-weight:600;color:var(--gold)">${u.name || u.displayName || u.fullName || 'Anonymous'}</div></td>
-                    <td data-label="Phone / Email">${u.phone || u.email || 'N/A'}</td>
-                    <td data-label="Last Login">${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString('en-IN') : new Date(u.lastLogin).toLocaleString('en-IN')) : 'Never'}</td>
-                    <td data-label="Total Orders"><span class="badge" style="background:#333">${u.loginCount || 1} logins</span></td>
-                    <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
-                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="event.stopPropagation(); openUserDetailModal('${u.id}')">👁️ View</button>
-                    </div></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = users.map(u => {
+                const name = u.name || u.displayName || u.fullName || 'Anonymous';
+                const initial = name.charAt(0).toUpperCase();
+                const email = u.email || u.phone || 'N/A';
+                const dateStr = u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleDateString('en-IN') : new Date(u.lastLogin).toLocaleDateString('en-IN')) : 'Never';
+                const spend = u.totalSpend || 0;
+                
+                return `<tr style="cursor:pointer" onclick="openUserDetailModal('${u.id}')">
+                    <td>
+                        <div class="namecell">
+                            <span class="avatar-sm">${initial}</span>
+                            <div>
+                                <b style="display:block;color:var(--ivory)">${DOMPurify.sanitize(name)}</b>
+                                <span style="color:var(--muted2);font-size:.78rem">${DOMPurify.sanitize(email)}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="mono">${u.loginCount || 1} logins</td>
+                    <td class="mono">₹${spend}</td>
+                    <td>${dateStr}</td>
+                    <td><button class="tbtn ghost sm" onclick="event.stopPropagation(); openUserDetailModal('${u.id}')">View</button></td>
+                </tr>`;
+            }).join('');
+        };
+
             if (typeof initReveal === 'function') initReveal();
             const dashPanel = document.getElementById('panel-dashboard');
             if (dashPanel && !dashPanel.dataset.initialised) {
@@ -6855,10 +6850,12 @@
         // ============================================================
 
         window.loadAdminReviews = async function () {
-            const tbody = document.getElementById('admin-reviews-table-body');
-            if (!tbody) return;
+
+            const listContainer = document.getElementById('admin-reviews-list');
+            const countLabel = document.getElementById('reviews-count-label');
+            if (!listContainer) return;
             const statusFilter = document.getElementById('review-filter-status')?.value || 'pending';
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:3rem;color:#555"><div class="spinner" style="margin:0 auto 1rem"></div>Loading reviews...</td></tr>';
+            listContainer.innerHTML = '<div class="card empty"><h3>Loading...</h3><p>Fetching reviews.</p></div>';
             try {
                 let q;
                 const reviewsCol = collection(db, 'reviews');
@@ -6870,45 +6867,57 @@
                 const snap = await getDocs(q);
                 const reviews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+                if (countLabel) {
+                    countLabel.textContent = `${reviews.length} ${statusFilter === 'all' ? '' : statusFilter} reviews.`;
+                }
+
                 if (reviews.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#666">No ${statusFilter === 'all' ? '' : statusFilter} reviews found.</td></tr>`;
+                    listContainer.innerHTML = `<div class="card empty"><h3>All caught up</h3><p>No ${statusFilter === 'all' ? '' : statusFilter} reviews waiting for approval right now.</p></div>`;
                     return;
                 }
 
-                tbody.innerHTML = reviews.map(r => {
+                listContainer.innerHTML = reviews.map(r => {
                     const safeName = DOMPurify.sanitize(r.reviewerName || r.userName || 'Customer');
+                    const initial = safeName.charAt(0).toUpperCase();
                     const safeText = DOMPurify.sanitize(r.text || r.reviewText || '');
-                    const safeTitle = DOMPurify.sanitize(r.title || '');
-                    const stars = '★'.repeat(Math.min(5, Math.max(0, Number(r.rating) || 0)));
-                    const dateStr = r.createdAt?.seconds
-                        ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : '—';
-                    const statusColor = { approved: 'var(--green)', pending: 'var(--orange)', rejected: 'var(--red)' }[r.status] || '#888';
+                    const starsNum = Math.min(5, Math.max(0, Number(r.rating) || 0));
+                    const starsHtml = '★'.repeat(starsNum) + '☆'.repeat(5 - starsNum);
+                    const prodName = r.productName || r.productId?.substring(0,10) || 'Unknown Product';
+                    
                     const photoCount = (r.photos || []).length;
                     const photosHtml = photoCount > 0
-                        ? `<div style="display:flex;gap:4px;flex-wrap:wrap">${(r.photos || []).slice(0, 3).map(u => `<img src="${u}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #333" onerror="this.style.display='none'">`).join('')}${photoCount > 3 ? `<span style="color:#888;font-size:.75rem">+${photoCount - 3}</span>` : ''}</div>`
-                        : '<span style="color:#555;font-size:.78rem">—</span>';
+                        ? `<div class="rev-photos">${(r.photos || []).map(u => `<img src="${u}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">`).join('')}</div>`
+                        : '';
+                        
+                    let actions = '';
+                    if (r.status === 'pending') {
+                        actions = `<div class="rev-act"><button class="tbtn ghost sm" onclick="rejectAdminReview('${r.id}')">Reject</button><button class="tbtn solid sm" onclick="approveAdminReview('${r.id}')">Approve</button></div>`;
+                    } else if (r.status === 'approved') {
+                        actions = `<div class="rev-act"><span style="color:var(--green);font-size:0.8rem;margin-right:auto">✅ Approved</span><button class="tbtn ghost sm" onclick="rejectAdminReview('${r.id}')">Reject instead</button><button class="tbtn ghost sm" onclick="deleteAdminReview('${r.id}')">Delete</button></div>`;
+                    } else {
+                        actions = `<div class="rev-act"><span style="color:var(--red);font-size:0.8rem;margin-right:auto">❌ Rejected</span><button class="tbtn ghost sm" onclick="approveAdminReview('${r.id}')">Approve instead</button><button class="tbtn ghost sm" onclick="deleteAdminReview('${r.id}')">Delete</button></div>`;
+                    }
 
-                    return `<tr>
-                        <td data-label="Product" style="font-size:.8rem;color:#aaa;font-family:monospace">${r.productId ? r.productId.substring(0, 10) : '—'}</td>
-                        <td data-label="Reviewer"><div style="font-weight:600">${safeName}</div><div style="font-size:.7rem;color:#555">${DOMPurify.sanitize(r.userEmail || '')}</div></td>
-                        <td data-label="Rating" style="color:var(--gold)">${stars} (${r.rating || 0})</td>
-                        <td data-label="Review" style="max-width:200px"><div style="font-size:.8rem;font-weight:600;margin-bottom:.2rem">${safeTitle}</div><div style="font-size:.78rem;color:#aaa;white-space:pre-wrap;max-height:60px;overflow:hidden">${safeText}</div></td>
-                        <td data-label="Photos">${photosHtml}</td>
-                        <td data-label="Date" style="color:#666;font-size:.78rem">${dateStr}</td>
-                        <td data-label="Status"><span style="color:${statusColor};font-weight:700;font-size:.78rem;text-transform:uppercase">${r.status || 'pending'}</span></td>
-                        <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end;gap:.4rem">
-                            ${r.status !== 'approved' ? `<button class="tbl-btn approve" onclick="approveAdminReview('${r.id}')">✓ Approve</button>` : ''}
-                            ${r.status !== 'rejected' ? `<button class="tbl-btn" style="border-color:rgba(255,138,0,.4);color:var(--orange)" onclick="rejectAdminReview('${r.id}')">✗ Reject</button>` : ''}
-                            <button class="tbl-btn delete" onclick="deleteAdminReview('${r.id}')">🗑</button>
-                        </div></td>
-                    </tr>`;
+                    return `<div class="rev-card">
+                        <span class="avatar-sm">${initial}</span>
+                        <div>
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                                <b>${safeName}</b>
+                                <span class="stars" style="color:var(--gold)" aria-label="${starsNum} stars">${starsHtml}</span>
+                                <span style="color:var(--muted2);font-size:.78rem">on ${DOMPurify.sanitize(prodName)}</span>
+                            </div>
+                            <p style="margin-top:0.5rem;color:var(--white-dim)">${safeText}</p>
+                            ${photosHtml}
+                        </div>
+                        ${actions}
+                    </div>`;
                 }).join('');
             } catch (err) {
                 console.error('loadAdminReviews:', err);
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--red)">Failed to load reviews: ${err.message}</td></tr>`;
+                listContainer.innerHTML = `<div class="card empty"><h3 style="color:var(--red)">Error</h3><p>Failed to load reviews: ${err.message}</p></div>`;
             }
         };
+
 
         window.approveAdminReview = async function (reviewId) {
             try {
