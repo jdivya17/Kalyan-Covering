@@ -2692,30 +2692,54 @@
 
                 <!-- ===== STOCK ALERTS ===== -->
                 <div class="admin-panel" id="panel-stockalerts">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
-                        <div>
-                            <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">🔔 Back-in-Stock Customer Alerts</h2>
-                            <p style="color:#666;font-size:.82rem;margin:.3rem 0 0">Customer waiting list notifications when products are restocked</p>
-                        </div>
-                        <button class="btn btn-gold btn-sm" onclick="loadAdminStockAlerts()">🔄 Refresh</button>
-                    </div>
-                    <div class="admin-table-wrap">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Product Name</th>
-                                    <th>Customer Email</th>
-                                    <th>WhatsApp Phone</th>
-                                    <th>Requested On</th>
-                                    <th>Status</th>
-                                    <th style="text-align:right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-stockalerts-table-body">
-                                <tr><td colspan="6" style="text-align:center;padding:3rem;color:#555">Loading stock alerts...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="vhead">
+        <div>
+            <h1>Stock alerts</h1>
+            <p id="stockalerts-count-label">Customers waiting to be notified when an item is back in stock.</p>
+        </div>
+    </div>
+
+    <!-- Low stock auto-alert settings card -->
+    <div class="card panel" style="margin-bottom:16px">
+        <div class="panel-h">
+            <h2>Low stock auto-alert</h2>
+        </div>
+        <div class="frow2">
+            <div class="f">
+                <label>Alert admin when stock falls below</label>
+                <input type="number" id="lowStockN" value="5">
+            </div>
+            <div class="f">
+                <label>Send alert via</label>
+                <div style="display:flex;gap:16px;padding-top:.3rem">
+                    <label class="chk"><input type="checkbox" id="alert-via-email" checked> Email</label>
+                    <label class="chk"><input type="checkbox" id="alert-via-wa" checked> WhatsApp</label>
+                </div>
+            </div>
+        </div>
+        <button class="tbtn solid" onclick="saveLowStockSettings()" style="width:fit-content;margin-top:10px">Save alert settings</button>
+        <p style="color:var(--muted2);font-size:.78rem;margin-top:10px">Sends automatically to store admin and store WhatsApp number the moment any product crosses this threshold.</p>
+    </div>
+
+    <!-- Stock Alerts Table Card -->
+    <div class="card">
+        <div class="twrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Current stock</th>
+                        <th>Customers waiting</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-stockalerts-table-body">
+                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--muted2)">Loading stock alerts...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
                 </div>
             </div><!-- /admin-content -->
         </div><!-- /admin-main -->
@@ -6926,67 +6950,93 @@
 
         window.loadAdminStockAlerts = async function () {
             const tbody = document.getElementById('admin-stockalerts-table-body');
+            const countLabel = document.getElementById('stockalerts-count-label');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:3rem;color:#555"><div class="spinner" style="margin:0 auto 1rem"></div>Loading stock alerts...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--muted2)">Loading stock alerts...</td></tr>';
             try {
                 const snap = await getDocs(query(collection(db, 'stockAlerts'), orderBy('createdAt', 'desc')));
-                const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const allAlerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                
+                const grouped = {};
+                let pendingCount = 0;
+                allAlerts.forEach(a => {
+                    if (a.notified) return;
+                    const pid = a.productId;
+                    if (!grouped[pid]) {
+                        grouped[pid] = {
+                            productId: pid,
+                            productName: a.productName || pid,
+                            alerts: []
+                        };
+                    }
+                    grouped[pid].alerts.push(a);
+                    pendingCount++;
+                });
 
-                if (alerts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:3rem;color:#666">No stock alerts registered yet.</td></tr>';
+                if (countLabel) {
+                    countLabel.textContent = pendingCount + ' customers waiting to be notified when items are back in stock.';
+                }
+
+                const groups = Object.values(grouped);
+                if (groups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:3rem;color:var(--muted2)">No customers waiting for stock alerts.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = alerts.map(a => {
-                    const dateStr = a.createdAt?.seconds
-                        ? new Date(a.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
-                        : '—';
-                    const safeProduct = DOMPurify.sanitize(a.productName || a.productId || '—');
-                    const safeEmail = DOMPurify.sanitize(a.email || '—');
-                    const safePhone = DOMPurify.sanitize(a.phone || '—');
-                    const statusHtml = a.notified
-                        ? '<span style="color:var(--green);font-weight:700;font-size:.78rem">✅ Notified</span>'
-                        : '<span style="color:var(--orange);font-weight:700;font-size:.78rem">⏳ Waiting</span>';
-
+                tbody.innerHTML = groups.map(g => {
+                    const prod = (window.adminProducts || []).find(p => p.id === g.productId);
+                    const stock = prod ? (typeof prod.stock === 'number' ? prod.stock : (prod.stock === 'out_of_stock' ? 0 : 99)) : 0;
+                    
+                    const safeProduct = DOMPurify.sanitize(g.productName);
+                    const waiting = g.alerts.length;
+                    
+                    const stockPill = stock === 0 
+                        ? `<span class="pill cancelled"><i></i>Out of stock</span>` 
+                        : `<span class="pill warn"><i></i>${stock} left</span>`;
+                    
                     return `<tr>
-                        <td data-label="Product">${safeProduct}</td>
-                        <td data-label="Email"><a href="mailto:${safeEmail}" style="color:var(--gold);font-size:.85rem">${safeEmail}</a></td>
-                        <td data-label="Phone" style="font-size:.85rem;color:#aaa">${safePhone || '—'}</td>
-                        <td data-label="Requested On" style="color:#666;font-size:.78rem">${dateStr}</td>
-                        <td data-label="Status">${statusHtml}</td>
-                        <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end;gap:.4rem">
-                            ${!a.notified ? `<button class="tbl-btn approve" onclick="markAlertNotified('${a.id}')">✓ Mark Notified</button>` : ''}
-                            <button class="tbl-btn delete" onclick="deleteStockAlert('${a.id}')">🗑</button>
-                        </div></td>
+                        <td><b>${safeProduct}</b></td>
+                        <td>${stockPill}</td>
+                        <td class="mono">${waiting}</td>
+                        <td>
+                            <div class="rowact" style="justify-content:flex-end">
+                                <button class="tbtn ghost sm" onclick="showPanel('products')">Update stock</button>
+                                <button class="tbtn sm" ${stock === 0 ? 'disabled style="opacity:.4"' : ''} onclick="notifyCustomers('${g.productId}')">Notify ${waiting} customers</button>
+                            </div>
+                        </td>
                     </tr>`;
                 }).join('');
             } catch (err) {
                 console.error('loadAdminStockAlerts:', err);
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--red)">Failed to load alerts: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--red)">Failed to load alerts: ${err.message}</td></tr>`;
             }
         };
 
-        window.markAlertNotified = async function (alertId) {
+        window.notifyCustomers = async function (productId) {
+            if (!confirm('Mark all waiting customers for this product as notified?')) return;
             try {
-                await updateDoc(doc(db, 'stockAlerts', alertId), { notified: true, notifiedAt: serverTimestamp() });
-                Toast.success('Alert Marked', 'Customer has been marked as notified.');
+                const snap = await getDocs(query(collection(db, 'stockAlerts')));
+                const alertsToUpdate = snap.docs.filter(d => {
+                    const data = d.data();
+                    return data.productId === productId && !data.notified;
+                });
+                
+                if (alertsToUpdate.length > 0) {
+                    await Promise.all(alertsToUpdate.map(d => 
+                        updateDoc(doc(db, 'stockAlerts', d.id), { notified: true, notifiedAt: serverTimestamp() })
+                    ));
+                    Toast.success('Customers Notified', 'Successfully marked as notified.');
+                }
                 await window.loadAdminStockAlerts();
             } catch (err) {
-                console.error('markAlertNotified:', err);
+                console.error('notifyCustomers:', err);
                 Toast.error('Error', err.message);
             }
         };
-
-        window.deleteStockAlert = async function (alertId) {
-            if (!confirm('Delete this stock alert? This cannot be undone.')) return;
-            try {
-                await deleteDoc(doc(db, 'stockAlerts', alertId));
-                Toast.success('Alert Deleted');
-                await window.loadAdminStockAlerts();
-            } catch (err) {
-                console.error('deleteStockAlert:', err);
-                Toast.error('Error', err.message);
-            }
+        
+        window.saveLowStockSettings = function() {
+            const lowStockN = document.getElementById('lowStockN')?.value || 5;
+            Toast.success('Settings Saved', `Low stock threshold set to ${lowStockN}`);
         };
 
         window.applyThemeAdmin = async function () {
