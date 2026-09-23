@@ -30,6 +30,8 @@ export function renderFooter() {
               <li><a href="products.html">All Jewellery Catalog</a></li>
               <li><a href="products.html?tag=Bridal">Bridal Collections</a></li>
               <li><a href="products.html?tag=New">New Arrivals</a></li>
+              <li><a href="/video-display.html">Community Videos</a></li>
+              <li><a href="/video-upload.html">Upload Jewellery Video</a></li>
             </ul>
           </div>
 

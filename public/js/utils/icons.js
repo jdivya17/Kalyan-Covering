@@ -1,9 +1,9 @@
 /**
  * icons.js — Kalyan Covering
- * High-performance 1.5px stroke inline SVG line icon system.
+ * High-performance 1.5px stroke inline SVG line icon system and shell drawer/toast helpers.
  */
 
-const ICON = {
+export const ICON = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   heart: '<path d="M12 20s-7-4.6-9-9.2C1.7 7.4 3.8 4 7.2 4c2 0 3.6 1.1 4.8 2.9C13.2 5.1 14.8 4 16.8 4 20.2 4 22.3 7.4 21 10.8 19 15.4 12 20 12 20z"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
@@ -35,12 +35,108 @@ const ICON = {
   filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   ruler: '<path d="M3 15L15 3l6 6L9 21z"/><path d="M7 11l2 2M10 8l2 2M13 5l2 2"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
-  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>'
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  tag: '<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-4 3.5-6 6.5-6s5.5 2 6.5 6"/><circle cx="17" cy="8.5" r="2.8"/><path d="M15.5 20c.5-2.6 2-4.5 4-5.3"/>',
+  star: '<path d="M12 3l2.7 5.9 6.3.6-4.8 4.3 1.4 6.2L12 16.9 6.4 20l1.4-6.2-4.8-4.3 6.3-.6z"/>',
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 00-.15-1.5l2-1.6-2-3.4-2.4.9a7 7 0 00-2.6-1.5L13.4 2h-2.8l-.45 2.9a7 7 0 00-2.6 1.5l-2.4-.9-2 3.4 2 1.6A7 7 0 004 12c0 .5.05 1 .15 1.5l-2 1.6 2 3.4 2.4-.9c.75.65 1.63 1.16 2.6 1.5L9.6 22h2.8l.45-2.9c.97-.34 1.85-.85 2.6-1.5l2.4.9 2-3.4-2-1.6c.1-.5.15-1 .15-1.5z"/>',
+  bell: '<path d="M6 10a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 004 0"/>',
+  dots: '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
+  up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>',
+  chevr: '<path d="M9 6l6 6-6 6"/>',
+  chevl: '<path d="M15 6l-6 6 6 6"/>',
+  film: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+  alert: '<path d="M12 3l10 18H2z"/><path d="M12 9v5M12 17h.01"/>',
+  store: '<path d="M3 9l1-5h16l1 5M4 9v11h16V9M4 9h16"/><path d="M9 20v-6h6v6"/>',
+  percent: '<circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M19 5L5 19"/>',
+  cartx: '<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M2 3h3l2.4 12.2a2 2 0 002 1.8h7.9a2 2 0 002-1.7L21 8H6"/><path d="M14 9l4 4M18 9l-4 4"/>',
+  chat: '<path d="M4 4h16v12H8l-4 4z"/>',
+  image: '<rect x="3" y="4" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.7"/><path d="M21 16l-5.5-5.5L3 19"/>',
+  csv: '<path d="M4 3h11l5 5v13H4z"/><path d="M15 3v5h5"/><path d="M8 13v5M11 13v5M14 13v5"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'
 };
 
-export function ic(name, size = 20) {
-  const content = ICON[name] || ICON['spark'];
-  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${content}</svg>`;
+export function ic(name, size = 18) {
+  const content = ICON[name] || ICON.dash || ICON.spark;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
 }
 
-window.ic = ic;
+export function renderShellIcons() {
+  document.querySelectorAll('[data-ic]').forEach(el => {
+    const icName = el.getAttribute('data-ic');
+    if (icName) {
+      el.innerHTML = ic(icName, 18);
+    }
+  });
+}
+
+export function openSide() {
+  document.getElementById('side')?.classList.add('on');
+  document.getElementById('scrim')?.classList.add('on');
+}
+
+export function closeSide() {
+  document.getElementById('side')?.classList.remove('on');
+  if (!document.getElementById('drawer')?.classList.contains('on')) {
+    document.getElementById('scrim')?.classList.remove('on');
+  }
+}
+
+export function openDrawer(html) {
+  const drawer = document.getElementById('drawer');
+  const scrim = document.getElementById('scrim');
+  if (drawer) { drawer.innerHTML = html; drawer.classList.add('on'); }
+  if (scrim) scrim.classList.add('on');
+}
+
+export function closeDrawer() {
+  document.getElementById('drawer')?.classList.remove('on');
+  if (!document.getElementById('side')?.classList.contains('on')) {
+    document.getElementById('scrim')?.classList.remove('on');
+  }
+}
+
+export function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.innerHTML = `<span class="ic">${ic('check', 16)}</span>${String(msg).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}`;
+  t.classList.add('on');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+export function confirmModal(title, body, okLabel, onOk) {
+  const modalBox = document.getElementById('modalBox');
+  const modalScrim = document.getElementById('modalScrim');
+  if (!modalBox || !modalScrim) return;
+  modalBox.innerHTML = `
+    <h3>${title}</h3>
+    <p>${body}</p>
+    <div class="mact">
+      <button class="tbtn ghost" onclick="document.getElementById('modalScrim').classList.remove('on')">Cancel</button>
+      <button class="tbtn danger" id="modalOkBtn">${okLabel}</button>
+    </div>
+  `;
+  modalScrim.classList.add('on');
+  document.getElementById('modalOkBtn').onclick = () => {
+    modalScrim.classList.remove('on');
+    if (typeof onOk === 'function') onOk();
+  };
+}
+
+// Bind to window for legacy inline onclick handlers
+if (typeof window !== 'undefined') {
+  window.ICON = ICON;
+  window.ic = ic;
+  window.renderShellIcons = renderShellIcons;
+  window.openSide = openSide;
+  window.closeSide = closeSide;
+  window.openDrawer = openDrawer;
+  window.closeDrawer = closeDrawer;
+  window.toast = toast;
+  window.confirmModal = confirmModal;
+}

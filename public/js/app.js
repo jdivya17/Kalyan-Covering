@@ -1,16 +1,18 @@
 import { KC } from './store/state.js';
 import { uploadToCloudinary, getOptimizedUrl } from './utils/cloudinaryUtils.js';
 import { Toast } from './components/Toast.js';
-import { initHomePage, renderHomePageFeatured } from './pages/homePage.js';
-import { initProductsPage, renderProductsList } from './pages/productsPage.js';
+import { initHomePage, renderSignaturePieces } from './pages/homePage.js';
+import { initProductsPage, renderCatalogPage } from './pages/productsPage.js';
 import { initCartPage, renderCartView } from './pages/cartPage.js';
 import { initAdminDashboardPage, formatAdminOrderBadge } from './pages/adminDashboardPage.js';
 
 // Attach page modules & utility functions to window for legacy inline scripts
 window.initHomePage = initHomePage;
-window.renderHomePageFeatured = renderHomePageFeatured;
+window.renderHomePageFeatured = renderSignaturePieces;
+window.renderSignaturePieces = renderSignaturePieces;
 window.initProductsPage = initProductsPage;
-window.renderProductsList = renderProductsList;
+window.renderProductsList = renderCatalogPage;
+window.renderCatalogPage = renderCatalogPage;
 window.initCartPage = initCartPage;
 window.renderCartView = renderCartView;
 window.initAdminDashboardPage = initAdminDashboardPage;

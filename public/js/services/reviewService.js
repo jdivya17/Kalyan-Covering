@@ -3,6 +3,7 @@
  * Product review fetching, photo compression, storage upload, and submission.
  * Reviews are stored in Firestore under the 'reviews' collection.
  * Status workflow: All new reviews are saved with status "pending" and only displayed when "approved".
+ * Images are uploaded to Cloudinary (not Firebase Storage).
  */
 
 import {
@@ -13,12 +14,9 @@ import {
     query,
     where,
     orderBy,
-    serverTimestamp,
-    storage,
-    ref,
-    uploadBytes,
-    getDownloadURL
+    serverTimestamp
 } from '../firebase-config.js';
+import { uploadToCloudinary } from '../utils/cloudinaryUtils.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { escapeHtml } from '../utils/helpers.js';
 
@@ -93,24 +91,27 @@ export async function isVerifiedBuyer(uid, productId) {
 
 /**
  * Upload a customer review photo with client-side compression (max 800px, JPEG 0.75, < 500KB)
+ * Uploads to Cloudinary (cloud name: ddw2whxh7, preset: kalyan_covering_upload)
  * @param {File} file
  * @param {string} productId
- * @returns {Promise<string>} Download URL
+ * @returns {Promise<string>} Cloudinary secure URL
  */
 export async function uploadReviewPhoto(file, productId) {
     if (!file) return '';
     try {
-        // Compress image to max 800px, 0.75 JPEG
+        // Compress image to max 800px, 0.75 JPEG quality before uploading
         const compressedBlob = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.75 });
-        const fileName = `reviews/${productId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadBytes(storageRef, compressedBlob, {
-            contentType: 'image/jpeg'
-        });
-        
-        const downloadUrl = await getDownloadURL(storageRef);
-        return downloadUrl;
+
+        // Convert blob to File so Cloudinary can detect the filename
+        const uploadFile = new File(
+            [compressedBlob],
+            `review_${productId}_${Date.now()}.jpg`,
+            { type: 'image/jpeg' }
+        );
+
+        const result = await uploadToCloudinary(uploadFile, 'image');
+        if (!result || !result.url) throw new Error('Cloudinary returned no URL.');
+        return result.url;
     } catch (e) {
         console.error('Error compressing/uploading review photo:', e);
         throw new Error('Photo upload failed. Please ensure photo is an image under 5MB.');

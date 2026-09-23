@@ -26,10 +26,20 @@ export const RBAC = {
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
             ]);
 
-        // 1. Try Firebase Custom Claims (Primary - with forced refresh)
+        // 1. Try Firebase Custom Claims — cached first (fast), force-refresh only if no role found
         try {
-            await withTimeout(user.getIdToken(true), 3000);
-            let idTokenResult = await withTimeout(user.getIdTokenResult(true), 3000);
+            // Step 1a: Try cached token (no network round-trip, instant)
+            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 2000);
+            if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
+                let r = idTokenResult.claims.role.toLowerCase();
+                if (r === 'admin') r = 'owner';
+                if (validRoles.includes(r)) {
+                    sessionStorage.setItem('kc_admin_role', r);
+                    return r;
+                }
+            }
+            // Step 1b: No role in cached token — force refresh once (claims may have been set after token was issued)
+            idTokenResult = await withTimeout(user.getIdTokenResult(true), 4000);
             if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
                 let r = idTokenResult.claims.role.toLowerCase();
                 if (r === 'admin') r = 'owner';

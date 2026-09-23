@@ -114,6 +114,8 @@
             onAuthStateChanged,
             getMultiFactorResolver,
             PhoneAuthProvider,
+            PhoneMultiFactorGenerator,
+            RecaptchaVerifier,
             TotpMultiFactorGenerator,
             signOut
         } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -143,8 +145,9 @@
 
             let currentMfaResolver = null;
             let currentMfaHint = null;
+            let currentVerificationId = null; // Stores SMS verificationId for phone MFA
 
-            // ── FIX: Only redirect if the logged-in user actually has an admin role
+            // ── Auto-redirect: Only redirect if the logged-in user actually has an admin role
             onAuthStateChanged(auth, async (user) => {
                 if (!user) return;
                 try {
@@ -152,13 +155,8 @@
                     console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     if (role && validRoles.includes(role.toLowerCase())) {
-                        const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
-                        if (bounces > 2) {
-                            sessionStorage.removeItem('admin_auth_bounces');
-                            showError('Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.');
-                            return;
-                        }
-                        sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
+                        // FIX: Clear bounce counter on SUCCESS (do NOT increment — prevents false loop detection)
+                        sessionStorage.removeItem('admin_auth_bounces');
                         const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role;
                         sessionStorage.setItem('kc_admin_role', displayRole);
                         window.location.replace('/admin/dashboard.html');
@@ -230,11 +228,35 @@
                         const hints = currentMfaResolver.hints;
                         if (hints.length > 0) {
                             currentMfaHint = hints[0];
-                            form.style.display = 'none';
-                            mfaForm.style.display = 'block';
                             if (currentMfaHint.factorId === 'phone') {
-                                showSuccess(`SMS sent to ${currentMfaHint.phoneNumber}.`);
+                                // FIX: Phone MFA requires sending SMS first via resolver session
+                                // Create invisible reCAPTCHA for phone verification
+                                try {
+                                    if (!window._mfaRecaptcha) {
+                                        let rcContainer = document.getElementById('mfa-recaptcha-container');
+                                        if (!rcContainer) {
+                                            rcContainer = document.createElement('div');
+                                            rcContainer.id = 'mfa-recaptcha-container';
+                                            document.body.appendChild(rcContainer);
+                                        }
+                                        window._mfaRecaptcha = new RecaptchaVerifier(auth, 'mfa-recaptcha-container', { size: 'invisible' });
+                                    }
+                                    const phoneProvider = new PhoneAuthProvider(auth);
+                                    currentVerificationId = await phoneProvider.verifyPhoneNumber(
+                                        { multiFactorHint: currentMfaHint, session: currentMfaResolver.session },
+                                        window._mfaRecaptcha
+                                    );
+                                    form.style.display = 'none';
+                                    mfaForm.style.display = 'block';
+                                    showSuccess(`SMS sent to ${currentMfaHint.phoneNumber}. Enter the 6-digit code.`);
+                                } catch (smsErr) {
+                                    console.error('Phone MFA SMS send failed:', smsErr);
+                                    showError('Failed to send SMS. Please try again.');
+                                    if (window._mfaRecaptcha) { try { window._mfaRecaptcha.clear(); } catch(_){} window._mfaRecaptcha = null; }
+                                }
                             } else if (currentMfaHint.factorId === 'totp') {
+                                form.style.display = 'none';
+                                mfaForm.style.display = 'block';
                                 showSuccess('Enter the code from your authenticator app.');
                             }
                         } else {
@@ -275,7 +297,15 @@
                     if (currentMfaHint.factorId === 'totp') {
                         multiFactorAssertion = TotpMultiFactorGenerator.assertionForSignIn(currentMfaHint.uid, code);
                     } else if (currentMfaHint.factorId === 'phone') {
-                        multiFactorAssertion = PhoneAuthProvider.credential(currentMfaHint.uid, code);
+                        // FIX: Use proper PhoneMultiFactorGenerator with verificationId from SMS step
+                        if (!currentVerificationId) {
+                            showError('Phone verification session expired. Please try logging in again.');
+                            mfaBtn.disabled = false;
+                            mfaSpinner.style.display = 'none';
+                            return;
+                        }
+                        const phoneCredential = PhoneAuthProvider.credential(currentVerificationId, code);
+                        multiFactorAssertion = PhoneMultiFactorGenerator.assertion(phoneCredential);
                     }
 
                     await currentMfaResolver.resolveSignIn(multiFactorAssertion);
@@ -296,6 +326,8 @@
                 e.preventDefault();
                 currentMfaResolver = null;
                 currentMfaHint = null;
+                currentVerificationId = null; // FIX: Reset verificationId on cancel
+                if (window._mfaRecaptcha) { try { window._mfaRecaptcha.clear(); } catch(_){} window._mfaRecaptcha = null; }
                 mfaForm.style.display = 'none';
                 form.style.display = 'block';
                 hideMessages();

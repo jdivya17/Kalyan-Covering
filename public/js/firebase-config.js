@@ -41,12 +41,7 @@ import {
     signInWithPhoneNumber
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
+// Firebase Storage removed — all file uploads now go through Cloudinary (cloudinaryUtils.js)
 
 // ── Firebase project config ── ✅ Updated to: kalyancoveringstore-c53e4
 const firebaseConfig = {
@@ -63,7 +58,6 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const functions = getFunctions(app);
-const storage = getStorage(app);
 
 // ── Vercel API Base URL ────────────────────────────────────────
 // Firebase Hosting serves only static files — it has NO backend.
@@ -78,7 +72,7 @@ const _isLocalhost = (
 );
 const VERCEL_API_BASE = _isLocalhost
     ? ""   // relative URL works on local Vite dev server
-    : "https://kalyan-covering-store.vercel.app"; // ← your Vercel deployment URL
+    : "https://kalyan-covering-store.vercel.app"; // ← ⚠️ UPDATE THIS if your Vercel deployment URL changes
 
 /**
  * Helper to call Vercel API endpoints with Firebase Auth Token.
@@ -139,10 +133,6 @@ export {
     db,
     auth,
     functions,
-    storage,
-    ref,
-    uploadBytes,
-    getDownloadURL,
     httpsCallable,
     callVercelApi,
     // Firestore helpers

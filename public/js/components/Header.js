@@ -48,6 +48,7 @@ export function renderHeader() {
             <a href="products.html?category=Bangles" class="mega-trigger" data-mega="Bangles">Bangles ${ic('chev', 12)}</a>
             
             <a href="products.html" ${currentPath.endsWith('products.html') && !window.location.search ? 'aria-current="page"' : ''}>All Shop</a>
+            <a href="/video-display.html" ${currentPath.endsWith('video-display.html') ? 'aria-current="page"' : ''}>Videos</a>
           </div>
         </nav>
 
