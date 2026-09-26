@@ -58,13 +58,28 @@ export async function getOrder(orderId) {
  */
 export async function cancelOrder(orderId, reason = 'Customer requested cancellation') {
     try {
-        const cancelFn = httpsCallable(functions, 'cancelOrder');
-        const result = await cancelFn({ orderId, reason });
-        if (result.data?.success) {
-            Toast.success('Order Cancelled', 'Your cancellation request has been processed.');
-            return { success: true };
+        try {
+            const cancelFn = httpsCallable(functions, 'cancelOrder');
+            const result = await cancelFn({ orderId, reason });
+            if (result.data?.success) {
+                Toast.success('Order Cancelled', 'Your cancellation request has been processed.');
+                return { success: true };
+            }
+        } catch (fnErr) {
+            console.warn('[orderService] Cloud Function cancelOrder unavailable, attempting direct Firestore update:', fnErr.message);
         }
-        throw new Error(result.data?.message || 'Cancellation failed.');
+
+        // Direct Firestore fallback
+        const { updateDoc, serverTimestamp } = await import('../firebase-config.js');
+        await updateDoc(doc(db, 'orders', orderId), {
+            status: 'cancelled',
+            cancelReason: reason,
+            cancelledAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        Toast.success('Order Cancelled', 'Your cancellation request has been processed.');
+        return { success: true };
     } catch (e) {
         const msg = e.message || 'Unable to cancel order. Please contact support.';
         Toast.error('Cancellation Failed', msg);
@@ -85,13 +100,28 @@ export async function initiateReturn(orderId, reason) {
         return { success: false, error: 'Reason is required.' };
     }
     try {
-        const returnFn = httpsCallable(functions, 'initiateReturn');
-        const result = await returnFn({ orderId, reason });
-        if (result.data?.success) {
-            Toast.success('Return Initiated', 'We will process your return request within 2-3 business days.');
-            return { success: true };
+        try {
+            const returnFn = httpsCallable(functions, 'initiateReturn');
+            const result = await returnFn({ orderId, reason });
+            if (result.data?.success) {
+                Toast.success('Return Initiated', 'We will process your return request within 2-3 business days.');
+                return { success: true };
+            }
+        } catch (fnErr) {
+            console.warn('[orderService] Cloud Function initiateReturn unavailable, attempting direct Firestore update:', fnErr.message);
         }
-        throw new Error(result.data?.message || 'Return request failed.');
+
+        // Direct Firestore fallback
+        const { updateDoc, serverTimestamp } = await import('../firebase-config.js');
+        await updateDoc(doc(db, 'orders', orderId), {
+            status: 'return_requested',
+            returnReason: reason,
+            returnRequestedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        Toast.success('Return Initiated', 'We will process your return request within 2-3 business days.');
+        return { success: true };
     } catch (e) {
         const msg = e.message || 'Unable to initiate return. Please contact support.';
         Toast.error('Return Failed', msg);

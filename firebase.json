@@ -16,6 +16,13 @@
             "**/.*",
             "**/node_modules/**"
         ],
+        "redirects": [
+            {
+                "source": "/",
+                "destination": "/customer/index.html",
+                "type": 301
+            }
+        ],
         "rewrites": [
             {
                 "source": "/admin/login",

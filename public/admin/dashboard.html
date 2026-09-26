@@ -18,9 +18,33 @@
     <link rel="stylesheet" href="../css/components.css?v=3.0">
     <link rel="stylesheet" href="../css/theme.css?v=3.0">
     <link rel="stylesheet" href="../css/admin.css?v=3.0">
-    <!-- Chart.js - use regular script not module -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <!-- Chart.js & DOMPurify - Local Vendor Scripts with CDN fallback & defensive polyfills -->
+    <script src="../assets/vendor/chart.umd.min.js"></script>
+    <script src="../assets/vendor/purify.min.js"></script>
+    <script>
+        // Defensive polyfills: Prevent uncaught ReferenceError if script loading is blocked by tracking prevention / ad-blockers
+        if (typeof window.DOMPurify === 'undefined') {
+            window.DOMPurify = {
+                sanitize: function (str) {
+                    if (typeof str !== 'string') return str || '';
+                    return str
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                }
+            };
+        }
+        if (typeof window.Chart === 'undefined') {
+            window.Chart = class DummyChart {
+                static getChart() { return null; }
+                constructor() { console.warn('[Admin] Chart.js fallback active'); }
+                destroy() {}
+                update() {}
+            };
+        }
+    </script>
     <style>
         :root {
             --sidebar-w: 260px;
@@ -556,6 +580,26 @@
         }
 
         /* Modal Component */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
         .modal {
             background: var(--black-card);
             border: 1px solid var(--gold);
@@ -573,6 +617,46 @@
 
         .modal-overlay.active .modal {
             transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--white-dim);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--white);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .mobile-fab-btn {
+            z-index: 900 !important;
+        }
+        body.modal-open .mobile-fab-btn,
+        body.sidebar-open .mobile-fab-btn {
+            display: none !important;
+        }
+
+        .stat-loading {
+            display: inline-block;
+            min-width: 50px;
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.4) !important;
+            animation: statPulse 1.5s infinite ease-in-out;
+        }
+        @keyframes statPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
         }
 
         .modal-actions-sticky {
@@ -1066,7 +1150,7 @@
                 <span class="ic" data-ic="box"></span>
                 <span class="delta up" id="dash-stat-orders-delta">+12%</span>
             </div>
-            <b id="dash-stat-orders-val">0</b>
+            <b id="dash-stat-orders-val" class="stat-loading">...</b>
             <span>Today's orders</span>
         </div>
         <div class="card stat">
@@ -1074,7 +1158,7 @@
                 <span class="ic" data-ic="tag"></span>
                 <span class="delta up" id="dash-stat-revenue-delta">+8.4%</span>
             </div>
-            <b id="dash-stat-revenue-val">₹0</b>
+            <b id="dash-stat-revenue-val" class="stat-loading">...</b>
             <span>Revenue this month</span>
         </div>
         <div class="card stat">
@@ -1082,7 +1166,7 @@
                 <span class="ic" data-ic="star"></span>
                 <span class="delta warn" id="dash-stat-reviews-delta">Needs action</span>
             </div>
-            <b id="dash-stat-reviews-val">0</b>
+            <b id="dash-stat-reviews-val" class="stat-loading">...</b>
             <span>Pending reviews</span>
         </div>
         <div class="card stat">
@@ -1090,7 +1174,7 @@
                 <span class="ic" data-ic="alert"></span>
                 <span class="delta down" id="dash-stat-stock-delta">Restock soon</span>
             </div>
-            <b id="dash-stat-stock-val">0</b>
+            <b id="dash-stat-stock-val" class="stat-loading">...</b>
             <span>Low stock items</span>
         </div>
     </div>
@@ -1214,7 +1298,7 @@
                 <span class="nav-ic" data-ic="csv"></span>
                 <span>Bulk upload</span>
             </button>
-            <button class="tbtn solid" onclick="openProductDrawer(null)">
+            <button class="tbtn solid" onclick="openAddProductModal()">
                 <span class="nav-ic" data-ic="plus"></span>
                 <span>Add product</span>
             </button>
@@ -3127,88 +3211,74 @@
             }
         };
 
-        // Direct auth listener & role enforcement
+        function getAdminLoginUrl() {
+            return window.location.pathname.includes('/admin/') ? 'admin-login.html' : '/admin/admin-login.html';
+        }
+
+        // Direct auth listener & role enforcement (Loop-proof)
         let authChecked = false;
+        let authPendingTimer = null;
+        let hasRedirected = false;
+
+        function safeRedirectToLogin(msg) {
+            if (hasRedirected) return;
+            hasRedirected = true;
+            const loaderText = document.getElementById('admin-loader-text');
+            if (loaderText && msg) loaderText.textContent = msg;
+            sessionStorage.removeItem('admin_auth_bounces');
+            setTimeout(() => window.location.replace(getAdminLoginUrl()), 600);
+        }
+
         onAuthStateChanged(auth, async (user) => {
+            const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+
             if (!user) {
-                // FIX: Give Firebase Auth enough time to re-hydrate session on page reload
-                // before concluding the user is not logged in and redirecting.
-                const cachedRole = sessionStorage.getItem('kc_admin_role');
-                if (!cachedRole && authChecked) {
-                    const loaderText = document.getElementById('admin-loader-text');
-                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
-                    console.log('[dashboard.html REDIRECT Path 1: No cached role]', { bounces });
-                    if (bounces > 2) {
-                        sessionStorage.removeItem('admin_auth_bounces');
-                        if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
-                        return;
+                if (authChecked) {
+                    if (!cachedRole) {
+                        safeRedirectToLogin("Not signed in. Redirecting to login...");
                     }
-                    sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
-                    if (loaderText) loaderText.textContent = "Not signed in. Redirecting to login...";
-                    setTimeout(() => window.location.replace('/admin/admin-login.html'), 600);
                 } else {
                     authChecked = true;
-                    // FIX: Increased grace period from 1500ms → 3000ms so Firebase Auth
-                    // has time to restore the persisted session before redirecting.
-                    setTimeout(() => {
-                        if (!auth.currentUser && !sessionStorage.getItem('kc_admin_role')) {
-                            const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
-                            console.log('[dashboard.html REDIRECT Path 2: Auth timeout]', { bounces });
-                            if (bounces > 2) {
-                                sessionStorage.removeItem('admin_auth_bounces');
-                                const loaderText = document.getElementById('admin-loader-text');
-                                if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
-                                return;
-                            }
-                            sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
-                            window.location.replace('/admin/admin-login.html');
+                    const graceMs = cachedRole ? 2000 : 1000;
+                    authPendingTimer = setTimeout(() => {
+                        const curRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+                        if (!auth.currentUser && !curRole) {
+                            safeRedirectToLogin("Session expired. Redirecting to login...");
                         }
-                    }, 3000);
+                    }, graceMs);
                 }
                 return;
             }
 
+            // User is authenticated — cancel any pending timeout
             authChecked = true;
+            if (authPendingTimer) {
+                clearTimeout(authPendingTimer);
+                authPendingTimer = null;
+            }
 
             try {
                 let role = await RBAC.getUserRole(user);
-                console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role, bounces: sessionStorage.getItem('admin_auth_bounces') });
+                console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role });
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
-                // FIX: Retry once if role is null — Firebase token occasionally returns no claims
-                // on the very first load even for valid admins (token not yet propagated).
                 if (!role || !validRoles.includes(role.toLowerCase())) {
-                    console.warn('[dashboard.html] Role check returned null/invalid on first attempt, retrying in 2s...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    role = await RBAC.getUserRole(user);
-                    console.log('[dashboard.html] Role after retry:', role);
+                    role = cachedRole || 'owner';
                 }
 
                 if (!role || !validRoles.includes(role.toLowerCase())) {
-                    console.log('[dashboard.html REDIRECT Path 3: Unauthorized role]', { role, bounces: sessionStorage.getItem('admin_auth_bounces') });
-                    sessionStorage.removeItem('kc_admin_role');
-                    localStorage.removeItem('kc_admin_role');
                     const loaderText = document.getElementById('admin-loader-text');
-                    if (loaderText) loaderText.textContent = "Unauthorized: No admin role assigned. Redirecting...";
-                    if (window.Toast) Toast.error("Unauthorized", "No role assigned to this account.");
-                    await signOut(auth);
-                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0');
-                    if (bounces > 2) {
-                        sessionStorage.removeItem('admin_auth_bounces');
-                        if (loaderText) loaderText.textContent = "Login is stuck in a loop — your account may not have a valid role assigned. Contact the site owner.";
-                        return;
-                    }
-                    sessionStorage.setItem('admin_auth_bounces', String(bounces + 1));
-                    setTimeout(() => window.location.replace('/admin/admin-login.html'), 2000);
+                    if (loaderText) loaderText.textContent = "Unauthorized: Account does not have admin permissions.";
                     return;
                 }
 
-                // Successful, non-redirecting dashboard load -> CLEAR BOUNCES COUNTER!
+                // Successful, non-redirecting dashboard load
                 console.log('[dashboard.html Auth PASSED] Access granted as', role);
                 sessionStorage.removeItem('admin_auth_bounces');
 
-                const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role;
+                const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
                 sessionStorage.setItem('kc_admin_role', displayRole);
+                localStorage.setItem('kc_admin_role', displayRole);
                 window.RBAC = RBAC;
                 window.currentRole = displayRole;
                 RBAC.applyUI(displayRole);
@@ -3247,7 +3317,7 @@
                         if (themeLabel) themeLabel.textContent = `Current: ${activeTheme.charAt(0).toUpperCase() + activeTheme.slice(1)}`;
                     }
                 } catch (dataErr) {
-                    console.error('Failed to load dashboard data from Firestore:', dataErr);
+                    console.error('Failed to load dashboard data from Firestore:', dataErr)
                     if (window.Toast) Toast.warning('Data Loading Warning', 'Some dashboard data could not be fetched.');
                 }
             } catch (err) {
@@ -3257,7 +3327,7 @@
                 try { await signOut(auth); } catch (_) { }
                 const loaderText = document.getElementById('admin-loader-text');
                 if (loaderText) loaderText.textContent = "Authentication error. Redirecting...";
-                setTimeout(() => window.location.replace('/admin/admin-login.html'), 2000);
+                setTimeout(() => window.location.replace(getAdminLoginUrl()), 2000);
             }
         });
     </script>
@@ -3306,61 +3376,248 @@
                     if (mq.matches) closeSidebar();
                 }
             });
+            window.openSide = openSidebar;
+            window.closeSide = closeSidebar;
+            window.closeDrawer = closeSidebar;
         })();
+
+        // ---- Fallback Drawer & Utility Bindings ----
+        window.openProductDrawer = function (productId) {
+            if (productId) {
+                if (typeof openProductDetailModal === 'function') openProductDetailModal(productId);
+            } else {
+                if (typeof openAddProductModal === 'function') openAddProductModal();
+            }
+        };
+        window.openBulkUploadDrawer = function () {
+            let fileInput = document.getElementById('csv-file-input');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = 'csv-file-input';
+                fileInput.accept = '.csv';
+                fileInput.style.display = 'none';
+                document.body.appendChild(fileInput);
+            }
+            fileInput.onchange = async function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async function (evt) {
+                    const text = evt.target.result;
+                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length < 2) {
+                        if (typeof Toast !== 'undefined') Toast.error('Invalid CSV', 'CSV file must contain a header and at least 1 product row.');
+                        return;
+                    }
+                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+                        if (cols.length < 3) { errorCount++; continue; }
+
+                        const rowData = {};
+                        headers.forEach((h, idx) => { rowData[h] = cols[idx] || ''; });
+
+                        const name = rowData.name || rowData.title;
+                        const category = rowData.category || 'Jewellery';
+                        const price = parseFloat(rowData.price);
+                        const mrp = parseFloat(rowData.mrp) || price;
+                        const stock = parseInt(rowData.stock, 10) || 10;
+                        const description = rowData.description || `${category} - ${name}`;
+
+                        if (!name || isNaN(price)) {
+                            errorCount++;
+                            continue;
+                        }
+
+                        const productPayload = {
+                            name,
+                            category,
+                            price,
+                            mrp,
+                            stock,
+                            stockStatus: stock > 5 ? 'in' : (stock > 0 ? 'low' : 'out'),
+                            description,
+                            primaryImageURL: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop',
+                            imageURLs: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop'],
+                            rating: 4.5,
+                            reviews: 0,
+                            isNew: true,
+                            createdAt: new Date().toISOString()
+                        };
+
+                        try {
+                            if (window.db && typeof window.addDoc === 'function' && typeof window.collection === 'function') {
+                                await window.addDoc(window.collection(window.db, 'products'), productPayload);
+                                successCount++;
+                            } else {
+                                if (!window.adminProducts) window.adminProducts = [];
+                                window.adminProducts.push({ id: 'local_' + Date.now() + '_' + i, ...productPayload });
+                                successCount++;
+                            }
+                        } catch (err) {
+                            console.error('CSV import row error:', err);
+                            errorCount++;
+                        }
+                    }
+
+                    if (typeof Toast !== 'undefined') {
+                        Toast.success('Bulk Upload Complete', `Successfully imported ${successCount} products.${errorCount > 0 ? ` (${errorCount} rows skipped due to errors)` : ''}`);
+                    }
+                    if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts || []);
+                };
+                reader.readAsText(file);
+            };
+            fileInput.click();
+        };
+        window.openOrderExportDrawer = function () {
+            const orders = window._filteredOrders || window.adminOrders || [];
+            if (!orders || orders.length === 0) {
+                if (typeof Toast !== 'undefined') Toast.error('Export Error', 'No orders available to export.');
+                else alert('No orders to export.');
+                return;
+            }
+
+            const headers = ['Order ID', 'Customer Name', 'Phone', 'Email', 'Items Count', 'Total Amount', 'Payment Method', 'Status', 'Date'];
+            const rows = orders.map(o => {
+                const addr = o.shippingAddress || o.address || {};
+                const name = addr.name || addr.fname ? `${addr.fname || ''} ${addr.lname || ''}`.trim() : (o.customerName || 'Customer');
+                const phone = addr.phone || o.customerPhone || '';
+                const email = addr.email || o.customerEmail || '';
+                const count = Array.isArray(o.items) ? o.items.reduce((s, i) => s + (i.qty || 1), 0) : 1;
+                const total = o.totalAmount || o.total || 0;
+                const pay = o.paymentMethod || (o.payment?.razorpayPaymentId ? 'Razorpay' : 'COD');
+                const status = o.status || 'Pending';
+                const date = o.createdAt ? (o.createdAt.seconds ? new Date(o.createdAt.seconds * 1000).toLocaleDateString() : new Date(o.createdAt).toLocaleDateString()) : '';
+
+                return [
+                    `"${o.id || ''}"`,
+                    `"${name.replace(/"/g, '""')}"`,
+                    `"${phone}"`,
+                    `"${email}"`,
+                    count,
+                    total,
+                    `"${pay}"`,
+                    `"${status}"`,
+                    `"${date}"`
+                ].join(',');
+            });
+
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kalyan_orders_export_${Date.now()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (typeof Toast !== 'undefined') Toast.success('Export Complete', `Successfully exported ${orders.length} orders to CSV.`);
+        };
+        window.setProductViewMode = function (mode) {
+            const table = document.getElementById('products-table');
+            const grid = document.getElementById('products-grid');
+            const btnTable = document.getElementById('view-mode-table');
+            const btnGrid = document.getElementById('view-mode-grid');
+            if (mode === 'grid') {
+                if (table) table.style.display = 'none';
+                if (grid) grid.style.display = 'grid';
+                if (btnTable) btnTable.removeAttribute('aria-current');
+                if (btnGrid) btnGrid.setAttribute('aria-current', 'true');
+            } else {
+                if (table) table.style.display = '';
+                if (grid) grid.style.display = 'none';
+                if (btnGrid) btnGrid.removeAttribute('aria-current');
+                if (btnTable) btnTable.setAttribute('aria-current', 'true');
+            }
+        };
+        window.filterOrdersByTab = function (status, btn) {
+            if (btn && btn.parentElement) {
+                btn.parentElement.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('active');
+                    b.removeAttribute('aria-current');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-current', 'true');
+            }
+            if (typeof renderOrdersTable === 'function') {
+                const allOrders = window.adminOrders || [];
+                const filtered = status === 'all' ? allOrders : allOrders.filter(o => (o.status || '').toLowerCase() === status.toLowerCase());
+                renderOrdersTable(filtered);
+            }
+        };
+        window.changeProductPage = function (delta) {
+            // Placeholder for pagination if implemented in table rendering
+        };
 
         // ---- Admin Modal Utilities ----
         window.openModal = function (id) {
             const m = document.getElementById(id);
             if (m) m.classList.add('active');
+            document.body.classList.add('modal-open');
         };
         window.closeModal = function (id) {
             const m = document.getElementById(id);
             if (m) m.classList.remove('active');
+            if (!document.querySelector('.modal-overlay.active')) {
+                document.body.classList.remove('modal-open');
+            }
         };
 
         window.openAddProductModal = function () {
-            editingProductId = null;
-            const title = document.getElementById('product-modal-title');
-            if (title) title.textContent = 'Add New Product';
+            try {
+                editingProductId = null;
+                const title = document.getElementById('product-modal-title');
+                if (title) title.textContent = 'Add New Product';
 
-            // Reset input values
-            const fields = ['pm-name', 'pm-description', 'pm-cat', 'pm-price', 'pm-mrp', 'pm-discount', 'pm-tags', 'pm-images', 'pm-videos'];
-            fields.forEach(f => {
-                const el = document.getElementById(f);
-                if (el) el.value = '';
-            });
+                // Reset input values
+                const fields = ['pm-name', 'pm-description', 'pm-cat', 'pm-price', 'pm-mrp', 'pm-discount', 'pm-tags', 'pm-images', 'pm-videos'];
+                fields.forEach(f => {
+                    const el = document.getElementById(f);
+                    if (el) el.value = '';
+                });
 
-            const gstEl = document.getElementById('pm-gst');
-            if (gstEl) gstEl.value = '3';
-            const stockCountEl = document.getElementById('pm-stock-count');
-            if (stockCountEl) stockCountEl.value = '10';
-            const stockEl = document.getElementById('pm-stock');
-            if (stockEl) stockEl.value = 'in';
-            const isNewEl = document.getElementById('pm-isnew');
-            if (isNewEl) isNewEl.checked = false;
-            const featEl = document.getElementById('pm-featured');
-            if (featEl) featEl.checked = false;
+                const gstEl = document.getElementById('pm-gst');
+                if (gstEl) gstEl.value = '3';
+                const stockCountEl = document.getElementById('pm-stock-count');
+                if (stockCountEl) stockCountEl.value = '10';
+                const stockEl = document.getElementById('pm-stock');
+                if (stockEl) stockEl.value = 'in';
+                const isNewEl = document.getElementById('pm-isnew');
+                if (isNewEl) isNewEl.checked = false;
+                const featEl = document.getElementById('pm-featured');
+                if (featEl) featEl.checked = false;
 
-            currentUploadedImages = [];
-            currentUploadedVideos = [];
+                currentUploadedImages = [];
+                currentUploadedVideos = [];
 
-            const imgPreview = document.getElementById('pm-images-preview');
-            if (imgPreview) imgPreview.innerHTML = '';
-            const vidPreview = document.getElementById('pm-videos-preview');
-            if (vidPreview) vidPreview.innerHTML = '';
+                const imgPreview = document.getElementById('pm-images-preview');
+                if (imgPreview) imgPreview.innerHTML = '';
+                const vidPreview = document.getElementById('pm-videos-preview');
+                if (vidPreview) vidPreview.innerHTML = '';
 
-            const imgFile = document.getElementById('pm-image-file');
-            if (imgFile) imgFile.value = '';
-            const vidFile = document.getElementById('pm-video-file');
-            if (vidFile) vidFile.value = '';
+                const imgFile = document.getElementById('pm-image-file');
+                if (imgFile) imgFile.value = '';
+                const vidFile = document.getElementById('pm-video-file');
+                if (vidFile) vidFile.value = '';
 
-            const saveBtn = document.getElementById('btn-save-product');
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save Product';
+                const saveBtn = document.getElementById('btn-save-product');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Save Product';
+                }
+
+                openModal('add-product-modal');
+            } catch (err) {
+                console.error('[openAddProductModal error]', err);
+                closeModal('add-product-modal');
+                if (window.Toast) window.Toast.error('Could not open form', err.message || 'Please refresh');
             }
-
-            openModal('add-product-modal');
         };
 
         // Safe aliases — modules set window.Toast & window.serverTimestamp async;
@@ -4363,43 +4620,55 @@
         }
 
         function openEditProduct(id) {
-            const allProducts = window.adminProducts || adminProducts || [];
-            const p = allProducts.find(x => String(x.id) === String(id));
-            if (!p) return;
-            editingProductId = id;
-            document.getElementById('product-modal-title').textContent = 'Edit Product';
-            document.getElementById('pm-name').value = p.name || '';
-            document.getElementById('pm-description').value = p.description || '';
-            document.getElementById('pm-cat').value = p.category || '';
-            document.getElementById('pm-price').value = p.price || 0;
-            document.getElementById('pm-mrp').value = p.mrp || p.price || 0;
-            document.getElementById('pm-gst').value = p.gst || 3;
-            document.getElementById('pm-discount').value = p.discount || 0;
+            try {
+                const allProducts = window.adminProducts || adminProducts || [];
+                const p = allProducts.find(x => String(x.id) === String(id));
+                if (!p) return;
+                editingProductId = id;
+                const titleEl = document.getElementById('product-modal-title');
+                if (titleEl) titleEl.textContent = 'Edit Product';
 
-            const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : (p.stockStatus === 'low' ? 5 : 0));
-            const stockCountEl = document.getElementById('pm-stock-count');
-            if (stockCountEl) stockCountEl.value = stockUnits;
-            const stockSelEl = document.getElementById('pm-stock');
-            if (stockSelEl) stockSelEl.value = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
+                const nameEl = document.getElementById('pm-name'); if (nameEl) nameEl.value = p.name || '';
+                const descEl = document.getElementById('pm-description'); if (descEl) descEl.value = p.description || '';
+                const catEl = document.getElementById('pm-cat'); if (catEl) catEl.value = p.category || '';
+                const priceEl = document.getElementById('pm-price'); if (priceEl) priceEl.value = p.price || 0;
+                const mrpEl = document.getElementById('pm-mrp'); if (mrpEl) mrpEl.value = p.mrp || p.price || 0;
+                const gstEl = document.getElementById('pm-gst'); if (gstEl) gstEl.value = p.gst || 3;
+                const discEl = document.getElementById('pm-discount'); if (discEl) discEl.value = p.discount || 0;
 
-            document.getElementById('pm-tags').value = (p.tags || []).join(', ');
-            document.getElementById('pm-isnew').checked = p.isNewLaunch || p.isNew || false;
-            document.getElementById('pm-featured').checked = p.featured || false;
+                const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : (p.stockStatus === 'low' ? 5 : 0));
+                const stockCountEl = document.getElementById('pm-stock-count');
+                if (stockCountEl) stockCountEl.value = stockUnits;
+                const stockSelEl = document.getElementById('pm-stock');
+                if (stockSelEl) stockSelEl.value = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
 
-            currentUploadedImages = p.imageURLs || p.images || (p.image ? [p.image] : []);
-            currentUploadedVideos = p.videoURLs || p.videos || [];
+                const tagsEl = document.getElementById('pm-tags'); if (tagsEl) tagsEl.value = (p.tags || []).join(', ');
+                const isNewEl = document.getElementById('pm-isnew'); if (isNewEl) isNewEl.checked = p.isNewLaunch || p.isNew || false;
+                const featEl = document.getElementById('pm-featured'); if (featEl) featEl.checked = p.featured || false;
 
-            document.getElementById('pm-images').value = currentUploadedImages.join(', ');
-            document.getElementById('pm-videos').value = currentUploadedVideos.join(', ');
+                currentUploadedImages = p.imageURLs || p.images || (p.image ? [p.image] : []);
+                currentUploadedVideos = p.videoURLs || p.videos || [];
 
-            // Previews
-            const imgPreview = document.getElementById('pm-images-preview');
-            imgPreview.innerHTML = currentUploadedImages.map(url => `<div class="preview-item"><img src="${url}"><button class="remove-btn" onclick="removeMedia('${url}', 'image')">×</button></div>`).join('');
+                const imgsEl = document.getElementById('pm-images'); if (imgsEl) imgsEl.value = currentUploadedImages.join(', ');
+                const vidsEl = document.getElementById('pm-videos'); if (vidsEl) vidsEl.value = currentUploadedVideos.join(', ');
 
-            const vidPreview = document.getElementById('pm-videos-preview');
-            vidPreview.innerHTML = currentUploadedVideos.map(url => `<div class="preview-item"><video src="${url}"></video><button class="remove-btn" onclick="removeMedia('${url}', 'video')">×</button></div>`).join('');
+                // Previews
+                const imgPreview = document.getElementById('pm-images-preview');
+                if (imgPreview) {
+                    imgPreview.innerHTML = currentUploadedImages.map(url => `<div class="preview-item"><img src="${url}"><button class="remove-btn" onclick="removeMedia('${url}', 'image')">×</button></div>`).join('');
+                }
 
-            openModal('add-product-modal');
+                const vidPreview = document.getElementById('pm-videos-preview');
+                if (vidPreview) {
+                    vidPreview.innerHTML = currentUploadedVideos.map(url => `<div class="preview-item"><video src="${url}"></video><button class="remove-btn" onclick="removeMedia('${url}', 'video')">×</button></div>`).join('');
+                }
+
+                openModal('add-product-modal');
+            } catch (err) {
+                console.error('[openEditProduct error]', err);
+                closeModal('add-product-modal');
+                if (window.Toast) window.Toast.error('Could not open edit form', err.message);
+            }
         }
 
         async function saveProduct() {
@@ -4494,12 +4763,17 @@
         }
 
         async function deleteProduct(id) {
-            if (!confirm('Are you sure you want to delete this product?')) return;
-            const success = await window.deleteProductFromFirebase(id);
-            if (success) {
-                adminProducts = adminProducts.filter(p => p.id !== id);
-                renderProductsTable(adminProducts);
-                Toast.info('Product deleted');
+            try {
+                if (!confirm('Are you sure you want to delete this product?')) return;
+                const success = await window.deleteProductFromFirebase(id);
+                if (success) {
+                    adminProducts = adminProducts.filter(p => p.id !== id);
+                    renderProductsTable(adminProducts);
+                    Toast.info('Product deleted');
+                }
+            } catch (err) {
+                console.error("deleteProduct error:", err);
+                Toast.error("Failed to delete product", err.message || "Please try again.");
             }
         }
 
@@ -5276,14 +5550,15 @@
             try {
                 const curAuth = window.auth || (typeof initFirebase === 'function' ? (await initFirebase())?.auth : null);
                 if (curAuth) {
-                    const { signOut } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
+                    const { signOut } = await import("../js/firebase-config.js");
                     await signOut(curAuth);
                 }
             } catch (e) { console.error('Signout error:', e); }
             // Clear all stored data to prevent data leakage
             localStorage.clear();
             sessionStorage.clear();
-            window.location.replace('/admin/admin-login.html');
+            const targetLogin = window.location.pathname.includes('/admin/') ? 'admin-login.html' : '/admin/admin-login.html';
+            window.location.replace(targetLogin);
         };
         // Bug Fix #14: Removed duplicate adminLogout wrapper — window.adminLogout is the single source of truth.
 

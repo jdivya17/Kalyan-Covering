@@ -3,13 +3,31 @@ const CLOUDINARY_CLOUD_NAME = 'ddw2whxh7';
 const CLOUDINARY_UPLOAD_PRESET = 'kalyan_covering_upload';
 
 export async function uploadToCloudinary(file, resourceType = 'auto') {
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    if (!file) return null;
+    
+    // Max size validations: 50MB for video, 10MB for image/other
+    const maxVideoSize = 50 * 1024 * 1024;
+    const maxImageSize = 10 * 1024 * 1024;
+    if (resourceType === 'video' && file.size > maxVideoSize) {
+        const msg = 'Video file size exceeds maximum limit of 50MB. Please choose a smaller video.';
+        if (typeof window.Toast !== 'undefined') window.Toast.error('File Too Large', msg);
+        throw new Error(msg);
+    }
+    if (resourceType !== 'video' && file.size > maxImageSize) {
+        const msg = 'Image file size exceeds maximum limit of 10MB.';
+        if (typeof window.Toast !== 'undefined') window.Toast.error('File Too Large', msg);
+        throw new Error(msg);
+    }
+
+    if (!CLOUDINARY_CLOUD_NAME) {
         console.error('Cloudinary credentials missing!');
         return null;
     }
+
+    const preset = resourceType === 'video' ? 'kalyan_videos' : CLOUDINARY_UPLOAD_PRESET;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('upload_preset', preset);
 
     try {
         const xhr = new XMLHttpRequest();

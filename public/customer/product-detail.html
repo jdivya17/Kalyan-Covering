@@ -890,11 +890,11 @@
 
     window.openRingModal = function() {
       const modal = document.getElementById('ring-modal');
-      if (modal) modal.classList.add('on');
+      if (modal) modal.classList.add('open');
     };
     window.closeRingModal = function() {
       const modal = document.getElementById('ring-modal');
-      if (modal) modal.classList.remove('on');
+      if (modal) modal.classList.remove('open');
     };
 
     document.addEventListener('DOMContentLoaded', initProductDetailPage);

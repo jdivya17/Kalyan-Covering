@@ -143,8 +143,15 @@ export async function submitReview({ productId, title = '', text, rating, review
         if (Array.isArray(photos) && photos.length > 0) {
             for (const file of photos) {
                 if (file && file.type?.startsWith('image/')) {
-                    const url = await uploadReviewPhoto(file, productId);
-                    if (url) photoUrls.push(url);
+                    try {
+                        const url = await uploadReviewPhoto(file, productId);
+                        if (url) photoUrls.push(url);
+                    } catch (photoErr) {
+                        console.warn('[reviewService] Photo upload skipped:', photoErr.message);
+                        if (typeof window.Toast !== 'undefined') {
+                            window.Toast.warning('Photo Upload Notice', 'Photo could not be uploaded, submitting your text review.');
+                        }
+                    }
                 }
             }
         }

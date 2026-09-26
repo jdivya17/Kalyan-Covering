@@ -48,6 +48,29 @@ export function initGlobalShell() {
     document.body.appendChild(wrapper);
   }
 
+  // Mount Quick View Modal if missing
+  if (!document.getElementById('quick-view-modal')) {
+    const qv = document.createElement('div');
+    qv.className = 'quick-view-modal';
+    qv.id = 'quick-view-modal';
+    qv.innerHTML = `
+      <div class="qv-overlay" onclick="window.closeQuickView()"></div>
+      <div class="qv-content">
+        <button class="qv-close" onclick="window.closeQuickView()" aria-label="Close">&times;</button>
+        <div class="qv-grid">
+          <img id="qv-img" class="qv-image" src="" alt="Product Preview" />
+          <div>
+            <h3 id="qv-title" class="qv-title"></h3>
+            <div id="qv-price" class="qv-price"></div>
+            <p id="qv-desc" class="qv-desc" style="color:var(--white-dim);margin-bottom:1.2rem;"></p>
+            <button id="qv-add-cart" class="btn solid block">Add to Bag</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(qv);
+  }
+
   // Sync Badges
   Cart.load();
   Wishlist.load();

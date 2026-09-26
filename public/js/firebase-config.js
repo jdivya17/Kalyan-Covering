@@ -4,10 +4,8 @@
 // ║  Imported by:  auth.html  •  checkout.html                   ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-import { initializeApp, getApps, getApp } from
-    "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFunctions, httpsCallable } from
-    "https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 import {
     getFirestore,
@@ -27,7 +25,7 @@ import {
     increment,
     onSnapshot,
     arrayUnion
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+} from "firebase/firestore";
 
 import {
     getAuth,
@@ -38,8 +36,15 @@ import {
     sendPasswordResetEmail,
     onAuthStateChanged,
     RecaptchaVerifier,
-    signInWithPhoneNumber
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    signInWithPhoneNumber,
+    setPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence,
+    getMultiFactorResolver,
+    PhoneAuthProvider,
+    PhoneMultiFactorGenerator,
+    TotpMultiFactorGenerator
+} from "firebase/auth";
 
 // Firebase Storage removed — all file uploads now go through Cloudinary (cloudinaryUtils.js)
 
@@ -79,20 +84,27 @@ const VERCEL_API_BASE = _isLocalhost
  * @param {string} endpoint - The API path, e.g., '/api/payments/create-order'
  * @param {object} data - The payload
  */
-async function callVercelApi(endpoint, data = {}) {
+async function callVercelApi(endpoint, data = {}, isRetry = false) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('No internet connection. Please check your network connection and try again.');
+    }
+
     let token = "";
     if (auth.currentUser) {
         try {
             token = await Promise.race([
                 auth.currentUser.getIdToken(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Token timeout')), 2500))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Token timeout')), 3500))
             ]);
         } catch (_) {}
     }
-    // Prefix the Vercel URL when not on localhost (Firebase Hosting has no API)
+
+    const isOrderCreation = endpoint.includes('/create-order') || endpoint.includes('/create-cod-order') || endpoint.includes('/verify-payment');
+    const timeoutMs = isOrderCreation ? 20000 : 15000;
+
     const url = VERCEL_API_BASE + endpoint;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     
     try {
         const response = await fetch(url, {
@@ -115,13 +127,23 @@ async function callVercelApi(endpoint, data = {}) {
         }
 
         if (!response.ok) {
-            throw new Error(result.message || result.error || `API Request Failed (HTTP ${response.status})`);
+            throw new Error(result.message || result.error || `Server error (HTTP ${response.status})`);
         }
         return result;
     } catch (err) {
         if (timeoutId) clearTimeout(timeoutId);
+        
+        // Single auto-retry for idempotent, non-order creation calls
+        if (!isOrderCreation && !isRetry && (err.name === 'AbortError' || err.message?.includes('Failed to fetch'))) {
+            console.warn(`[callVercelApi] Retrying idempotent call to ${endpoint}...`);
+            return callVercelApi(endpoint, data, true);
+        }
+
         if (err.name === 'AbortError') {
-            throw new Error(`API request to ${endpoint} timed out after 4s`);
+            throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)} seconds. This is taking longer than usual, please try again.`);
+        }
+        if (err.message && err.message.includes('Failed to fetch')) {
+            throw new Error('Network error. Unable to reach server, please check your internet connection.');
         }
         throw err;
     }
@@ -153,6 +175,7 @@ export {
     onSnapshot,
     arrayUnion,
     // Auth helpers
+    getAuth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     sendEmailVerification,
@@ -160,5 +183,12 @@ export {
     sendPasswordResetEmail,
     onAuthStateChanged,
     RecaptchaVerifier,
-    signInWithPhoneNumber
+    signInWithPhoneNumber,
+    setPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence,
+    getMultiFactorResolver,
+    PhoneAuthProvider,
+    PhoneMultiFactorGenerator,
+    TotpMultiFactorGenerator
 };

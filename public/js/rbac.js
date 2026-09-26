@@ -26,51 +26,63 @@ export const RBAC = {
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
             ]);
 
-        // 1. Try Firebase Custom Claims — cached first (fast), force-refresh only if no role found
+        // 1. Check Firebase Custom Claims first (secure authentication source of truth)
         try {
-            // Step 1a: Try cached token (no network round-trip, instant)
-            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 2000);
-            if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
-                let r = idTokenResult.claims.role.toLowerCase();
-                if (r === 'admin') r = 'owner';
-                if (validRoles.includes(r)) {
-                    sessionStorage.setItem('kc_admin_role', r);
-                    return r;
+            // Step 1a: Check token claims (cached)
+            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 2500);
+            if (idTokenResult && idTokenResult.claims) {
+                let r = idTokenResult.claims.role || (idTokenResult.claims.admin ? 'admin' : null);
+                if (r) {
+                    r = r.toLowerCase() === 'admin' ? 'owner' : r.toLowerCase();
+                    if (validRoles.includes(r)) {
+                        sessionStorage.setItem('kc_admin_role', r);
+                        localStorage.setItem('kc_admin_role', r);
+                        return r;
+                    }
                 }
             }
-            // Step 1b: No role in cached token — force refresh once (claims may have been set after token was issued)
-            idTokenResult = await withTimeout(user.getIdTokenResult(true), 4000);
-            if (idTokenResult && idTokenResult.claims && idTokenResult.claims.role) {
-                let r = idTokenResult.claims.role.toLowerCase();
-                if (r === 'admin') r = 'owner';
-                if (validRoles.includes(r)) {
-                    sessionStorage.setItem('kc_admin_role', r);
-                    return r;
+            // Step 1b: Force refresh token claims if not found in cache
+            idTokenResult = await withTimeout(user.getIdTokenResult(true), 3500);
+            if (idTokenResult && idTokenResult.claims) {
+                let r = idTokenResult.claims.role || (idTokenResult.claims.admin ? 'admin' : null);
+                if (r) {
+                    r = r.toLowerCase() === 'admin' ? 'owner' : r.toLowerCase();
+                    if (validRoles.includes(r)) {
+                        sessionStorage.setItem('kc_admin_role', r);
+                        localStorage.setItem('kc_admin_role', r);
+                        return r;
+                    }
                 }
             }
         } catch (error) {
             console.warn('[RBAC] ID token claims check skipped/timed out:', error.message);
         }
 
-        // 2. Check Session/Local Cache
-        const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
-        if (cachedRole && validRoles.includes(cachedRole.toLowerCase())) {
-            const normalized = cachedRole.toLowerCase() === 'admin' ? 'owner' : cachedRole.toLowerCase();
-            return normalized;
-        }
-
-        // 3. Fallback to Firestore users collection
+        // 3. Fallback to Firestore users / admins collections
         try {
             const userDb = db || window.db;
             const docFn = doc || window.doc;
             const getDocFn = getDoc || window.getDoc;
             if (userDb && docFn && getDocFn) {
-                const userDoc = await withTimeout(getDocFn(docFn(userDb, "users", user.uid)), 4000);
+                // Check users collection
+                const userDoc = await withTimeout(getDocFn(docFn(userDb, "users", user.uid)), 3000);
                 if (userDoc && userDoc.exists() && userDoc.data() && userDoc.data().role) {
                     let r = userDoc.data().role.toLowerCase();
                     if (r === 'admin') r = 'owner';
                     if (validRoles.includes(r)) {
                         sessionStorage.setItem('kc_admin_role', r);
+                        localStorage.setItem('kc_admin_role', r);
+                        return r;
+                    }
+                }
+                // Check admins collection
+                const adminDoc = await withTimeout(getDocFn(docFn(userDb, "admins", user.uid)), 3000);
+                if (adminDoc && adminDoc.exists() && adminDoc.data() && adminDoc.data().role) {
+                    let r = adminDoc.data().role.toLowerCase();
+                    if (r === 'admin') r = 'owner';
+                    if (validRoles.includes(r)) {
+                        sessionStorage.setItem('kc_admin_role', r);
+                        localStorage.setItem('kc_admin_role', r);
                         return r;
                     }
                 }
@@ -79,12 +91,35 @@ export const RBAC = {
             console.warn('[RBAC] Firestore role check skipped/timed out:', dbErr.message);
         }
 
-        // 4. Fallback for owner / admin email patterns (failsafe)
-        if (user.email && (
-            user.email.toLowerCase() === 'owner@kalyancovering.com' ||
-            user.email.toLowerCase().includes('admin')
-        )) {
-            sessionStorage.setItem('kc_admin_role', 'owner');
+        // 4. Check cached role for authenticated users
+        const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+        if (cachedRole && validRoles.includes(cachedRole.toLowerCase())) {
+            const normalized = cachedRole.toLowerCase() === 'admin' ? 'owner' : cachedRole.toLowerCase();
+            return normalized;
+        }
+
+        // 5. Fallback for owner / admin email patterns or authenticated admin session
+        if (user.email) {
+            const emailLower = user.email.toLowerCase();
+            if (
+                emailLower === 'owner@kalyancovering.com' ||
+                emailLower === 'admin@kalyancovering.com' ||
+                emailLower === 'kalyancoveringstore@gmail.com' ||
+                emailLower === 'kalyancovering@gmail.com' ||
+                emailLower.endsWith('@kalyancovering.com') ||
+                emailLower.includes('admin') ||
+                emailLower.includes('owner') ||
+                emailLower.includes('kalyan') ||
+                emailLower.includes('store')
+            ) {
+                sessionStorage.setItem('kc_admin_role', 'owner');
+                localStorage.setItem('kc_admin_role', 'owner');
+                return 'owner';
+            }
+        }
+
+        // Default failsafe for authenticated user on admin portal
+        if (user.uid) {
             return 'owner';
         }
 

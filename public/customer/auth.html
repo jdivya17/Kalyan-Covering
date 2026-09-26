@@ -543,6 +543,8 @@
             auth,
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword,
+            sendEmailVerification,
+            sendPasswordResetEmail,
             signOut,
             db,
             setDoc,
@@ -550,7 +552,6 @@
             serverTimestamp,
             getDoc
         } from '../js/firebase-config.js';
-        import { sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
         import { sendPhoneOTP, verifyPhoneOTP } from '../js/services/authService.js';
 
         let phoneConfirmationResult = null;
@@ -787,7 +788,6 @@
 
             btn.disabled = true;
             try {
-                const { sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
                 await sendPasswordResetEmail(auth, email);
                 if (window.Toast) Toast.success('Reset Email Sent', 'Check your inbox for the password reset instructions.');
                 closeForgotPassword();
