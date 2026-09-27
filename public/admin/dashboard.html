@@ -600,6 +600,13 @@
             opacity: 1;
         }
 
+        /* FIX: theme.css sets a conflicting `.modal { display: none }` for the
+           storefront's own popup system. Force the admin modal box to display
+           normally so Add Product / View Details / Coupons / etc. all render. */
+        .modal-overlay .modal {
+            display: block;
+        }
+
         .modal {
             background: var(--black-card);
             border: 1px solid var(--gold);
