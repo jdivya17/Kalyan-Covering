@@ -408,6 +408,153 @@ export function openBulkUploadDrawer() {
   openDrawer(html);
 }
 
+let parsedCSVProducts = [];
+
+export async function handleCSVSelect(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      toast('CSV file is empty or missing headers!');
+      return;
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+    
+    const nameIdx = headers.findIndex(h => h === 'name' || h === 'product name' || h === 'title');
+    const catIdx = headers.findIndex(h => h === 'category' || h === 'cat');
+    const priceIdx = headers.findIndex(h => h === 'price');
+    const mrpIdx = headers.findIndex(h => h === 'mrp' || h === 'compare_at_price');
+    const stockIdx = headers.findIndex(h => h === 'stock' || h === 'quantity');
+    const statusIdx = headers.findIndex(h => h === 'status');
+
+    if (nameIdx === -1 || priceIdx === -1) {
+      toast('CSV must contain at least "name" and "price" columns!');
+      return;
+    }
+
+    parsedCSVProducts = [];
+    let invalidCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const rowParts = lines[i].split(',').map(cell => cell.trim().replace(/^["']|["']$/g, ''));
+      const name = rowParts[nameIdx] || '';
+      const price = parseFloat(rowParts[priceIdx]);
+      const cat = catIdx !== -1 ? (rowParts[catIdx] || 'General') : 'General';
+      const mrp = mrpIdx !== -1 ? (parseFloat(rowParts[mrpIdx]) || price) : price;
+      const stock = stockIdx !== -1 ? (parseInt(rowParts[stockIdx], 10) || 10) : 10;
+      const status = statusIdx !== -1 ? (rowParts[statusIdx] || 'active') : 'active';
+
+      if (name && !isNaN(price) && price > 0) {
+        parsedCSVProducts.push({ name, category: cat, price, mrp, stock, status });
+      } else {
+        invalidCount++;
+      }
+    }
+
+    const previewEl = document.getElementById('csvPreview');
+    const importBtn = document.getElementById('csvImportBtn');
+
+    if (previewEl) {
+      if (parsedCSVProducts.length === 0) {
+        previewEl.innerHTML = `<div style="color:var(--red,#ef4444);font-size:0.85rem">No valid product rows found in CSV. Required: name & price > 0.</div>`;
+        if (importBtn) importBtn.disabled = true;
+      } else {
+        const rowsHTML = parsedCSVProducts.slice(0, 5).map(p => `
+          <tr>
+            <td style="padding:4px 8px">${p.name}</td>
+            <td style="padding:4px 8px">${p.category}</td>
+            <td style="padding:4px 8px">₹${p.price}</td>
+            <td style="padding:4px 8px">₹${p.mrp}</td>
+            <td style="padding:4px 8px">${p.stock}</td>
+            <td style="padding:4px 8px">${p.status}</td>
+          </tr>
+        `).join('');
+
+        previewEl.innerHTML = `
+          <div style="font-size:0.85rem;margin-bottom:8px;color:var(--gold,#d4af37)">
+            Ready to import <b>${parsedCSVProducts.length}</b> products. ${invalidCount > 0 ? `(${invalidCount} invalid rows ignored)` : ''}
+          </div>
+          <div style="max-height:160px;overflow-y:auto;border:1px solid var(--line,#333);border-radius:6px;padding:4px">
+            <table style="width:100%;font-size:0.8rem;text-align:left;border-collapse:collapse">
+              <thead>
+                <tr style="border-bottom:1px solid var(--line,#333);color:var(--muted)">
+                  <th style="padding:4px 8px">Name</th>
+                  <th style="padding:4px 8px">Category</th>
+                  <th style="padding:4px 8px">Price</th>
+                  <th style="padding:4px 8px">MRP</th>
+                  <th style="padding:4px 8px">Stock</th>
+                  <th style="padding:4px 8px">Status</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHTML}</tbody>
+            </table>
+          </div>
+          ${parsedCSVProducts.length > 5 ? `<div style="font-size:0.75rem;color:var(--muted);margin-top:4px">+ ${parsedCSVProducts.length - 5} more rows...</div>` : ''}
+        `;
+        if (importBtn) importBtn.disabled = false;
+      }
+    }
+  } catch (err) {
+    console.error('CSV parse error:', err);
+    toast('Error reading CSV file: ' + err.message);
+  }
+}
+
+export async function executeCSVImport() {
+  if (!parsedCSVProducts || parsedCSVProducts.length === 0) {
+    toast('No valid products to import!');
+    return;
+  }
+
+  const importBtn = document.getElementById('csvImportBtn');
+  if (importBtn) {
+    importBtn.disabled = true;
+    importBtn.textContent = 'Importing...';
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < parsedCSVProducts.length; i++) {
+    const p = parsedCSVProducts[i];
+    if (importBtn) importBtn.textContent = `Importing (${i + 1}/${parsedCSVProducts.length})...`;
+
+    const productPayload = {
+      name: p.name,
+      category: p.category,
+      cat: p.category,
+      price: p.price,
+      mrp: p.mrp || p.price,
+      stock: p.stock,
+      stockStatus: p.stock === 0 ? 'out' : (p.stock <= 5 ? 'low' : 'in'),
+      status: p.status || 'active',
+      description: '',
+      imageURLs: [],
+      image: '',
+      videoUrl: '',
+      videoURLs: []
+    };
+
+    try {
+      await callVercelApi('/api/products/create', productPayload);
+      successCount++;
+    } catch (err) {
+      console.error(`Failed to import CSV row ${i + 1} (${p.name}):`, err);
+      failCount++;
+    }
+  }
+
+  invalidateProductCache();
+  closeDrawer();
+  toast(`Bulk import complete! ${successCount} imported${failCount > 0 ? `, ${failCount} failed` : ''}.`);
+  
+  if (typeof window.loadAdminData === 'function') {
+    await window.loadAdminData();
+  }
+}
+
 // Bind window object for legacy inline HTML calls
 if (typeof window !== 'undefined') {
   window.currentProductViewMode = currentProductViewMode;
@@ -422,4 +569,6 @@ if (typeof window !== 'undefined') {
   window.saveDrawerProduct = saveDrawerProduct;
   window.confirmDeleteProduct = confirmDeleteProduct;
   window.openBulkUploadDrawer = openBulkUploadDrawer;
+  window.handleCSVSelect = handleCSVSelect;
+  window.executeCSVImport = executeCSVImport;
 }
