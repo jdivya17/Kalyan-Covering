@@ -80,11 +80,11 @@ export function renderHeader() {
             </div>
           </div>
 
-          <!-- Shopping Bag Button -->
-          <button class="ib" onclick="toggleCartDrawer()" aria-label="Shopping bag">
+          <!-- Shopping Bag Link -->
+          <a class="ib" href="cart.html" aria-label="Shopping bag">
             ${ic('bag', 20)}
             <span class="cnt cart-count ${cartCount > 0 ? 'on' : ''}">${cartCount}</span>
-          </button>
+          </a>
         </div>
       </div>
 
@@ -190,11 +190,11 @@ export function renderHeader() {
         <span>Wishlist</span>
         <span class="cnt ${wishCount > 0 ? 'on' : ''}">${wishCount}</span>
       </a>
-      <button onclick="toggleCartDrawer()">
+      <a href="cart.html" ${currentPath.endsWith('cart.html') ? 'aria-current="true"' : ''}>
         ${ic('bag', 20)}
         <span>Bag</span>
         <span class="cnt cart-count ${cartCount > 0 ? 'on' : ''}">${cartCount}</span>
-      </button>
+      </a>
       <a href="${user ? 'profile.html' : 'auth.html'}" ${currentPath.endsWith('profile.html') || currentPath.endsWith('auth.html') ? 'aria-current="true"' : ''}>
         ${ic('user', 20)}
         <span>Account</span>
