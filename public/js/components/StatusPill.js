@@ -65,7 +65,7 @@ export function renderNeedsAttention() {
         ${pendingRevs.map(r => `
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);padding:.35rem 0">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px"><b>${String(r.userName || r.cust || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</b> on ${String(r.productName || 'Product').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
-            <a class="lb" href="#reviews" onclick="showPanel('reviews'); return false;" style="font-size:.78rem;color:var(--gold-hi)">Review →</a>
+            <a class="lb" href="#reviews" onclick="if(typeof window.showPanel==='function'){window.showPanel('reviews');return false;}" style="font-size:.78rem;color:var(--gold-hi)">Review →</a>
           </div>
         `).join('')}
       </div>`;
