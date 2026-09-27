@@ -127,7 +127,13 @@ async function callVercelApi(endpoint, data = {}, isRetry = false) {
         }
 
         if (!response.ok) {
-            throw new Error(result.message || result.error || `Server error (HTTP ${response.status})`);
+            let errMsg = result.message || result.error || `Server error (HTTP ${response.status})`;
+            if (response.status === 403 || result.error === 'permission-denied' || (typeof errMsg === 'string' && (errMsg.includes('role required') || errMsg.includes('Permission') || errMsg.includes('permission')))) {
+                errMsg = "Your account isn't authorized for this action — ask an owner to grant your role.";
+            }
+            const customErr = new Error(errMsg);
+            customErr.status = response.status;
+            throw customErr;
         }
         return result;
     } catch (err) {

@@ -112,4 +112,60 @@ router.post("/update-account-status", authMiddleware, requireAdmin, async (req, 
     }
 });
 
+// ── POST /api/admin/bootstrap-first-owner ────────────────────────────────────
+// One-time safely-locked-down bootstrap endpoint.
+// ONLY works when ZERO users currently have the `owner` claim/role in Auth or Firestore.
+// Once at least one owner exists, this endpoint is permanently locked and returns 403.
+router.post("/bootstrap-first-owner", authMiddleware, async (req, res) => {
+    try {
+        if (!req.user || !req.user.uid) {
+            return sendError(res, 401, "unauthenticated", "Authentication required to bootstrap owner.");
+        }
+
+        // 1. Check Firestore users & admins collections for existing owner
+        const usersOwnerSnap = await db.collection("users").where("role", "==", "owner").limit(1).get();
+        const adminsOwnerSnap = await db.collection("admins").limit(1).get();
+        
+        let ownerExists = !usersOwnerSnap.empty || !adminsOwnerSnap.empty;
+
+        // 2. Check Firebase Auth users list for any user with custom claim `role === 'owner'` or `admin === true`
+        if (!ownerExists) {
+            try {
+                const listResult = await admin.auth().listUsers(100);
+                for (const u of listResult.users) {
+                    if (u.customClaims && (u.customClaims.role === "owner" || u.customClaims.role === "admin" || u.customClaims.admin === true)) {
+                        ownerExists = true;
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.warn("[bootstrap-first-owner] listUsers check error:", e.message);
+            }
+        }
+
+        if (ownerExists) {
+            return sendError(res, 403, "bootstrap-locked", "An owner account already exists in the system. Bootstrap is disabled.");
+        }
+
+        // Grant owner custom claim to requesting user
+        const targetUid = req.user.uid;
+        await admin.auth().setCustomUserClaims(targetUid, { role: "owner", admin: true });
+        
+        await db.collection("users").doc(targetUid).set(
+            { role: "owner", updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+        );
+
+        await logAudit(req, "BOOTSTRAP_FIRST_OWNER", "users", targetUid, null, { role: "owner" });
+
+        return res.json({
+            success: true,
+            message: "First owner account successfully bootstrapped! Please refresh or log in again."
+        });
+    } catch (err) {
+        console.error("[admin/bootstrap-first-owner]", err);
+        return sendError(res, 500, "internal", "Failed to bootstrap first owner: " + err.message);
+    }
+});
+
 module.exports = router;

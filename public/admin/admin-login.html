@@ -201,30 +201,13 @@
 
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     
-                    // Failsafe: if signing in from admin portal, check fallback or default to owner
-                    if (!role || !validRoles.includes(role.toLowerCase())) {
-                        const em = (cred.user.email || email).toLowerCase();
-                        if (
-                            em === 'owner@kalyancovering.com' ||
-                            em === 'admin@kalyancovering.com' ||
-                            em === 'kalyancoveringstore@gmail.com' ||
-                            em === 'kalyancovering@gmail.com' ||
-                            em.endsWith('@kalyancovering.com') ||
-                            em.includes('admin') ||
-                            em.includes('owner') ||
-                            em.includes('kalyan')
-                        ) {
-                            role = 'owner';
-                        }
-                    }
-
                     const hasAdminRole = role && validRoles.includes(role.toLowerCase());
 
                     if (!hasAdminRole) {
                         await signOut(auth);
                         sessionStorage.removeItem('kc_admin_role');
                         localStorage.removeItem('kc_admin_role');
-                        showError("This account does not have admin access.");
+                        showError("This account does not have admin access yet. Contact an owner to grant your role.");
                         setLoading(false);
                         return;
                     }

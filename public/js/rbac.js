@@ -91,38 +91,9 @@ export const RBAC = {
             console.warn('[RBAC] Firestore role check skipped/timed out:', dbErr.message);
         }
 
-        // 4. Check cached role for authenticated users
-        const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
-        if (cachedRole && validRoles.includes(cachedRole.toLowerCase())) {
-            const normalized = cachedRole.toLowerCase() === 'admin' ? 'owner' : cachedRole.toLowerCase();
-            return normalized;
-        }
-
-        // 5. Fallback for owner / admin email patterns or authenticated admin session
-        if (user.email) {
-            const emailLower = user.email.toLowerCase();
-            if (
-                emailLower === 'owner@kalyancovering.com' ||
-                emailLower === 'admin@kalyancovering.com' ||
-                emailLower === 'kalyancoveringstore@gmail.com' ||
-                emailLower === 'kalyancovering@gmail.com' ||
-                emailLower.endsWith('@kalyancovering.com') ||
-                emailLower.includes('admin') ||
-                emailLower.includes('owner') ||
-                emailLower.includes('kalyan') ||
-                emailLower.includes('store')
-            ) {
-                sessionStorage.setItem('kc_admin_role', 'owner');
-                localStorage.setItem('kc_admin_role', 'owner');
-                return 'owner';
-            }
-        }
-
-        // Default failsafe for authenticated user on admin portal
-        if (user.uid) {
-            return 'owner';
-        }
-
+        // No valid admin role found in custom claims or Firestore database
+        sessionStorage.removeItem('kc_admin_role');
+        localStorage.removeItem('kc_admin_role');
         return null;
     },
 

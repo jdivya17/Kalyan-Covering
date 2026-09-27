@@ -3270,12 +3270,24 @@
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
                 if (!role || !validRoles.includes(role.toLowerCase())) {
-                    role = cachedRole || 'owner';
-                }
-
-                if (!role || !validRoles.includes(role.toLowerCase())) {
+                    sessionStorage.removeItem('kc_admin_role');
+                    localStorage.removeItem('kc_admin_role');
+                    
                     const loaderText = document.getElementById('admin-loader-text');
-                    if (loaderText) loaderText.textContent = "Unauthorized: Account does not have admin permissions.";
+                    const spinner = document.querySelector('#admin-page-loader div[style*="animation:adminSpin"]');
+                    if (spinner) spinner.style.display = 'none';
+
+                    if (loaderText) {
+                        loaderText.style.color = 'var(--red, #ef4444)';
+                        loaderText.style.textAlign = 'center';
+                        loaderText.style.maxWidth = '450px';
+                        loaderText.style.lineHeight = '1.5';
+                        loaderText.innerHTML = `
+                            <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Access Denied</div>
+                            <div style="font-size:0.9rem;color:var(--muted,#aaa);font-weight:400">Your account has not been granted admin access yet. Contact an owner.</div>
+                            <button onclick="window.location.replace('admin-login.html')" class="btn btn-outline btn-sm" style="margin-top:16px;border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);cursor:pointer">Back to Login</button>
+                        `;
+                    }
                     return;
                 }
 
