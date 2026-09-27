@@ -62,8 +62,28 @@ export async function saveGeneralSettings() {
   }
 }
 
+export async function deleteBranch(id) {
+  confirmModal(
+    'Delete Branch?',
+    'Are you sure you want to remove this branch location? This cannot be undone.',
+    'Delete',
+    async () => {
+      try {
+        await deleteDoc(doc(db, 'branches', id));
+        toast('Branch deleted successfully!');
+        if (typeof window.loadAdminData === 'function') await window.loadAdminData();
+        await renderBranchesTable();
+      } catch (err) {
+        console.error('deleteBranch:', err);
+        toast('Failed to delete branch: ' + err.message);
+      }
+    }
+  );
+}
+
 if (typeof window !== 'undefined') {
   window.renderBranchesTable = renderBranchesTable;
   window.saveSocialSettings = saveSocialSettings;
   window.saveGeneralSettings = saveGeneralSettings;
+  window.deleteBranch = deleteBranch;
 }
