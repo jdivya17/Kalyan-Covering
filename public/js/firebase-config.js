@@ -6,6 +6,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 import {
     getFirestore,
@@ -17,6 +18,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
+    writeBatch,
     query,
     where,
     orderBy,
@@ -64,6 +66,26 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const functions = getFunctions(app);
 
+// ── App Check (moved here from app.js — ONE app, ONE App Check) ──
+const _isLocalhostAC = (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+);
+if (typeof window !== 'undefined' && !_isLocalhostAC) {
+    try {
+        const RECAPTCHA_V3_SITE_KEY = '6LdWCp0tAAAAAD0xB9blIVm3IT6A7KBC2o50SfS-';
+        if (RECAPTCHA_V3_SITE_KEY) {
+            initializeAppCheck(app, {
+                provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
+                isTokenAutoRefreshEnabled: true
+            });
+            console.log('App Check initialized (single shared app instance)');
+        }
+    } catch (err) {
+        console.warn('App Check init skipped/failed:', err);
+    }
+}
+
 // ── Vercel API Base URL ────────────────────────────────────────
 // Firebase Hosting serves only static files — it has NO backend.
 // When the site is running on Firebase (not localhost / Vite dev),
@@ -99,8 +121,7 @@ async function callVercelApi(endpoint, data = {}, isRetry = false) {
         } catch (_) {}
     }
 
-    const isOrderCreation = endpoint.includes('/create-order') || endpoint.includes('/create-cod-order') || endpoint.includes('/verify-payment');
-    const timeoutMs = isOrderCreation ? 20000 : 15000;
+    const timeoutMs = 30000; // 30s timeout
 
     const url = VERCEL_API_BASE + endpoint;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -139,14 +160,14 @@ async function callVercelApi(endpoint, data = {}, isRetry = false) {
     } catch (err) {
         if (timeoutId) clearTimeout(timeoutId);
         
-        // Single auto-retry for idempotent, non-order creation calls
-        if (!isOrderCreation && !isRetry && (err.name === 'AbortError' || err.message?.includes('Failed to fetch'))) {
-            console.warn(`[callVercelApi] Retrying idempotent call to ${endpoint}...`);
+        // 1 retry on network or timeout errors
+        if (!isRetry && (err.name === 'AbortError' || err.message?.includes('Failed to fetch') || err instanceof TypeError)) {
+            console.warn(`[callVercelApi] Retrying call to ${endpoint}...`);
             return callVercelApi(endpoint, data, true);
         }
 
         if (err.name === 'AbortError') {
-            throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)} seconds. This is taking longer than usual, please try again.`);
+            throw new Error(`Request timed out after 30 seconds. Network slow ah irukku, please try again.`);
         }
         if (err.message && err.message.includes('Failed to fetch')) {
             throw new Error('Network error. Unable to reach server, please check your internet connection.');
@@ -172,6 +193,7 @@ export {
     addDoc,
     updateDoc,
     deleteDoc,
+    writeBatch,
     query,
     where,
     orderBy,

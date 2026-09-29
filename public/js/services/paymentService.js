@@ -13,8 +13,6 @@ import { functions, httpsCallable } from '../firebase-config.js';
 import { Toast } from '../components/Toast.js';
 import { Cart } from './cartService.js';
 
-const RZP_KEY_ID = 'rzp_live_Skw8XRBEaJDquK';
-
 // ---- Razorpay ----
 
 /**
@@ -36,7 +34,7 @@ export function launchRazorpay({ orderId, razorpayOrderId, key, amount, customer
     }
 
     const rzp = new window.Razorpay({
-        key: key || window.RAZORPAY_KEY_ID || 'rzp_test_default',
+        key: key || window.RAZORPAY_KEY_ID || '',
         amount,
         currency: 'INR',
         order_id: razorpayOrderId,

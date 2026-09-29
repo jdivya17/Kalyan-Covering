@@ -619,7 +619,8 @@ header.top {
   justify-content: center;
   padding: 16px;
 }
-.modal.on {
+.modal.on,
+.modal.open {
   display: flex;
 }
 .mbox {

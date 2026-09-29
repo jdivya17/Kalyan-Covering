@@ -104,9 +104,12 @@ export function searchProducts(queryStr, products = KC.products) {
     );
 }
 
-// ---- Filter ----
+// ---- Stock status ----
 /**
- * Filter products by a criteria object
+ * Get stock status of a product: 'in' | 'low' | 'out'
+ * @param {Object} p
+ * @returns {string}
+ */
 export function getStockStatus(p) {
     if (!p) return 'out';
     if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
@@ -183,3 +186,4 @@ window.filterProducts = filterProducts;
 window.sortProducts = sortProducts;
 window.invalidateProductCache = invalidateProductCache;
 window.getCategories = getCategories;
+window.getStockStatus = getStockStatus;

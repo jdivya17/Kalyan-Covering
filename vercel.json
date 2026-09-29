@@ -2,7 +2,13 @@
   "name": "kalyan-covering-store",
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/customer/index.html",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

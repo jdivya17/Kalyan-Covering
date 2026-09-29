@@ -16,6 +16,7 @@ export const RBAC = {
      */
     async getUserRole(user) {
         if (!user) return null;
+        console.time('[RBAC.getUserRole] Total');
         
         const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
@@ -26,10 +27,11 @@ export const RBAC = {
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
             ]);
 
-        // 1. Check Firebase Custom Claims first (secure authentication source of truth)
+        // 1. Check Firebase Custom Claims first (Primary source of truth matching firestore.rules)
         try {
-            // Step 1a: Check token claims (cached)
-            let idTokenResult = await withTimeout(user.getIdTokenResult(false), 2500);
+            console.time('[RBAC] Step 1: Custom Claims');
+            let idTokenResult = await withTimeout(user.getIdTokenResult(true), 3500);
+            console.timeEnd('[RBAC] Step 1: Custom Claims');
             if (idTokenResult && idTokenResult.claims) {
                 let r = idTokenResult.claims.role || (idTokenResult.claims.admin ? 'admin' : null);
                 if (r) {
@@ -37,63 +39,67 @@ export const RBAC = {
                     if (validRoles.includes(r)) {
                         sessionStorage.setItem('kc_admin_role', r);
                         localStorage.setItem('kc_admin_role', r);
-                        return r;
-                    }
-                }
-            }
-            // Step 1b: Force refresh token claims if not found in cache
-            idTokenResult = await withTimeout(user.getIdTokenResult(true), 3500);
-            if (idTokenResult && idTokenResult.claims) {
-                let r = idTokenResult.claims.role || (idTokenResult.claims.admin ? 'admin' : null);
-                if (r) {
-                    r = r.toLowerCase() === 'admin' ? 'owner' : r.toLowerCase();
-                    if (validRoles.includes(r)) {
-                        sessionStorage.setItem('kc_admin_role', r);
-                        localStorage.setItem('kc_admin_role', r);
+                        console.timeEnd('[RBAC.getUserRole] Total');
                         return r;
                     }
                 }
             }
         } catch (error) {
+            console.timeEnd('[RBAC] Step 1: Custom Claims');
             console.warn('[RBAC] ID token claims check skipped/timed out:', error.message);
         }
 
-        // 3. Fallback to Firestore users / admins collections
-        try {
-            const userDb = db || window.db;
-            const docFn = doc || window.doc;
-            const getDocFn = getDoc || window.getDoc;
-            if (userDb && docFn && getDocFn) {
-                // Check users collection
+        // 2 & 3. Fallback to Firestore users / admins collections
+        const userDb = db || window.db;
+        const docFn = doc || window.doc;
+        const getDocFn = getDoc || window.getDoc;
+        if (userDb && docFn && getDocFn) {
+            // Check users collection
+            try {
+                console.time('[RBAC] Step 2: Firestore users collection');
                 const userDoc = await withTimeout(getDocFn(docFn(userDb, "users", user.uid)), 3000);
+                console.timeEnd('[RBAC] Step 2: Firestore users collection');
                 if (userDoc && userDoc.exists() && userDoc.data() && userDoc.data().role) {
                     let r = userDoc.data().role.toLowerCase();
                     if (r === 'admin') r = 'owner';
                     if (validRoles.includes(r)) {
                         sessionStorage.setItem('kc_admin_role', r);
                         localStorage.setItem('kc_admin_role', r);
+                        console.timeEnd('[RBAC.getUserRole] Total');
                         return r;
                     }
                 }
-                // Check admins collection
+            } catch (userDbErr) {
+                console.timeEnd('[RBAC] Step 2: Firestore users collection');
+                console.warn('[RBAC] Firestore users check skipped/timed out:', userDbErr.message);
+            }
+
+            // Check admins collection
+            try {
+                console.time('[RBAC] Step 3: Firestore admins collection');
                 const adminDoc = await withTimeout(getDocFn(docFn(userDb, "admins", user.uid)), 3000);
+                console.timeEnd('[RBAC] Step 3: Firestore admins collection');
                 if (adminDoc && adminDoc.exists() && adminDoc.data() && adminDoc.data().role) {
                     let r = adminDoc.data().role.toLowerCase();
                     if (r === 'admin') r = 'owner';
                     if (validRoles.includes(r)) {
                         sessionStorage.setItem('kc_admin_role', r);
                         localStorage.setItem('kc_admin_role', r);
+                        console.timeEnd('[RBAC.getUserRole] Total');
                         return r;
                     }
                 }
+            } catch (adminDbErr) {
+                console.timeEnd('[RBAC] Step 3: Firestore admins collection');
+                console.warn('[RBAC] Firestore admins check skipped/timed out:', adminDbErr.message);
             }
-        } catch (dbErr) {
-            console.warn('[RBAC] Firestore role check skipped/timed out:', dbErr.message);
         }
 
-        // No valid admin role found in custom claims or Firestore database
+        // Step 4: Fallback / No valid admin role found in custom claims or Firestore database
+        console.log('[RBAC] Step 4: No valid role found in custom claims or Firestore');
         sessionStorage.removeItem('kc_admin_role');
         localStorage.removeItem('kc_admin_role');
+        console.timeEnd('[RBAC.getUserRole] Total');
         return null;
     },
 

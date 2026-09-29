@@ -43,6 +43,12 @@ service cloud.firestore {
       }
     }
 
+    // Admins collection lookup for RBAC fallback
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (request.auth.uid == adminId || isOwner());
+      allow write: if isOwner();
+    }
+
     // Reviews: Anyone can read approved, authenticated users can write reviews
     match /reviews/{reviewId} {
       allow read: if true;

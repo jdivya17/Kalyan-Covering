@@ -109,12 +109,12 @@ export async function uploadReviewPhoto(file, productId) {
             { type: 'image/jpeg' }
         );
 
-        const result = await uploadToCloudinary(uploadFile, 'image');
+        const result = await uploadToCloudinary(uploadFile, 'review');
         if (!result || !result.url) throw new Error('Cloudinary returned no URL.');
         return result.url;
     } catch (e) {
         console.error('Error compressing/uploading review photo:', e);
-        throw new Error('Photo upload failed. Please ensure photo is an image under 5MB.');
+        throw new Error(e.message || 'Photo upload failed. Please ensure photo is an image under 5MB.');
     }
 }
 

@@ -25,58 +25,19 @@ window.addSparkleEffect = addSparkleEffect;
 
 
 
-// ---- Firebase Config ----
-// ✅ Updated to new Firebase project: kalyancoveringstore-c53e4
-const firebaseConfig = {
-    apiKey: "AIzaSyDIubUWf0tbhdruetUyFRPvzXkdHZ7gLbQ",
-    authDomain: "kalyancoveringstore-c53e4.firebaseapp.com",
-    projectId: "kalyancoveringstore-c53e4",
-    storageBucket: "kalyancoveringstore-c53e4.firebasestorage.app",
-    messagingSenderId: "360203251639",
-    appId: "1:360203251639:web:27da7f788859bdb4068232"
-};
+// ---- Firebase (single shared instance from firebase-config.js) ----
+import {
+    app, db, auth, functions,
+    collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
+    writeBatch, query, where, orderBy, serverTimestamp, Timestamp, increment,
+    onSnapshot, arrayUnion, signOut
+} from './firebase-config.js';
 
-// Initialize Firebase
-let app, db, auth;
-let firebaseReady = false;
-
+// initFirebase() is kept only so existing call-sites in this file don't break.
+// It no longer creates a second Firebase app — it just returns the one
+// already initialized in firebase-config.js.
 async function initFirebase() {
-    if (firebaseReady) return { db, auth };
-    try {
-        const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js");
-        const { getFirestore } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const { getAuth } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
-        const { initializeAppCheck, ReCaptchaV3Provider } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check.js");
-
-        // Reuse existing app if already initialized (e.g. by firebase-config.js)
-        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-        
-        // Initialize App Check (Production only - skip on localhost to avoid 403 debug token blocks)
-        const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-        if (typeof window !== 'undefined' && !isLocalhost) {
-            try {
-                const RECAPTCHA_V3_SITE_KEY = '6LdWCp0tAAAAAD0xB9blIVm3IT6A7KBC2o50SfS-';
-                if (RECAPTCHA_V3_SITE_KEY && RECAPTCHA_V3_SITE_KEY !== 'INSERT_YOUR_REAL_RECAPTCHA_V3_SITE_KEY_HERE') {
-                    initializeAppCheck(app, {
-                        provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
-                        isTokenAutoRefreshEnabled: true
-                    });
-                    console.log('App Check initialized in production');
-                }
-            } catch (err) {
-                console.warn('App Check init skipped/failed:', err);
-            }
-        }
-
-        db = getFirestore(app);
-        auth = getAuth(app);
-        firebaseReady = true;
-        console.log('Firebase (SDK 10.14.1) connected correctly.');
-        return { db, auth };
-    } catch (e) {
-        console.error('Firebase failed to connect:', e);
-        return null;
-    }
+    return { db, auth };
 }
 window.initFirebase = initFirebase;
 
@@ -100,16 +61,14 @@ async function loadProductsFromFirebase() {
         }
     } catch (_) { sessionStorage.removeItem(PRODUCTS_CACHE_KEY); }
 
-    const fb = await initFirebase();
-    if (!fb) {
+    if (!db) {
         const fallback = getDefaultProducts();
         KC.products = fallback;
         window.dispatchEvent(new CustomEvent('kc-products-loaded', { detail: fallback }));
         return fallback;
     }
     try {
-        const { getDocs, collection, query } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const q = query(collection(fb.db, "products"));
+        const q = query(collection(db, "products"));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
             const fallback = getDefaultProducts();
@@ -143,15 +102,13 @@ async function saveOrderToFirestore(orderData) {
 }
 
 async function saveUserToFirestore(userData) {
-    const fb = await initFirebase();
-    if (!fb) return;
+    if (!db) return;
     try {
-        const { doc, setDoc, serverTimestamp, increment } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
         if (!userData.uid) {
             console.error('Cannot save user to Firestore: missing uid');
             return;
         }
-        const userRef = doc(fb.db, "users", userData.uid);
+        const userRef = doc(db, "users", userData.uid);
         await setDoc(userRef, {
             ...userData,
             lastLogin: serverTimestamp(),
@@ -178,10 +135,8 @@ async function initThemeSync() {
                 return;
             }
         }
-        const fb = await initFirebase();
-        if (!fb) return;
-        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const snap = await getDoc(doc(fb.db, "settings", "theme"));
+        if (!db) return;
+        const snap = await getDoc(doc(db, "settings", "theme"));
         if (snap.exists()) {
             const data = snap.data();
             sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
@@ -204,10 +159,8 @@ async function initSocialLinks() {
             const { data, ts } = JSON.parse(cached);
             if (Date.now() - ts < CACHE_TTL) { applySocialLinks(data); return; }
         }
-        const fb = await initFirebase();
-        if (!fb) return;
-        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const snap = await getDoc(doc(fb.db, "config", "social"));
+        if (!db) return;
+        const snap = await getDoc(doc(db, "config", "social"));
         if (snap.exists()) {
             const data = snap.data();
             sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
@@ -231,10 +184,8 @@ async function initGeneralSettings() {
                 return;
             }
         }
-        const fb = await initFirebase();
-        if (!fb) return;
-        const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const snap = await getDocs(collection(fb.db, "branches"));
+        if (!db) return;
+        const snap = await getDocs(collection(db, "branches"));
         KC.branches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: KC.branches, ts: Date.now() }));
         renderBranches();
@@ -332,7 +283,6 @@ document.addEventListener('touchstart', resetIdleTimer);
 window.logoutUser = async (isAuto = false) => {
     try {
         if (auth) {
-            const { signOut } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
             await signOut(auth);
         }
     } catch (e) { console.error('Signout error:', e); }
@@ -364,11 +314,9 @@ async function uploadVideoFile(file) {
 }
 
 async function loadVideosFromFirebase() {
-    const fb = await initFirebase();
-    if (!fb) return getDefaultVideos();
+    if (!db) return getDefaultVideos();
     try {
-        const { getDocs, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-        const q = query(collection(fb.db, "videos"), where("status", "==", "approved"));
+        const q = query(collection(db, "videos"), where("status", "==", "approved"));
         const snapshot = await getDocs(q);
         if (snapshot.empty) return getDefaultVideos();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -468,10 +416,8 @@ const Wishlist = {
     async toggle(product) {
         const idx = KC.wishlist.findIndex(i => i.id === product.id);
         try {
-            const { doc, updateDoc, increment } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-            const fb = await initFirebase();
-            if (fb && product.id) {
-                const productRef = doc(fb.db, "products", product.id);
+            if (db && product.id) {
+                const productRef = doc(db, "products", product.id);
                 if (idx > -1) {
                     KC.wishlist.splice(idx, 1);
                     Toast.info('Removed from Wishlist', product.name);
@@ -1002,30 +948,56 @@ window.openQuickView = function(id) {
     const p = KC.products.find(prod => prod.id == id);
     if (!p) return;
     
-    const modal = document.getElementById('quick-view-modal');
-    if (!modal) return;
+    let modal = document.getElementById('quick-view-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'quick-view-modal';
+        modal.id = 'quick-view-modal';
+        modal.innerHTML = `
+          <div class="qv-overlay" onclick="window.closeQuickView()"></div>
+          <div class="qv-content">
+            <button class="qv-close" onclick="window.closeQuickView()" aria-label="Close">&times;</button>
+            <div class="qv-grid">
+              <img id="qv-img" class="qv-image" src="" alt="Product Preview" />
+              <div>
+                <h3 id="qv-title" class="qv-title"></h3>
+                <div id="qv-price" class="qv-price"></div>
+                <p id="qv-desc" class="qv-desc" style="color:var(--white-dim);margin-bottom:1.2rem;"></p>
+                <button id="qv-add-cart" class="btn solid block">Add to Bag</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+    }
     
     const rawImg = p.primaryImageURL || (p.imageURLs && p.imageURLs[0]) || p.image || '';
-    const imgUrl = getOptimizedUrl(rawImg, 800);
+    const imgUrl = typeof getOptimizedUrl === 'function' ? getOptimizedUrl(rawImg, 800) : rawImg;
     
-    document.getElementById('qv-img').src = imgUrl;
-    document.getElementById('qv-title').textContent = p.name;
-    document.getElementById('qv-price').textContent = `₹${p.price.toLocaleString()}`;
-    document.getElementById('qv-desc').textContent = p.description || 'Experience the elegance of our premium jewellery collection.';
+    const imgEl = document.getElementById('qv-img');
+    if (imgEl) imgEl.src = imgUrl;
+    const titleEl = document.getElementById('qv-title');
+    if (titleEl) titleEl.textContent = p.name;
+    const priceEl = document.getElementById('qv-price');
+    if (priceEl) priceEl.textContent = `₹${p.price.toLocaleString()}`;
+    const descEl = document.getElementById('qv-desc');
+    if (descEl) descEl.textContent = p.description || 'Experience the elegance of our premium jewellery collection.';
     
     const addToCartBtn = document.getElementById('qv-add-cart');
-    addToCartBtn.onclick = function() {
-        Cart.add(p);
-        if (Math.random() > 0.7) launchConfetti(1000);
-        window.closeQuickView();
-    };
+    if (addToCartBtn) {
+        addToCartBtn.onclick = function() {
+            if (typeof Cart !== 'undefined') Cart.add(p);
+            if (Math.random() > 0.7 && typeof launchConfetti === 'function') launchConfetti(1000);
+            window.closeQuickView();
+        };
+    }
     
-    modal.classList.add('active');
+    modal.classList.add('active', 'open');
 };
 
 window.closeQuickView = function() {
     const modal = document.getElementById('quick-view-modal');
-    if (modal) modal.classList.remove('active');
+    if (modal) modal.classList.remove('active', 'open');
 };
 
 function addToCartFromCard(id) {

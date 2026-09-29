@@ -21,18 +21,26 @@ function getRazorpayClient() {
 
 function validateAddress(address) {
     if (!address || typeof address !== "object") throw { code: 400, message: "Shipping address must be an object." };
+    if (!address.fname && address.name) {
+        const parts = address.name.trim().split(' ');
+        address.fname = parts[0] || address.name;
+        address.lname = parts.slice(1).join(' ') || address.fname;
+    }
+    if (!address.address && address.line) {
+        address.address = address.line;
+    }
     const req = (val, field, max) => {
         if (typeof val !== "string" || !val.trim()) throw { code: 400, message: `${field} is required.` };
         if (val.length > max) throw { code: 400, message: `${field} exceeds max length of ${max}.` };
     };
-    req(address.fname, "First Name", 50);
-    req(address.lname, "Last Name", 50);
-    req(address.address, "Street Address", 255);
-    req(address.city, "City", 100);
-    req(address.state, "State", 100);
-    if (!/^\d{10}$/.test(address.phone)) throw { code: 400, message: "Phone number must be exactly 10 digits." };
-    if (!/^\d{6}$/.test(address.pin)) throw { code: 400, message: "PIN code must be exactly 6 digits." };
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) throw { code: 400, message: "Invalid email address format." };
+    req(address.fname || "", "First Name", 50);
+    req(address.lname || "", "Last Name", 50);
+    req(address.address || "", "Street Address", 255);
+    req(address.city || "", "City", 100);
+    req(address.state || "", "State", 100);
+    if (!/^\d{10}$/.test(address.phone || "")) throw { code: 400, message: "Phone number must be exactly 10 digits." };
+    if (!/^\d{6}$/.test(address.pin || "")) throw { code: 400, message: "PIN code must be exactly 6 digits." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email || "")) throw { code: 400, message: "Invalid email address format." };
 }
 
 async function calculateOrderTotals(items, promoCode, isCOD = false) {
@@ -45,11 +53,11 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
         const snap = await db.collection("products").doc(item.id).get();
         if (!snap.exists) throw { code: 404, message: `Product ${item.id} not found.` };
         const p = snap.data();
-        if (p.status === "out_of_stock" || p.status === "archived") throw { code: 400, message: `Product "${p.productName}" is no longer available.` };
-        if (item.qty > (p.stock || 0)) throw { code: 400, message: `Insufficient stock for "${p.productName}".` };
+        if (p.status === "out_of_stock" || p.status === "archived") throw { code: 400, message: `Product "${p.productName || p.name}" is no longer available.` };
+        if (item.qty > (p.stock || 0)) throw { code: 400, message: `Insufficient stock for "${p.productName || p.name}".` };
         const price = p.price || 0;
         subtotal += price * item.qty;
-        trustedItems.push({ id: item.id, name: p.productName || item.id, price, qty: item.qty, sku: p.sku || null });
+        trustedItems.push({ id: item.id, name: p.productName || p.name || item.id, price, qty: item.qty, sku: p.sku || null });
     }
 
     let discount = 0;
@@ -115,13 +123,14 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
 // ── POST /api/payments/create-order ──────────────────────────────────────────
 router.post("/create-order", authMiddleware, async (req, res) => {
     try {
-        const { items, promoCode, shippingAddress, notes, paymentMethod } = req.body;
+        const { items, promoCode, couponCode, shippingAddress, notes, paymentMethod } = req.body;
+        const activeCoupon = promoCode || couponCode;
         if (!items || !Array.isArray(items) || items.length === 0) return sendError(res, 400, "invalid-argument", "Cart cannot be empty.");
         if (items.length > 50) return sendError(res, 400, "invalid-argument", "Cart exceeds maximum item limit.");
         if (!shippingAddress) return sendError(res, 400, "invalid-argument", "Shipping address is required.");
         validateAddress(shippingAddress);
 
-        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, promoCode, false);
+        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, activeCoupon, false);
         const order = await getRazorpayClient().orders.create({ amount: totalAmount * 100, currency: "INR", receipt: `rcpt_${req.user.uid}_${Date.now()}` });
         const orderNumber = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
         const now = admin.firestore.FieldValue.serverTimestamp();
@@ -131,12 +140,19 @@ router.post("/create-order", authMiddleware, async (req, res) => {
             orderStatus: "payment_pending", paymentStatus: "pending", shippingStatus: "not_shipped",
             payment: { razorpay_order_id: order.id, method: paymentMethod || "razorpay", amount: totalAmount, currency: "INR", paidAt: null },
             shippingDetails: { carrier: null, trackingNumber: null, estimatedDelivery: null, shippedAt: null, deliveredAt: null },
-            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
+            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: activeCoupon || null,
             statusHistory: [{ status: "payment_pending", changedAt: now, changedBy: "system", note: "Order created, pending payment." }],
             notes: notes || null, createdAt: now, updatedAt: now
         });
 
-        return res.json({ id: order.id, currency: order.currency, amount: order.amount, key: process.env.RAZORPAY_KEY_ID });
+        return res.json({
+            id: order.id,
+            orderId: order.id,
+            razorpayOrderId: order.id,
+            currency: order.currency,
+            amount: order.amount,
+            key: process.env.RAZORPAY_KEY_ID
+        });
     } catch (err) {
         if (err.code && err.message) return sendError(res, err.code, "invalid-argument", err.message);
         console.error("[payments/create-order]", err);
@@ -145,13 +161,17 @@ router.post("/create-order", authMiddleware, async (req, res) => {
 });
 
 // ── POST /api/payments/verify ─────────────────────────────────────────────────
-router.post("/verify", authMiddleware, async (req, res) => {
+const handlePaymentVerification = async (req, res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) return sendError(res, 400, "invalid-argument", "Missing payment verification fields.");
+        const razorpay_order_id = req.body.razorpay_order_id || req.body.razorpayOrderId;
+        const razorpay_payment_id = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
+        const razorpay_signature = req.body.razorpay_signature || req.body.razorpaySignature;
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return sendError(res, 400, "invalid-argument", "Missing payment verification fields.");
+        }
 
         const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body).digest("hex");
+        const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "default_secret").update(body).digest("hex");
         const sigBuf = Buffer.from(razorpay_signature, "hex");
         const expBuf = Buffer.from(expectedSig, "hex");
         if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
@@ -169,7 +189,10 @@ router.post("/verify", authMiddleware, async (req, res) => {
         console.error("[payments/verify]", err);
         return sendError(res, 500, "internal", "Payment verification failed.");
     }
-});
+};
+
+router.post("/verify", authMiddleware, handlePaymentVerification);
+router.post("/verify-payment", authMiddleware, handlePaymentVerification);
 
 // ── POST /api/payments/webhook (Razorpay webhook — no auth) ──────────────────
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {

@@ -600,11 +600,16 @@
             opacity: 1;
         }
 
-        /* FIX: theme.css sets a conflicting `.modal { display: none }` for the
-           storefront's own popup system. Force the admin modal box to display
-           normally so Add Product / View Details / Coupons / etc. all render. */
-        .modal-overlay .modal {
+        /* FIX: theme.css sets .modal{display:none} for the storefront.
+           Undo it for both admin modal patterns so every modal renders:
+           .modal-overlay > .modal (Add Product, Coupons, Orders…)
+           .modal-scrim > .modal  (Delete confirm box via confirmModal()) */
+        .modal-overlay .modal,
+        .modal-scrim .modal {
             display: block;
+            position: relative;
+            inset: auto;
+            background: var(--black-card);
         }
 
         .modal {
@@ -646,24 +651,33 @@
             background: rgba(255,255,255,0.08);
         }
 
-        .mobile-fab-btn {
-            z-index: 900 !important;
+        .mobile-fab-btn,
+        #mobile-fab-add-product {
+            z-index: 90 !important;
         }
         body.modal-open .mobile-fab-btn,
-        body.sidebar-open .mobile-fab-btn {
+        body.sidebar-open .mobile-fab-btn,
+        body.drawer-open .mobile-fab-btn,
+        body.modal-open #mobile-fab-add-product,
+        body.sidebar-open #mobile-fab-add-product,
+        body.drawer-open #mobile-fab-add-product {
             display: none !important;
         }
+        .drawer { z-index: 1000; }
+        .drawer-footer { z-index: 1001; position: relative; }
 
         .stat-loading {
             display: inline-block;
-            min-width: 50px;
+            min-width: 60px;
             border-radius: 4px;
-            color: rgba(255, 255, 255, 0.4) !important;
-            animation: statPulse 1.5s infinite ease-in-out;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: skPulse 1.2s infinite ease-in-out;
+            color: transparent !important;
         }
-        @keyframes statPulse {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
+        @keyframes skPulse {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         .modal-actions-sticky {
@@ -974,6 +988,19 @@
             }
 
             /* Admin table responsive rules are in public/css/admin.css @media (max-width: 768px) */
+        }
+
+        /* Bug 3 fix: admin.css .toast is a fixed, opacity:0 single-toast element.
+           Reset those properties for toasts rendered inside #toast-container
+           by js/components/Toast.js so they are actually visible. */
+        .toast-container .toast {
+            position: static;
+            left: auto;
+            bottom: auto;
+            transform: none;
+            opacity: 1;
+            z-index: auto;
+            pointer-events: auto;
         }
     </style>
 
@@ -2554,7 +2581,7 @@
         console.log('--- ADMIN VERSION 101 ---');
         console.log('Admin Firebase Module Initializing...');
         // Firebase imports for admin
-        import { app, db, auth, onAuthStateChanged, signOut, functions, httpsCallable, collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, serverTimestamp, Timestamp, arrayUnion, onSnapshot, callVercelApi } from '../js/firebase-config.js';
+        import { app, db, auth, onAuthStateChanged, signOut, functions, httpsCallable, collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, doc, query, orderBy, where, serverTimestamp, Timestamp, arrayUnion, onSnapshot, callVercelApi } from '../js/firebase-config.js';
         import { RBAC } from '../js/rbac.js';
         import { uploadToCloudinary, getOptimizedUrl } from '../js/utils/cloudinaryUtils.js';
         console.log('Firebase Configuration Imported - v2 (Global Exports Active)');
@@ -2576,6 +2603,7 @@
         window.arrayUnion = arrayUnion;
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
+        window.writeBatch = writeBatch;
         window.collection = collection;
         window.getDoc = getDoc;
         window.getDocs = getDocs;
@@ -2596,10 +2624,6 @@
         } catch (fnErr) {
             console.warn('Firebase Functions init warning:', fnErr);
         }
-
-        // Idle timer declarations (no other declaration exists for these)
-        let adminIdleTimer = null;
-        let adminWarnTimer = null;
 
         // Admin data from Firebase
         window.adminData = {
@@ -3219,35 +3243,51 @@
         };
 
         function getAdminLoginUrl() {
-            return window.location.pathname.includes('/admin/') ? 'admin-login.html' : '/admin/admin-login.html';
+            return '/admin/admin-login.html';
         }
 
-        // Direct auth listener & role enforcement (Loop-proof)
-        let authChecked = false;
-        let authPendingTimer = null;
+        // Direct auth listener & role enforcement (Deterministic)
         let hasRedirected = false;
 
         function safeRedirectToLogin(msg) {
             if (hasRedirected) return;
             hasRedirected = true;
+
+            // Bounce guard: stop auto-redirecting after 3 bounces in this tab
+            const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
+            sessionStorage.setItem('admin_auth_bounces', String(bounces));
+            if (bounces > 3) {
+                const loaderText = document.getElementById('admin-loader-text');
+                if (loaderText) {
+                    loaderText.innerHTML = 'Stuck in a redirect loop. <a href="' + getAdminLoginUrl() + '" style="color:var(--gold)">Click here to go to login</a>.';
+                }
+                return; // do NOT auto-redirect again
+            }
+
             const loaderText = document.getElementById('admin-loader-text');
             if (loaderText && msg) loaderText.textContent = msg;
-            sessionStorage.removeItem('admin_auth_bounces');
             setTimeout(() => window.location.replace(getAdminLoginUrl()), 600);
         }
+
+        let dashAuthChecked = false;
+        let dashAuthPendingTimer = null;
 
         onAuthStateChanged(auth, async (user) => {
             const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
 
             if (!user) {
-                if (authChecked) {
+                if (dashAuthChecked) {
+                    // We've already given the SDK a chance to restore the session once.
+                    // A null here after that means the user is genuinely signed out.
                     if (!cachedRole) {
                         safeRedirectToLogin("Not signed in. Redirecting to login...");
                     }
                 } else {
-                    authChecked = true;
-                    const graceMs = cachedRole ? 2000 : 1000;
-                    authPendingTimer = setTimeout(() => {
+                    // First callback: this can legitimately be null for a split second
+                    // while Firebase restores a persisted session. Wait before bouncing.
+                    dashAuthChecked = true;
+                    const graceMs = cachedRole ? 2000 : 1200;
+                    dashAuthPendingTimer = setTimeout(() => {
                         const curRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
                         if (!auth.currentUser && !curRole) {
                             safeRedirectToLogin("Session expired. Redirecting to login...");
@@ -3257,15 +3297,17 @@
                 return;
             }
 
-            // User is authenticated — cancel any pending timeout
-            authChecked = true;
-            if (authPendingTimer) {
-                clearTimeout(authPendingTimer);
-                authPendingTimer = null;
+            // User is authenticated — cancel any pending "not signed in" timeout
+            dashAuthChecked = true;
+            if (dashAuthPendingTimer) {
+                clearTimeout(dashAuthPendingTimer);
+                dashAuthPendingTimer = null;
             }
 
             try {
+                console.time('[dashboard.html] RBAC.getUserRole');
                 let role = await RBAC.getUserRole(user);
+                console.timeEnd('[dashboard.html] RBAC.getUserRole');
                 console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role });
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
@@ -3284,8 +3326,8 @@
                         loaderText.style.lineHeight = '1.5';
                         loaderText.innerHTML = `
                             <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Access Denied</div>
-                            <div style="font-size:0.9rem;color:var(--muted,#aaa);font-weight:400">Your account has not been granted admin access yet. Contact an owner.</div>
-                            <button onclick="window.location.replace('admin-login.html')" class="btn btn-outline btn-sm" style="margin-top:16px;border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);cursor:pointer">Back to Login</button>
+                            <div style="font-size:0.9rem;color:var(--muted,#aaa);font-weight:400;margin-bottom:12px">Account (${user.email || user.uid}) has not been granted admin access. Contact an owner.</div>
+                            <button onclick="window.signOut ? window.signOut(window.auth).then(()=>window.location.replace('/admin/admin-login.html')) : window.location.replace('/admin/admin-login.html')" class="btn btn-outline btn-sm" style="border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);cursor:pointer;padding:6px 14px">Sign Out & Back to Login</button>
                         `;
                     }
                     return;
@@ -3429,13 +3471,16 @@
                         if (typeof Toast !== 'undefined') Toast.error('Invalid CSV', 'CSV file must contain a header and at least 1 product row.');
                         return;
                     }
-                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                    let successCount = 0;
-                    let errorCount = 0;
+                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+                    const errors = [];
+                    const validProducts = [];
 
                     for (let i = 1; i < lines.length; i++) {
                         const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
-                        if (cols.length < 3) { errorCount++; continue; }
+                        if (cols.length < 2) {
+                            errors.push(`Row ${i + 1}: empty or incomplete line`);
+                            continue;
+                        }
 
                         const rowData = {};
                         headers.forEach((h, idx) => { rowData[h] = cols[idx] || ''; });
@@ -3447,12 +3492,12 @@
                         const stock = parseInt(rowData.stock, 10) || 10;
                         const description = rowData.description || `${category} - ${name}`;
 
-                        if (!name || isNaN(price)) {
-                            errorCount++;
+                        if (!name || isNaN(price) || price <= 0) {
+                            errors.push(`Row ${i + 1}: Invalid product name or price (${name || 'Missing Name'}, ${rowData.price || 'Missing Price'})`);
                             continue;
                         }
 
-                        const productPayload = {
+                        validProducts.push({
                             name,
                             category,
                             price,
@@ -3460,33 +3505,58 @@
                             stock,
                             stockStatus: stock > 5 ? 'in' : (stock > 0 ? 'low' : 'out'),
                             description,
-                            primaryImageURL: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop',
-                            imageURLs: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop'],
+                            primaryImageURL: rowData.image || rowData.primaryimageurl || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop',
+                            imageURLs: [rowData.image || rowData.primaryimageurl || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&fit=crop'],
                             rating: 4.5,
                             reviews: 0,
                             isNew: true,
                             createdAt: new Date().toISOString()
-                        };
+                        });
+                    }
 
-                        try {
-                            if (window.db && typeof window.addDoc === 'function' && typeof window.collection === 'function') {
-                                await window.addDoc(window.collection(window.db, 'products'), productPayload);
-                                successCount++;
-                            } else {
-                                if (!window.adminProducts) window.adminProducts = [];
-                                window.adminProducts.push({ id: 'local_' + Date.now() + '_' + i, ...productPayload });
-                                successCount++;
-                            }
-                        } catch (err) {
-                            console.error('CSV import row error:', err);
-                            errorCount++;
+                    if (errors.length > 0) {
+                        alert(`CSV Validation Warnings:\n${errors.slice(0, 10).join('\n')}${errors.length > 10 ? `\n...and ${errors.length - 10} more errors` : ''}`);
+                    }
+
+                    if (validProducts.length === 0) {
+                        if (typeof Toast !== 'undefined') Toast.error('Upload Cancelled', 'No valid products found in CSV file.');
+                        return;
+                    }
+
+                    const confirmed = confirm(`Found ${validProducts.length} valid product(s) to import (${errors.length} skipped). Proceed with Firestore import?`);
+                    if (!confirmed) return;
+
+                    try {
+                        const firestore = window.db;
+                        const batchFn = window.writeBatch;
+                        const collectionFn = window.collection;
+                        const docFn = window.doc;
+
+                        const BATCH_SIZE = 400;
+                        let uploadedCount = 0;
+
+                        for (let i = 0; i < validProducts.length; i += BATCH_SIZE) {
+                            const batch = batchFn(firestore);
+                            const chunk = validProducts.slice(i, i + BATCH_SIZE);
+                            
+                            chunk.forEach(prod => {
+                                const newRef = docFn(collectionFn(firestore, 'products'));
+                                batch.set(newRef, prod);
+                            });
+
+                            await batch.commit();
+                            uploadedCount += chunk.length;
                         }
-                    }
 
-                    if (typeof Toast !== 'undefined') {
-                        Toast.success('Bulk Upload Complete', `Successfully imported ${successCount} products.${errorCount > 0 ? ` (${errorCount} rows skipped due to errors)` : ''}`);
+                        if (typeof Toast !== 'undefined') {
+                            Toast.success('Bulk Upload Complete', `Successfully uploaded ${uploadedCount} products to Firestore.`);
+                        }
+                        if (typeof fetchAdminProducts === 'function') fetchAdminProducts();
+                        else if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts || []);
+                    } catch (err) {
+                        console.error('Bulk upload Firestore commit failed:', err);
+                        if (typeof Toast !== 'undefined') Toast.error('Upload Failed', err.message || 'Firestore batch write failed.');
                     }
-                    if (typeof renderProductsTable === 'function') renderProductsTable(window.adminProducts || []);
                 };
                 reader.readAsText(file);
             };
@@ -3653,6 +3723,14 @@
             if (typeof window.serverTimestamp === 'function') return window.serverTimestamp();
             return new Date();
         }
+
+        // Bug 2 fix: idle timer vars must be in the plain <script> scope so
+        // resetAdminIdleTimer() (also in plain script) can clearTimeout them.
+        // Declaring them in <script type="module"> creates a module-private scope
+        // that the plain script cannot see, causing ReferenceError on every
+        // mousemove / click / scroll event.
+        let adminIdleTimer = null;
+        let adminWarnTimer = null;
 
         let adminProducts = [];
         let ordersData = [];
@@ -3888,10 +3966,22 @@
             const reviewsEl = document.getElementById('dash-stat-reviews-val');
             const stockEl = document.getElementById('dash-stat-stock-val');
 
-            if (ordersEl) ordersEl.textContent = todayOrders.length > 0 ? todayOrders.length : orders.length;
-            if (revenueEl) revenueEl.textContent = '₹' + Math.round(monthRevenue > 0 ? monthRevenue : orders.reduce((s,o)=>s+Number(o.totalAmount||o.total||0), 0)).toLocaleString('en-IN');
-            if (reviewsEl) reviewsEl.textContent = pendingReviewsCount;
-            if (stockEl) stockEl.textContent = lowStockCount;
+            if (ordersEl) {
+                ordersEl.textContent = todayOrders.length > 0 ? todayOrders.length : orders.length;
+                ordersEl.classList.remove('stat-loading');
+            }
+            if (revenueEl) {
+                revenueEl.textContent = '₹' + Math.round(monthRevenue > 0 ? monthRevenue : orders.reduce((s,o)=>s+Number(o.totalAmount||o.total||0), 0)).toLocaleString('en-IN');
+                revenueEl.classList.remove('stat-loading');
+            }
+            if (reviewsEl) {
+                reviewsEl.textContent = pendingReviewsCount;
+                reviewsEl.classList.remove('stat-loading');
+            }
+            if (stockEl) {
+                stockEl.textContent = lowStockCount;
+                stockEl.classList.remove('stat-loading');
+            }
 
             // Update badges in navigation
             const stockBadge = document.getElementById('nav-stock-badge');

@@ -150,7 +150,7 @@
             let currentVerificationId = null; // Stores SMS verificationId for phone MFA
 
             function getDashboardUrl() {
-                return window.location.pathname.includes('/admin/') ? 'dashboard.html' : '/admin/dashboard.html';
+                return '/admin/dashboard.html';
             }
 
             // ── Auto-redirect: Only redirect if the logged-in user actually has an admin role
@@ -161,11 +161,22 @@
                     console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     if (role && validRoles.includes(role.toLowerCase())) {
-                        sessionStorage.removeItem('admin_auth_bounces');
+                        // Bounce guard: stop auto-redirecting after 3 bounces in this tab
+                        const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
+                        sessionStorage.setItem('admin_auth_bounces', String(bounces));
+                        if (bounces > 3) {
+                            showError("Redirect loop detected. Please click here to go to the dashboard manually: <a href='" + getDashboardUrl() + "' style='color:var(--gold)'>" + getDashboardUrl() + "</a>");
+                            return;
+                        }
+
                         const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
                         sessionStorage.setItem('kc_admin_role', displayRole);
                         localStorage.setItem('kc_admin_role', displayRole);
                         window.location.replace(getDashboardUrl());
+                    } else {
+                        console.warn('[admin-login.html] Logged-in user is not an admin. Remaining on login page.');
+                        sessionStorage.removeItem('kc_admin_role');
+                        localStorage.removeItem('kc_admin_role');
                     }
                 } catch (e) {
                     console.warn("Auto-redirect check failed:", e);
@@ -213,7 +224,6 @@
                     }
 
                     const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
-                    sessionStorage.removeItem('admin_auth_bounces');
                     sessionStorage.setItem('kc_admin_role', displayRole);
                     localStorage.setItem('kc_admin_role', displayRole);
 
@@ -232,6 +242,16 @@
 
                     clearAttempts();
                     showSuccess("Login successful. Redirecting to dashboard...");
+
+                    // Bounce guard: stop auto-redirecting after 3 bounces in this tab
+                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
+                    sessionStorage.setItem('admin_auth_bounces', String(bounces));
+                    if (bounces > 3) {
+                        showError("Redirect loop detected. Please click here to go to the dashboard manually: " + getDashboardUrl());
+                        setLoading(false);
+                        return;
+                    }
+
                     setTimeout(() => {
                         window.location.replace(getDashboardUrl());
                     }, 400);
