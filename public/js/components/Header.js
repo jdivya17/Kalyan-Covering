@@ -16,9 +16,13 @@ export function renderHeader() {
   return `
     <!-- Announcement Bar -->
     <div class="ann">
-      <span>✨ 100% Real Gold Covering Jewellery</span>
-      <span>🚚 Free Shipping Nationwide Above ₹999</span>
-      <span>⭐ Erode's Most Trusted Jewellery Store Since 2012</span>
+      <div class="ann-track">
+        <span>✨ 100% Real Gold Covering Jewellery</span>
+        <span>🚚 Free Shipping Nationwide Above ₹999</span>
+        <span>⭐ Erode's Most Trusted Jewellery Store Since 2012</span>
+        <span>✨ 100% Real Gold Covering Jewellery</span>
+        <span>🚚 Free Shipping Nationwide Above ₹999</span>
+      </div>
     </div>
 
     <!-- Sticky Header -->
@@ -93,6 +97,10 @@ export function renderHeader() {
         <div class="wrap mg" id="mgIn"></div>
       </div>
     </header>
+
+    <form class="kc-msearch" onsubmit="event.preventDefault(); location.href='products.html?search='+encodeURIComponent(this.q.value)">
+      <input name="q" type="search" placeholder="Search for necklaces, rings, bangles…" aria-label="Search">
+    </form>
 
     <!-- Overlay / Scrim -->
     <div id="scrim" onclick="closeAllDrawers()"></div>
@@ -256,6 +264,13 @@ window.closeAllDrawers = function() {
   if (pop) pop.classList.remove('on');
   document.body.classList.remove('lock');
 };
+
+// Close mobile menu when tapping any link inside mobile drawer
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#menu a')) {
+    window.closeAllDrawers();
+  }
+});
 
 window.toggleSearch = function() {
   const search = document.getElementById('search');

@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { createRequire } from 'module';
+import { cpSync, existsSync } from 'fs';
+
 const require = createRequire(import.meta.url);
 
 function apiMiddleware() {
@@ -17,8 +19,28 @@ function apiMiddleware() {
   };
 }
 
+function copyStatic() {
+  return {
+    name: 'copy-static',
+    closeBundle() {
+      const out = resolve(__dirname, 'dist');
+      const items = [
+        ['public/assets/vendor', 'assets/vendor'],
+        ['public/img-fallback.svg', 'img-fallback.svg'],
+        ['public/Privacy Policy.pdf', 'Privacy Policy.pdf'],
+        ['public/Terms of Use.pdf', 'Terms of Use.pdf'],
+        ['public/styles.css', 'styles.css']
+      ];
+      for (const [from, to] of items) {
+        const src = resolve(__dirname, from);
+        if (existsSync(src)) cpSync(src, resolve(out, to), { recursive: true });
+      }
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [apiMiddleware()],
+  plugins: [apiMiddleware(), copyStatic()],
   root: 'public',
   server: {
     port: 5173
@@ -42,10 +64,8 @@ export default defineConfig({
         customerInvoice: resolve(__dirname, 'public/customer/invoice.html'),
         customerProfile: resolve(__dirname, 'public/customer/profile.html'),
 
-        
         adminLogin: resolve(__dirname, 'public/admin/admin-login.html'),
         adminDashboard: resolve(__dirname, 'public/admin/dashboard.html'),
-
 
         videoDisplay: resolve(__dirname, 'public/video-display.html'),
         videoUpload: resolve(__dirname, 'public/video-upload.html'),

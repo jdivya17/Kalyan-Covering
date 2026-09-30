@@ -507,7 +507,7 @@
           </div>
 
           <!-- Info & Actions -->
-          <div>
+          <div class="pd-info">
             <div class="meta">
               <span>${escapeHtml(product.category || 'Jewellery')}</span>
               ${product.isNew ? '<span class="badge">New Arrival</span>' : (product.popular ? '<span class="badge">Bestseller</span>' : '')}
@@ -527,6 +527,7 @@
             </div>
             <p class="sub" style="margin-top:-0.6rem;margin-bottom:1rem;font-size:0.86rem;">Inclusive of all government taxes & GST</p>
             <p class="desc">${escapeHtml(product.description || 'Authentic gold covering jewellery handcrafted with 100% micro-gold plating for long-lasting sheen.')}</p>
+            ${product.shortDescription ? `<p class="short-desc" style="margin-top:0.4rem;margin-bottom:1rem;color:var(--text-dim,#ccc);font-size:0.9rem;line-height:1.5;">${escapeHtml(product.shortDescription)}</p>` : ''}
 
             ${stockInfo.isOutOfStock ? `
               <div class="buy">
@@ -541,7 +542,7 @@
                   <output id="pq">1</output>
                   <button onclick="updatePdQty(1)" aria-label="Increase quantity">${ic('plus', 16)}</button>
                 </div>
-                <button class="btn solid" onclick="handlePdAddToCart('${product.id}')">Add to bag</button>
+                <button class="btn solid" onclick="handlePdAddToCart('${product.id}')">${ic('bag', 18)} Add to bag</button>
                 <button class="btn" onclick="handleBuyNow('${product.id}')">Buy Now</button>
               </div>
             `}
@@ -556,7 +557,7 @@
 
             <!-- Pincode Delivery Check -->
             <div class="pin">
-              <input type="text" inputmode="numeric" maxlength="6" id="pincode-input" placeholder="Enter 6-digit Pincode" aria-label="Delivery pincode" />
+              <input type="text" inputmode="numeric" maxlength="6" id="pincode-input" placeholder="Enter pincode" aria-label="Delivery pincode" />
               <button class="btn sm" onclick="checkDeliveryPincode()">Check Delivery</button>
             </div>
             <div class="pinres" id="pinres" aria-live="polite"></div>
@@ -597,15 +598,15 @@
           <div class="reviews-header">
             <div class="reviews-title">
               <h2>Customer Reviews</h2>
-              <div class="reviews-rating-summary">
-                <div class="overall-score" id="avg-score">4.9</div>
+              <div class="reviews-rating-summary" id="reviews-rating-summary" style="display:none;">
+                <div class="overall-score" id="avg-score"></div>
                 <div>
                   <div class="review-stars">★★★★★</div>
                   <div style="font-size:0.82rem; color:var(--text-dim); margin-top:0.2rem;" id="reviews-count-text">Based on customer feedback</div>
                 </div>
               </div>
             </div>
-            <button class="btn btn-gold" onclick="openReviewModal()">
+            <button class="btn btn-gold" id="top-write-review-btn" onclick="openReviewModal()" style="display:none;">
               ★ WRITE A REVIEW
             </button>
           </div>
@@ -632,16 +633,24 @@
     async function loadReviewsForProduct(productId) {
       const container = document.getElementById('reviews-list-container');
       const reviews = await getProductReviews(productId);
+      const summaryEl = document.getElementById('reviews-rating-summary');
+      const topBtn = document.getElementById('top-write-review-btn');
 
       if (!reviews || reviews.length === 0) {
+        if (summaryEl) summaryEl.style.display = 'none';
+        if (topBtn) topBtn.style.display = 'none';
         container.innerHTML = `
           <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:3rem 1.5rem; text-align:center;">
-            <p style="color:var(--text-dim); margin-bottom:1rem;">Be the first to share a review with a photo for this jewellery piece!</p>
-            <button class="btn btn-outline" onclick="openReviewModal()">Write the First Review</button>
+            <p style="color:var(--text-color); font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">No reviews yet</p>
+            <p style="color:var(--text-dim); margin-bottom:1.5rem; font-size:0.9rem;">Be the first to share a review with a photo for this jewellery piece!</p>
+            <button class="btn btn-gold" onclick="openReviewModal()">Write the first review</button>
           </div>
         `;
         return;
       }
+
+      if (summaryEl) summaryEl.style.display = 'flex';
+      if (topBtn) topBtn.style.display = 'inline-flex';
 
       const totalRating = reviews.reduce((sum, r) => sum + (r.rating || 5), 0);
       const avg = (totalRating / reviews.length).toFixed(1);

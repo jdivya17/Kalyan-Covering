@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/mobile.css">
 </head>
 
 <body>
@@ -99,21 +100,21 @@
           <div class="box">
             <h2>Items in Bag (${items.reduce((s, i) => s + (i.qty || 1), 0)})</h2>
             ${items.map((item, idx) => `
-              <div class="li" style="padding:1.2rem 0;">
+              <div class="li" style="padding:1rem 0;">
                 <img src="${item.image || item.primaryImageURL || item.images?.[0] || '/img-fallback.svg'}" alt="${escapeHtml(item.name)}" onerror="this.src='/img-fallback.svg'" />
-                <div>
+                <div class="li-info">
                   <b>${escapeHtml(item.name)}</b>
-                  <small style="color:var(--gold);font-weight:600;">${formatCurrency(item.price)}</small>
-                  <div style="display:flex;gap:12px;align-items:center;margin-top:0.6rem;">
+                  <small style="color:var(--gold);font-weight:600;">${formatCurrency(item.price)} each</small>
+                  <div style="display:flex;gap:10px;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
                     <div class="qty" style="height:34px;">
                       <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) - 1})" aria-label="Decrease quantity">${ic('minus', 14)}</button>
                       <output style="min-width:26px;">${item.qty || 1}</output>
                       <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) + 1})" aria-label="Increase quantity">${ic('plus', 14)}</button>
                     </div>
-                    <button class="btn ghost sm" onclick="handleCartRemove('${item.id}')" style="color:var(--danger);border-color:transparent;" aria-label="Remove item">Remove</button>
+                    <button class="btn ghost sm" onclick="handleCartRemove('${item.id}')" style="color:var(--danger);border-color:transparent;padding:0.3rem 0.6rem;" aria-label="Remove item">Remove</button>
                   </div>
                 </div>
-                <div style="font-weight:600;color:var(--gold-hi);font-size:1.1rem;">
+                <div class="li-price">
                   ${formatCurrency(item.price * (item.qty || 1))}
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { KC } from './store/state.js';
+import './mobile-nav.js';
 import { uploadToCloudinary, getOptimizedUrl } from './utils/cloudinaryUtils.js';
 import { Toast } from './components/Toast.js';
 import { initHomePage, renderSignaturePieces } from './pages/homePage.js';

@@ -278,7 +278,7 @@ img {
   border-radius: var(--radius);
   padding: 0.8rem 1.2rem;
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 16px;
   width: 100%;
   transition: var(--transition);
   outline: none;
@@ -1138,3 +1138,6 @@ h1, h2, h3, h4, h5, h6, p, span, a, label, td, th, div {
 img, video, canvas, svg {
   max-width: 100%;
 }
+
+/* mobile.css linked separately in HTML */
+

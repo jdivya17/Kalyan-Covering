@@ -136,6 +136,7 @@
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
             const rememberMe = document.getElementById('remember-me');
+            rememberMe.checked = true; // mobile browsers/in-app tabs lose session-only logins
             const loginBtn = document.getElementById('login-btn');
             const loginSpinner = document.getElementById('login-spinner');
             const loginText = loginBtn.querySelector('span');
@@ -155,7 +156,11 @@
 
             // ── Auto-redirect: Only redirect if the logged-in user actually has an admin role
             onAuthStateChanged(auth, async (user) => {
-                if (!user) return;
+                if (!user) {
+                    sessionStorage.removeItem('admin_auth_bounces'); // no session = no loop possible
+                    return;
+                }
+                if (window.__kcLoginInProgress) return;
                 try {
                     const role = await RBAC.getUserRole(user);
                     console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
@@ -232,7 +237,6 @@
                         if (db && doc && setDoc && cred.user) {
                             await setDoc(doc(db, "users", cred.user.uid), {
                                 email: cred.user.email,
-                                role: displayRole,
                                 lastLogin: serverTimestamp ? serverTimestamp() : new Date()
                             }, { merge: true });
                         }

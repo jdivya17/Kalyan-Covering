@@ -1,0 +1,55 @@
+/* Kalyan Covering — Mobile CSS Overrides */
+
+/* horizontal scroll rows */
+.profile-tabs, .active-filters { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+.profile-tabs::-webkit-scrollbar, .active-filters::-webkit-scrollbar { display: none; }
+
+/* modals -> bottom sheets (real classes: .modal + .mbox) */
+.modal.open, .modal.on { align-items: flex-end !important; padding: 0 !important; }
+.mbox { width: 100% !important; max-width: 100% !important; max-height: 88vh; border-radius: 16px 16px 0 0 !important;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+
+/* M4 + M5: sticky Add to Bag bar on product detail & hide tab bar */
+@media (max-width: 768px) {
+  /* hide mobile bottom tabbar on PDP */
+  body.kc-pdp .tabbar, html.kc-pdp-page .tabbar { display: none !important; }
+
+  /* only the product-detail buy row (it lives inside a page with #main-product-img) */
+  body.kc-pdp .buy {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 96; margin: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg2, #0d0a06); border-top: 1px solid var(--line, rgba(214,178,94,0.3));
+    box-shadow: 0 -4px 20px rgba(0,0,0,.7); flex-wrap: nowrap; gap: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  body.kc-pdp .buy .qty { display: none; }          /* qty stays on the page, not in the bar */
+  body.kc-pdp .buy .btn {
+    min-width: 0;
+    flex: 1;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+    padding: 0.75rem 0.4rem !important;
+    font-size: clamp(0.75rem, 3.2vw, 0.88rem) !important;
+  }
+  body.kc-pdp { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* M7: admin tables to cards on phones */
+@media (max-width: 640px) {
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
+  .admin-table thead { display: none; }
+  .admin-table tr { border: 1px solid var(--line2, #333); border-radius: 10px; margin: 0 0 10px; padding: 8px 10px; }
+  .admin-table td { display: flex; justify-content: space-between; gap: 12px; border: 0 !important; padding: 6px 0 !important; text-align: right; }
+  .admin-table td::before { content: attr(data-label); font-size: .72rem; color: var(--muted, #888); text-align: left; text-transform: uppercase; }
+  .twrap table { min-width: 0 !important; }
+}
+
+/* M10: always-visible search bar on phones */
+.kc-msearch { display: none; }
+@media (max-width: 768px) {
+  .kc-msearch { display: block; padding: 8px 12px; background: var(--bg, #fff); position: sticky; top: 56px; z-index: 89; }
+  .kc-msearch input { width: 100%; height: 40px; border-radius: 8px; border: 1px solid var(--line, #ddd); padding: 0 12px; background: var(--bg2, #f5f5f5); color: var(--text, #fff); }
+}

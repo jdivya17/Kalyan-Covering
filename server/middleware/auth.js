@@ -16,8 +16,8 @@ async function authMiddleware(req, res, next) {
     try {
         const decoded = await admin.auth().verifyIdToken(idToken);
         req.user = decoded;
-        req.isAdmin = ["owner", "manager", "staff"].includes(decoded.role);
-        req.isOwnerOrManager = ["owner", "manager"].includes(decoded.role);
+        req.isAdmin = ["owner", "admin", "manager", "staff"].includes(decoded.role);
+        req.isOwnerOrManager = ["owner", "admin", "manager"].includes(decoded.role);
         next();
     } catch (err) {
         console.error("[AUTH] Token verification failed:", err.message);

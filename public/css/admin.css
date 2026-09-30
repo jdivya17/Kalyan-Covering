@@ -510,3 +510,6 @@ tbody tr:last-child td { border-bottom: 0; }
   .drawer { width: 100vw; }
   th, td { padding: 10px 8px; font-size: 0.82rem; }
 }
+
+/* mobile.css linked separately in HTML */
+

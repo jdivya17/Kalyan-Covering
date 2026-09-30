@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="../css/components.css?v=3.0">
     <link rel="stylesheet" href="../css/theme.css?v=3.0">
     <link rel="stylesheet" href="../css/admin.css?v=3.0">
+    <link rel="stylesheet" href="../css/mobile.css">
     <!-- Chart.js & DOMPurify - Local Vendor Scripts with CDN fallback & defensive polyfills -->
     <script src="../assets/vendor/chart.umd.min.js"></script>
     <script src="../assets/vendor/purify.min.js"></script>
@@ -6691,7 +6692,20 @@
     <aside class="drawer" id="drawer"></aside>
     <div class="modal-scrim" id="modalScrim"><div class="modal" id="modalBox"></div></div>
     <div class="toast" id="toast"></div>
-  
+
+    <script>
+    (function () {
+      function label(t) {
+        const heads = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        t.querySelectorAll('tbody tr').forEach(tr => [...tr.children].forEach((td, i) => {
+          if (!td.dataset.label && heads[i]) td.dataset.label = heads[i];
+        }));
+      }
+      const run = () => document.querySelectorAll('.admin-table').forEach(label);
+      new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+      run();
+    })();
+    </script>
 </body>
 
 </html>

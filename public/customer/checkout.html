@@ -101,7 +101,7 @@
 
       layout.innerHTML = `
         <!-- Left Column: Delivery Form & Payment -->
-        <div>
+        <div class="co-main">
           <!-- Saved Address Chips (if logged in) -->
           ${savedAddresses.length ? `
             <div class="box" style="margin-bottom:18px;">
@@ -123,37 +123,37 @@
               <h2>Delivery Address</h2>
               <div class="fgrid2">
                 <label class="f full">Full Name *
-                  <input type="text" id="f-name" autocomplete="name" value="${escapeHtml(defaultAddr.name || user?.name || user?.displayName || '')}" required />
+                  <input type="text" id="f-name" autocomplete="name" placeholder="Your Full Name" value="${escapeHtml(defaultAddr.name || user?.name || user?.displayName || '')}" required />
                   <span class="err" id="err-name"></span>
                 </label>
                 
                 <label class="f">Mobile Number *
-                  <input type="tel" id="f-phone" inputmode="numeric" maxlength="10" autocomplete="tel" value="${escapeHtml(defaultAddr.phone || user?.phone || user?.phoneNumber || '')}" required />
+                  <input type="tel" id="f-phone" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10-digit mobile number" value="${escapeHtml(defaultAddr.phone || user?.phone || user?.phoneNumber || '')}" required />
                   <span class="err" id="err-phone"></span>
                 </label>
 
                 <label class="f">Email Address *
-                  <input type="email" id="f-email" autocomplete="email" value="${escapeHtml(user?.email || '')}" required />
+                  <input type="email" id="f-email" autocomplete="email" placeholder="name@example.com" value="${escapeHtml(user?.email || '')}" required />
                   <span class="err" id="err-email"></span>
                 </label>
 
                 <label class="f full">Street Address *
-                  <textarea id="f-addr" rows="2" autocomplete="street-address" required>${escapeHtml(defaultAddr.line || '')}</textarea>
+                  <textarea id="f-addr" rows="2" autocomplete="street-address" placeholder="House / Flat No., Street, Landmark" required>${escapeHtml(defaultAddr.line || '')}</textarea>
                   <span class="err" id="err-addr"></span>
                 </label>
 
                 <label class="f">City *
-                  <input type="text" id="f-city" autocomplete="address-level2" value="${escapeHtml(defaultAddr.city || '')}" required />
+                  <input type="text" id="f-city" autocomplete="address-level2" placeholder="City" value="${escapeHtml(defaultAddr.city || '')}" required />
                   <span class="err" id="err-city"></span>
                 </label>
 
                 <label class="f">State *
-                  <input type="text" id="f-state" autocomplete="address-level1" value="${escapeHtml(defaultAddr.state || 'Tamil Nadu')}" required />
+                  <input type="text" id="f-state" autocomplete="address-level1" placeholder="State" value="${escapeHtml(defaultAddr.state || 'Tamil Nadu')}" required />
                   <span class="err" id="err-state"></span>
                 </label>
 
                 <label class="f full">Pincode *
-                  <input type="text" id="f-pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" value="${escapeHtml(defaultAddr.pin || '')}" required />
+                  <input type="text" id="f-pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit Pincode" value="${escapeHtml(defaultAddr.pin || '')}" required />
                   <span class="err" id="err-pin"></span>
                 </label>
               </div>
@@ -186,23 +186,18 @@
                   <input type="radio" name="payMethod" value="ONLINE" checked />
                   <span>
                     <b>Razorpay (UPI, GPay, Credit/Debit Card, Netbanking)</b>
-                    <small>Instant secure payment gateway</small>
+                    <small>Instant 100% secure payment gateway</small>
                   </span>
                 </label>
                 <label class="opt">
                   <input type="radio" name="payMethod" value="COD" />
                   <span>
                     <b>Cash on Delivery (COD)</b>
-                    <small>Pay with cash when your package is delivered (+₹50 COD fee applies)</small>
+                    <small>Pay with cash when your package is delivered</small>
                   </span>
                 </label>
               </div>
             </div>
-
-            <!-- Place Order CTA Button -->
-            <button type="submit" class="btn solid block" style="margin-top:1.5rem;padding:1.1rem;" id="place-order-btn">
-              <span>Place Order Securely • ${formatCurrency(grandTotal)}</span>
-            </button>
           </form>
         </div>
 
@@ -211,22 +206,22 @@
           <div class="box">
             <h2>Order Summary (${items.reduce((s, i) => s + (i.qty || 1), 0)})</h2>
             
-            <div style="max-height:280px;overflow-y:auto;margin-bottom:1rem;">
+            <div class="items-scroll" style="max-height:280px;overflow-y:auto;margin-bottom:1rem;">
               ${items.map(item => `
                 <div class="li">
-                  <img src="${item.image || item.primaryImageURL || item.images?.[0] || '/img-fallback.svg'}" alt="${escapeHtml(item.name)}" />
-                  <div>
+                  <img src="${item.image || item.primaryImageURL || item.images?.[0] || '/img-fallback.svg'}" alt="${escapeHtml(item.name)}" onerror="this.src='/img-fallback.svg'" />
+                  <div class="li-info">
                     <b>${escapeHtml(item.name)}</b>
                     <small>Qty ${item.qty || 1}</small>
                   </div>
-                  <span style="color:var(--gold-hi);font-weight:500;">${formatCurrency(item.price * (item.qty || 1))}</span>
+                  <div class="li-price">${formatCurrency(item.price * (item.qty || 1))}</div>
                 </div>
               `).join('')}
             </div>
 
             <!-- Coupon Code Input -->
             <div class="cpn">
-              <input type="text" id="co-coupon" placeholder="Coupon Code" value="${couponCode}" />
+              <input type="text" id="co-coupon" placeholder="Coupon Code (e.g. KALYAN10)" value="${couponCode}" />
               <button class="btn sm" type="button" onclick="applyCheckoutCoupon()">Apply</button>
             </div>
             ${couponCode === 'KALYAN10' ? `<div style="color:var(--ok);font-size:0.85rem;margin-top:0.4rem;">✓ Coupon KALYAN10 applied (10% OFF)</div>` : ''}
@@ -242,6 +237,11 @@
                 <span>${formatCurrency(grandTotal)}</span>
               </div>
             </div>
+
+            <!-- Place Order CTA Button -->
+            <button type="submit" form="coForm" class="btn solid block" id="place-order-btn">
+              <span>Place Order Securely • ${formatCurrency(grandTotal)}</span>
+            </button>
           </div>
         </div>
       `;

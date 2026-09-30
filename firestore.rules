@@ -36,8 +36,15 @@ service cloud.firestore {
 
     // User profiles & addresses
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isOwner());
-      
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isOwner());
+      allow create: if isAuthenticated() && request.auth.uid == userId
+                    && !('role' in request.resource.data);
+      allow update: if isAuthenticated() && (
+                      (request.auth.uid == userId
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+                      || isOwner());
+      allow delete: if isOwner();
+
       match /addresses/{addressId} {
         allow read, write: if isAuthenticated() && (request.auth.uid == userId || isOwner());
       }
