@@ -150,17 +150,28 @@
             let currentMfaHint = null;
             let currentVerificationId = null; // Stores SMS verificationId for phone MFA
 
+            // ── Race-condition guard ──────────────────────────────────────────────────
+            // Set to true while a form submit is actively in progress so the
+            // onAuthStateChanged listener does NOT also call window.location.replace().
+            // The form submit handler owns the redirect for that login event.
+            // Reset to false on every failure / MFA branch (success doesn't need it
+            // because the page navigates away).
+            let formSubmitInProgress = false;
+
             function getDashboardUrl() {
                 return '/admin/dashboard.html';
             }
 
-            // ── Auto-redirect: Only redirect if the logged-in user actually has an admin role
+            // ── Auto-redirect: only fires when the user already has a valid session
+            // and navigates directly to admin-login.html (bookmark / back-button).
+            // It must NOT fire while a form submission is actively in progress —
+            // that case is owned by the submit handler below.
             onAuthStateChanged(auth, async (user) => {
                 if (!user) {
                     sessionStorage.removeItem('admin_auth_bounces'); // no session = no loop possible
                     return;
                 }
-                if (window.__kcLoginInProgress) return;
+                if (formSubmitInProgress) return; // form submit handler owns this redirect
                 try {
                     const role = await RBAC.getUserRole(user);
                     console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
@@ -207,6 +218,10 @@
                     return;
                 }
 
+                // Block the onAuthStateChanged listener from issuing a duplicate redirect
+                // for the auth-state change that signInWithEmailAndPassword is about to trigger.
+                formSubmitInProgress = true;
+
                 try {
                     const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence;
                     await setPersistence(auth, persistence);
@@ -225,6 +240,7 @@
                         localStorage.removeItem('kc_admin_role');
                         showError("This account does not have admin access yet. Contact an owner to grant your role.");
                         setLoading(false);
+                        formSubmitInProgress = false;
                         return;
                     }
 
@@ -256,10 +272,14 @@
                         return;
                     }
 
+                    // 700 ms gives IndexedDB persistence enough time to flush the
+                    // newly-written session before the dashboard page loads and reads it.
+                    // (was 400 ms — bumped to reduce the persistence-write race window)
                     setTimeout(() => {
                         window.location.replace(getDashboardUrl());
-                    }, 400);
+                    }, 700);
                 } catch (error) {
+                    formSubmitInProgress = false;
                     setLoading(false);
 
                     if (error.code === 'auth/multi-factor-auth-required') {

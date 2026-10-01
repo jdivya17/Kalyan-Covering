@@ -1358,54 +1358,64 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Toast is shared across all pages (admin + customer)
     Toast.init();
-    initNav();
-    initReveal();
-    initCounters();
-    initTabs();
-    initRangeSliders();
-    document.querySelectorAll('.carousel-container').forEach(initCarousel);
-    document.querySelectorAll('.product-card, .btn-gold').forEach(addSparkleEffect);
-    SeasonalTheme.init();
-    SeasonalTheme.apply(KC.theme);
-    initThemeSync();
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeSearchModal();
+    // Admin pages only need auth + Toast — skip all storefront-only initialisation
+    // to avoid unnecessary Firestore reads and reduce the auth-restore race window.
+    const isAdminPage = window.location.pathname.includes('/admin/');
+
+    if (!isAdminPage) {
+        initNav();
+        initReveal();
+        initCounters();
+        initTabs();
+        initRangeSliders();
+        document.querySelectorAll('.carousel-container').forEach(initCarousel);
+        document.querySelectorAll('.product-card, .btn-gold').forEach(addSparkleEffect);
+        SeasonalTheme.init();
+        SeasonalTheme.apply(KC.theme);
+        initThemeSync();
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSearchModal();
+            }
+        });
+
+        await initFirebase();
+        KC.products = await loadProductsFromFirebase();
+        KC.videos = await loadVideosFromFirebase();
+
+        if (document.getElementById('featured-track')) {
+            renderFeaturedProducts();
         }
-    });
-
-    await initFirebase();
-    KC.products = await loadProductsFromFirebase();
-    KC.videos = await loadVideosFromFirebase();
-
-    if (document.getElementById('featured-track')) {
-        renderFeaturedProducts();
-    }
-    if (document.getElementById('recommended-track')) {
-        renderRecommendedProducts();
-    }
-    if (document.getElementById('products-grid')) {
-        renderProductsGrid();
-    }
-    if (document.getElementById('new-track')) {
-        renderNewLaunches();
-    }
-
-    if (document.getElementById('video-gallery')) {
-        renderVideoGallery();
-    }
-
-    window.addEventListener('resize', () => {
-        if (SeasonalTheme.canvas) {
-            SeasonalTheme.canvas.width = window.innerWidth;
-            SeasonalTheme.canvas.height = window.innerHeight;
+        if (document.getElementById('recommended-track')) {
+            renderRecommendedProducts();
         }
-    });
+        if (document.getElementById('products-grid')) {
+            renderProductsGrid();
+        }
+        if (document.getElementById('new-track')) {
+            renderNewLaunches();
+        }
 
-    if (typeof initSocialLinks === 'function') {
-        await initSocialLinks();
+        if (document.getElementById('video-gallery')) {
+            renderVideoGallery();
+        }
+
+        window.addEventListener('resize', () => {
+            if (SeasonalTheme.canvas) {
+                SeasonalTheme.canvas.width = window.innerWidth;
+                SeasonalTheme.canvas.height = window.innerHeight;
+            }
+        });
+
+        if (typeof initSocialLinks === 'function') {
+            await initSocialLinks();
+        }
     }
+
+    // initGeneralSettings is shared (loads store settings used by admin too)
     await initGeneralSettings();
 });

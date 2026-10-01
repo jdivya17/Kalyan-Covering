@@ -3272,34 +3272,45 @@
 
         let dashAuthChecked = false;
         let dashAuthPendingTimer = null;
+        // Counts how many consecutive null callbacks onAuthStateChanged has fired
+        // before a real user object appeared. Firebase can fire null >1 time while
+        // restoring a persisted session (especially with App Check enabled).
+        let dashNullCallbackCount = 0;
 
         onAuthStateChanged(auth, async (user) => {
             const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
 
             if (!user) {
-                if (dashAuthChecked) {
-                    // We've already given the SDK a chance to restore the session once.
-                    // A null here after that means the user is genuinely signed out.
-                    if (!cachedRole) {
-                        safeRedirectToLogin("Not signed in. Redirecting to login...");
-                    }
-                } else {
-                    // First callback: this can legitimately be null for a split second
-                    // while Firebase restores a persisted session. Wait before bouncing.
-                    dashAuthChecked = true;
-                    const graceMs = cachedRole ? 2000 : 1200;
-                    dashAuthPendingTimer = setTimeout(() => {
-                        const curRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
-                        if (!auth.currentUser && !curRole) {
-                            safeRedirectToLogin("Session expired. Redirecting to login...");
-                        }
-                    }, graceMs);
+                dashNullCallbackCount++;
+
+                // Cancel any previously pending "not signed in" timer and re-arm it.
+                // We do this on EVERY null callback (not just the first) so that
+                // Firebase emitting null more than once during session restoration
+                // always gets a fresh grace window instead of being caught by the
+                // faster "already checked" branch that used to exist here.
+                if (dashAuthPendingTimer) {
+                    clearTimeout(dashAuthPendingTimer);
+                    dashAuthPendingTimer = null;
                 }
+
+                dashAuthChecked = true;
+                // Grow the grace window slightly with each repeated null callback,
+                // capped at 3 s, so a flaky / slow restore still gets a fair chance.
+                const graceMs = Math.min(1500 + (dashNullCallbackCount - 1) * 700, 3000);
+
+                dashAuthPendingTimer = setTimeout(() => {
+                    const curRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+                    if (!auth.currentUser && !curRole) {
+                        safeRedirectToLogin("Session expired. Redirecting to login...");
+                    }
+                }, graceMs);
+
                 return;
             }
 
-            // User is authenticated — cancel any pending "not signed in" timeout
+            // User resolved — cancel any pending "not signed in" timer and reset counters
             dashAuthChecked = true;
+            dashNullCallbackCount = 0;
             if (dashAuthPendingTimer) {
                 clearTimeout(dashAuthPendingTimer);
                 dashAuthPendingTimer = null;
