@@ -33,6 +33,7 @@ export const Toast = {
     success(msg, submsg = '') { return this.show(msg, submsg, '🌟'); },
     error(msg, submsg = '') { return this.show(msg, submsg, '❌'); },
     info(msg, submsg = '') { return this.show(msg, submsg, '💛'); },
+    warning(msg, submsg = '') { return this.show(msg, submsg, '⚠️'); },
     cart(name) { return this.show('Added to Cart!', name, '🛒'); }
 };
 

@@ -19,10 +19,36 @@
     <link rel="stylesheet" href="../css/theme.css?v=3.0">
     <link rel="stylesheet" href="../css/admin.css?v=3.0">
     <link rel="stylesheet" href="../css/mobile.css">
-    <!-- Chart.js & DOMPurify - Local Vendor Scripts with CDN fallback & defensive polyfills -->
-    <script src="../assets/vendor/chart.umd.min.js"></script>
-    <script src="../assets/vendor/purify.min.js"></script>
     <script>
+      window.safeStore = {
+        get(s, k) { try { return s.getItem(k); } catch (e) { return null; } },
+        set(s, k, v) { try { s.setItem(k, v); } catch (e) { console.warn('[storage]', e.message); } },
+        del(s, k) { try { s.removeItem(k); } catch (e) {} },
+        clear(s) { try { s.clear(); } catch (e) {} }
+      };
+    </script>
+    <!-- Chart.js & DOMPurify - Local Vendor Scripts with CDN fallback & defensive polyfills -->
+    <script src="/assets/vendor/chart.umd.min.js" onerror="this.onerror=null;this.src='../assets/vendor/chart.umd.min.js'"></script>
+    <script src="/assets/vendor/purify.min.js" onerror="this.onerror=null;this.src='../assets/vendor/purify.min.js'"></script>
+    <script>
+        // Early defensive stubs: Prevent uncaught ReferenceError if script loading or user clicks happen before full JS execution
+        if (typeof window.showPanel !== 'function') {
+            window.showPanel = function(id, btn) {
+                console.warn('[Admin] Early showPanel stub invoked for:', id);
+                document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+                const target = document.getElementById('panel-' + id);
+                if (target) target.classList.add('active');
+                document.querySelectorAll('.side-nav a, .sidebar-link').forEach(l => l.classList.remove('active'));
+                if (btn) btn.classList.add('active');
+            };
+        }
+        if (typeof window.openAddProductModal !== 'function') {
+            window.openAddProductModal = function() {
+                console.warn('[Admin] Early openAddProductModal stub invoked');
+                const m = document.getElementById('productModal') || document.getElementById('pm-modal');
+                if (m) m.classList.add('active');
+            };
+        }
         // Defensive polyfills: Prevent uncaught ReferenceError if script loading is blocked by tracking prevention / ad-blockers
         if (typeof window.DOMPurify === 'undefined') {
             window.DOMPurify = {
@@ -3255,8 +3281,8 @@
             hasRedirected = true;
 
             // Bounce guard: stop auto-redirecting after 3 bounces in this tab
-            const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
-            sessionStorage.setItem('admin_auth_bounces', String(bounces));
+            const bounces = parseInt(window.safeStore.get(sessionStorage, 'admin_auth_bounces') || '0', 10) + 1;
+            window.safeStore.set(sessionStorage, 'admin_auth_bounces', String(bounces));
             if (bounces > 3) {
                 const loaderText = document.getElementById('admin-loader-text');
                 if (loaderText) {
@@ -3278,7 +3304,7 @@
         let dashNullCallbackCount = 0;
 
         onAuthStateChanged(auth, async (user) => {
-            const cachedRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+            const cachedRole = window.safeStore.get(sessionStorage, 'kc_admin_role') || window.safeStore.get(localStorage, 'kc_admin_role');
 
             if (!user) {
                 dashNullCallbackCount++;
@@ -3299,7 +3325,7 @@
                 const graceMs = Math.min(1500 + (dashNullCallbackCount - 1) * 700, 3000);
 
                 dashAuthPendingTimer = setTimeout(() => {
-                    const curRole = sessionStorage.getItem('kc_admin_role') || localStorage.getItem('kc_admin_role');
+                    const curRole = window.safeStore.get(sessionStorage, 'kc_admin_role') || window.safeStore.get(localStorage, 'kc_admin_role');
                     if (!auth.currentUser && !curRole) {
                         safeRedirectToLogin("Session expired. Redirecting to login...");
                     }
@@ -3323,9 +3349,24 @@
                 console.log('[dashboard.html onAuthStateChanged]', { uid: user.uid, role });
                 const validRoles = ['owner', 'admin', 'manager', 'staff'];
 
+                if ((!role || !validRoles.includes(role.toLowerCase())) && RBAC.lastCheckInconclusive) {
+                    // Could not VERIFY the role (network / App Check / rules). This is not "access denied":
+                    // don't wipe the cache, don't sign out, don't bounce to login. Offer a retry instead.
+                    const spinner = document.querySelector('#admin-page-loader div[style*="animation:adminSpin"]');
+                    if (spinner) spinner.style.display = 'none';
+                    const lt = document.getElementById('admin-loader-text');
+                    if (lt) {
+                        lt.style.textAlign = 'center';
+                        lt.innerHTML = '<div style="font-weight:700;margin-bottom:8px">Could not verify your admin access</div>' +
+                            '<div style="font-size:0.9rem;opacity:.8;margin-bottom:12px">Network or security check (App Check) failed. This is not a permissions problem with your account.</div>' +
+                            '<button onclick="location.reload()" class="btn btn-outline btn-sm" style="border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);cursor:pointer;padding:6px 14px">Retry</button>';
+                    }
+                    return;
+                }
+
                 if (!role || !validRoles.includes(role.toLowerCase())) {
-                    sessionStorage.removeItem('kc_admin_role');
-                    localStorage.removeItem('kc_admin_role');
+                    window.safeStore.del(sessionStorage, 'kc_admin_role');
+                    window.safeStore.del(localStorage, 'kc_admin_role');
                     
                     const loaderText = document.getElementById('admin-loader-text');
                     const spinner = document.querySelector('#admin-page-loader div[style*="animation:adminSpin"]');
@@ -3347,23 +3388,24 @@
 
                 // Successful, non-redirecting dashboard load
                 console.log('[dashboard.html Auth PASSED] Access granted as', role);
-                sessionStorage.removeItem('admin_auth_bounces');
-
                 const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
-                sessionStorage.setItem('kc_admin_role', displayRole);
-                localStorage.setItem('kc_admin_role', displayRole);
                 window.RBAC = RBAC;
                 window.currentRole = displayRole;
-                RBAC.applyUI(displayRole);
-
-                const roleEl = document.getElementById('logged-in-role');
-                if (roleEl) roleEl.textContent = `Logged in as ${displayRole.toUpperCase()}`;
 
                 // Hide loader and show main layout FIRST so user stays on dashboard
                 const pageLoader = document.getElementById('admin-page-loader');
                 if (pageLoader) pageLoader.style.display = 'none';
                 const layout = document.getElementById('main-admin-layout');
                 if (layout) layout.style.display = 'flex';
+
+                window.safeStore.del(sessionStorage, 'admin_auth_bounces');
+                window.safeStore.set(sessionStorage, 'kc_admin_role', displayRole);
+                window.safeStore.set(localStorage, 'kc_admin_role', displayRole);
+
+                RBAC.applyUI(displayRole);
+
+                const roleEl = document.getElementById('logged-in-role');
+                if (roleEl) roleEl.textContent = `Logged in as ${displayRole.toUpperCase()}`;
 
                 // Load database content safely in background (isolated from auth failure)
                 try {
@@ -3374,37 +3416,32 @@
                     }
 
                     if (window.adminData && window.adminData.products) {
-                        adminProducts = window.adminData.products;
-                        window.adminProducts = adminProducts;
-                        ordersData = window.adminData.orders;
-                        window.ordersData = ordersData;
-                        videosMgmtData = window.adminData.videos;
+                        window.adminProducts = window.adminData.products || [];
+                        window.ordersData = window.adminData.orders || [];
+                        window.videosMgmtData = window.adminData.videos || [];
                         if (typeof updateDashboardStats === 'function') updateDashboardStats();
                         if (typeof renderRecentOrders === 'function') renderRecentOrders();
                         if (typeof renderLowStock === 'function') renderLowStock();
                         if (typeof initDashCharts === 'function') initDashCharts();
                         if (typeof updateDashCharts === 'function') updateDashCharts();
-                        const activeTheme = window.KC?.theme || localStorage.getItem('kc_theme') || 'normal';
+                        const activeTheme = window.KC?.theme || window.safeStore.get(localStorage, 'kc_theme') || 'normal';
                         if (activeTheme !== 'normal' && typeof previewTheme === 'function') previewTheme(activeTheme);
                         const themeLabel = document.getElementById('current-theme-label');
                         if (themeLabel) themeLabel.textContent = `Current: ${activeTheme.charAt(0).toUpperCase() + activeTheme.slice(1)}`;
                     }
                 } catch (dataErr) {
-                    console.error('Failed to load dashboard data from Firestore:', dataErr)
-                    if (window.Toast) Toast.warning('Data Loading Warning', 'Some dashboard data could not be fetched.');
+                    console.error('Failed to load dashboard data from Firestore:', dataErr);
+                    if (window.Toast && typeof window.Toast.warning === 'function') {
+                        window.Toast.warning('Data Loading Warning', 'Some dashboard data could not be fetched.');
+                    }
                 }
             } catch (err) {
-                console.error('[dashboard.html REDIRECT Path 4: Auth exception]', err);
-                sessionStorage.removeItem('kc_admin_role');
-                localStorage.removeItem('kc_admin_role');
-                try { await signOut(auth); } catch (_) { }
+                console.error('[dashboard.html Auth exception]', err);
                 const loaderText = document.getElementById('admin-loader-text');
-                if (loaderText) loaderText.textContent = "Authentication error. Redirecting...";
-                setTimeout(() => window.location.replace(getAdminLoginUrl()), 2000);
+                if (loaderText) loaderText.innerHTML = 'Authentication error. <a href="javascript:location.reload()" style="color:var(--gold)">Retry</a> or <a href="' + getAdminLoginUrl() + '" style="color:var(--gold)">go to login</a>.';
             }
         });
-    </script>
-    <script>
+
         // ---- Sidebar open / close (Bug 2 fix) ----
         (function () {
             function openSidebar() {
@@ -3731,7 +3768,8 @@
                 console.warn('[Toast not ready]', method, ...args);
             }
         });
-        function serverTimestamp() {
+        // Renamed to avoid duplicate identifier conflict with firebase-config.js module import
+        function _getServerTimestamp() {
             if (typeof window.serverTimestamp === 'function') return window.serverTimestamp();
             return new Date();
         }
@@ -3746,7 +3784,7 @@
 
         let adminProducts = [];
         let ordersData = [];
-        let videosMgmtData = [];
+        window.videosMgmtData = window.videosMgmtData || [];
         let editingProductId = null;
         let selectedTheme = 'normal';
 
@@ -5217,18 +5255,18 @@
         }
 
         function filterAdminVideos(status) {
-            const f = status === 'all' ? videosMgmtData : videosMgmtData.filter(v => v.status === status);
+            const f = status === 'all' ? window.videosMgmtData : window.videosMgmtData.filter(v => v.status === status);
             renderVideoMgmt(f);
         }
 
         async function approveVideo(id) {
             const success = await window.updateVideoStatus(id, 'approved');
             if (success) {
-                const v = videosMgmtData.find(x => x.id === id);
+                const v = window.videosMgmtData.find(x => x.id === id);
                 if (v) {
                     v.status = 'approved';
                     v.views = Math.floor(Math.random() * 500 + 50);
-                    renderVideoMgmt(videosMgmtData);
+                    renderVideoMgmt(window.videosMgmtData);
                     Toast.success('Video approved!', v.title);
                 }
             }
@@ -5236,14 +5274,11 @@
 
         async function removeVideo(id) {
             if (!confirm('Remove this video?')) return;
-            // Assuming we have a deleteVideo function or using generic delete
             try {
-                // For simplicity, using updateStatus to 'rejected' or similar if needed, 
-                // but usually we'd have a deleteDoc call.
-                const idx = videosMgmtData.findIndex(x => x.id === id);
+                const idx = window.videosMgmtData.findIndex(x => x.id === id);
                 if (idx > -1) {
-                    videosMgmtData.splice(idx, 1);
-                    renderVideoMgmt(videosMgmtData);
+                    window.videosMgmtData.splice(idx, 1);
+                    renderVideoMgmt(window.videosMgmtData);
                     Toast.info('Video removed');
                 }
             } catch (e) {
@@ -5252,7 +5287,7 @@
         }
 
         // ---- Theme ----
-        let previewThemeVal = window.KC?.theme || localStorage.getItem('kc_theme') || 'normal';
+        let previewThemeVal = window.KC?.theme || window.safeStore.get(localStorage, 'kc_theme') || 'normal';
         function previewTheme(t) {
             previewThemeVal = t;
             document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('selected'));
@@ -5677,8 +5712,8 @@
                 }
             } catch (e) { console.error('Signout error:', e); }
             // Clear all stored data to prevent data leakage
-            localStorage.clear();
-            sessionStorage.clear();
+            window.safeStore.clear(localStorage);
+            window.safeStore.clear(sessionStorage);
             const targetLogin = window.location.pathname.includes('/admin/') ? 'admin-login.html' : '/admin/admin-login.html';
             window.location.replace(targetLogin);
         };
@@ -6546,7 +6581,7 @@
             try {
                 // local apply
                 if (window.SeasonalTheme) window.SeasonalTheme.apply(selectedTheme);
-                localStorage.setItem('kc_theme', selectedTheme);
+                window.safeStore.set(localStorage, 'kc_theme', selectedTheme);
                 if (window.KC) window.KC.theme = selectedTheme;
 
                 // firebase apply (sync for all users)

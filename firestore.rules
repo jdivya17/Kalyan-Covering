@@ -39,10 +39,10 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isOwner());
       allow create: if isAuthenticated() && request.auth.uid == userId
                     && !('role' in request.resource.data);
-      allow update: if isAuthenticated() && (
-                      (request.auth.uid == userId
-                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-                      || isOwner());
+      allow update: if isOwner() || (
+                      isAuthenticated() && request.auth.uid == userId
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+                    );
       allow delete: if isOwner();
 
       match /addresses/{addressId} {
@@ -61,6 +61,48 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated();
       allow update, delete: if isStaff();
+    }
+
+    match /branches/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /config/social {
+      allow read: if true;
+    }
+    match /config/{docId} {
+      allow read: if isStaff();
+      allow write: if isOwner();
+    }
+
+    match /settings/{docId} {
+      allow read: if isStaff();
+      allow write: if isOwner();
+    }
+
+    match /videos/{id} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /stockAlerts/{id} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isStaff();
+    }
+    match /stock_alerts/{id} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isStaff();
+    }
+
+    match /audit_logs/{id} {
+      allow read, create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    match /invoices/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isStaff());
+      allow write: if isStaff();
     }
   }
 }

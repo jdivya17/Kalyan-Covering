@@ -13,6 +13,14 @@
     <link rel="stylesheet" href="../css/design-system.css">
     <link rel="stylesheet" href="../css/components.css">
     <link rel="stylesheet" href="../css/admin.css">
+    <script>
+      window.safeStore = {
+        get(s, k) { try { return s.getItem(k); } catch (e) { return null; } },
+        set(s, k, v) { try { s.setItem(k, v); } catch (e) { console.warn('[storage]', e.message); } },
+        del(s, k) { try { s.removeItem(k); } catch (e) {} },
+        clear(s) { try { s.clear(); } catch (e) {} }
+      };
+    </script>
     <style>
         body{background-color:var(--black);color:var(--white);font-family:var(--font-sans);display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;margin:0;padding:1.5rem 1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
         .login-container{background:var(--black-card);border:1px solid var(--black-border);border-radius:var(--radius-lg);padding:3rem 2.5rem;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.8),0 0 20px rgba(255,215,0,.1);position:relative;z-index:10;margin:auto}
@@ -149,50 +157,42 @@
             let currentMfaResolver = null;
             let currentMfaHint = null;
             let currentVerificationId = null; // Stores SMS verificationId for phone MFA
-
-            // ── Race-condition guard ──────────────────────────────────────────────────
-            // Set to true while a form submit is actively in progress so the
-            // onAuthStateChanged listener does NOT also call window.location.replace().
-            // The form submit handler owns the redirect for that login event.
-            // Reset to false on every failure / MFA branch (success doesn't need it
-            // because the page navigates away).
-            let formSubmitInProgress = false;
+            let submitting = false; // blocks the auto-redirect while the form handler is running
 
             function getDashboardUrl() {
                 return '/admin/dashboard.html';
             }
 
-            // ── Auto-redirect: only fires when the user already has a valid session
-            // and navigates directly to admin-login.html (bookmark / back-button).
-            // It must NOT fire while a form submission is actively in progress —
-            // that case is owned by the submit handler below.
-            onAuthStateChanged(auth, async (user) => {
-                if (!user) {
-                    sessionStorage.removeItem('admin_auth_bounces'); // no session = no loop possible
+            // Single, shared redirect helper so the auto-redirect and the submit handler
+            // can never both fire (previously each one incremented the bounce counter).
+            let redirecting = false;
+            function goToDashboard(displayRole) {
+                if (redirecting) return;
+                redirecting = true;
+                const bounces = parseInt(window.safeStore.get(sessionStorage, 'admin_auth_bounces') || '0', 10) + 1;
+                window.safeStore.set(sessionStorage, 'admin_auth_bounces', String(bounces));
+                if (bounces > 3) {
+                    redirecting = false;
+                    showError("Redirect loop detected. <a href='" + getDashboardUrl() + "' style='color:var(--gold)'>Open dashboard manually</a>");
+                    setLoading(false);
                     return;
                 }
-                if (formSubmitInProgress) return; // form submit handler owns this redirect
+                window.safeStore.set(sessionStorage, 'kc_admin_role', displayRole);
+                window.safeStore.set(localStorage, 'kc_admin_role', displayRole);
+                window.location.replace(getDashboardUrl());
+            }
+
+            // ── Auto-redirect: only when the role check gave a DEFINITE admin answer.
+            onAuthStateChanged(auth, async (user) => {
+                if (!user || submitting) return;
                 try {
                     const role = await RBAC.getUserRole(user);
-                    console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role });
+                    console.log('[admin-login.html onAuthStateChanged]', { uid: user.uid, role, inconclusive: RBAC.lastCheckInconclusive });
                     const validRoles = ['owner', 'admin', 'manager', 'staff'];
                     if (role && validRoles.includes(role.toLowerCase())) {
-                        // Bounce guard: stop auto-redirecting after 3 bounces in this tab
-                        const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
-                        sessionStorage.setItem('admin_auth_bounces', String(bounces));
-                        if (bounces > 3) {
-                            showError("Redirect loop detected. Please click here to go to the dashboard manually: <a href='" + getDashboardUrl() + "' style='color:var(--gold)'>" + getDashboardUrl() + "</a>");
-                            return;
-                        }
-
-                        const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
-                        sessionStorage.setItem('kc_admin_role', displayRole);
-                        localStorage.setItem('kc_admin_role', displayRole);
-                        window.location.replace(getDashboardUrl());
-                    } else {
-                        console.warn('[admin-login.html] Logged-in user is not an admin. Remaining on login page.');
-                        sessionStorage.removeItem('kc_admin_role');
-                        localStorage.removeItem('kc_admin_role');
+                        goToDashboard(role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase());
+                    } else if (RBAC.lastCheckInconclusive) {
+                        showError("Couldn't verify your admin access (network / security check). Please refresh and try again.");
                     }
                 } catch (e) {
                     console.warn("Auto-redirect check failed:", e);
@@ -214,13 +214,12 @@
                 setLoading(true);
 
                 if (!checkRateLimit()) {
+                    submitting = false;
                     setLoading(false);
                     return;
                 }
 
-                // Block the onAuthStateChanged listener from issuing a duplicate redirect
-                // for the auth-state change that signInWithEmailAndPassword is about to trigger.
-                formSubmitInProgress = true;
+                submitting = true;
 
                 try {
                     const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence;
@@ -235,18 +234,21 @@
                     const hasAdminRole = role && validRoles.includes(role.toLowerCase());
 
                     if (!hasAdminRole) {
-                        await signOut(auth);
-                        sessionStorage.removeItem('kc_admin_role');
-                        localStorage.removeItem('kc_admin_role');
-                        showError("This account does not have admin access yet. Contact an owner to grant your role.");
+                        if (RBAC.lastCheckInconclusive) {
+                            // Could not verify (App Check / network). Do NOT sign out silently.
+                            showError("Signed in, but we couldn't verify admin access (network / security check failed). Please try again in a moment.");
+                        } else {
+                            await signOut(auth);
+                            window.safeStore.del(sessionStorage, 'kc_admin_role');
+                            window.safeStore.del(localStorage, 'kc_admin_role');
+                            showError("This account does not have admin access yet. Contact an owner to grant your role.");
+                        }
+                        submitting = false;
                         setLoading(false);
-                        formSubmitInProgress = false;
                         return;
                     }
 
                     const displayRole = role.toLowerCase() === 'admin' ? 'owner' : role.toLowerCase();
-                    sessionStorage.setItem('kc_admin_role', displayRole);
-                    localStorage.setItem('kc_admin_role', displayRole);
 
                     // Sync user profile in Firestore if available
                     try {
@@ -263,23 +265,9 @@
                     clearAttempts();
                     showSuccess("Login successful. Redirecting to dashboard...");
 
-                    // Bounce guard: stop auto-redirecting after 3 bounces in this tab
-                    const bounces = parseInt(sessionStorage.getItem('admin_auth_bounces') || '0', 10) + 1;
-                    sessionStorage.setItem('admin_auth_bounces', String(bounces));
-                    if (bounces > 3) {
-                        showError("Redirect loop detected. Please click here to go to the dashboard manually: " + getDashboardUrl());
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 700 ms gives IndexedDB persistence enough time to flush the
-                    // newly-written session before the dashboard page loads and reads it.
-                    // (was 400 ms — bumped to reduce the persistence-write race window)
-                    setTimeout(() => {
-                        window.location.replace(getDashboardUrl());
-                    }, 700);
+                    setTimeout(() => goToDashboard(displayRole), 400);
                 } catch (error) {
-                    formSubmitInProgress = false;
+                    submitting = false;
                     setLoading(false);
 
                     if (error.code === 'auth/multi-factor-auth-required') {
@@ -370,6 +358,9 @@
                     await currentMfaResolver.resolveSignIn(multiFactorAssertion);
                     clearAttempts();
                     showSuccess("Verification successful. Redirecting...");
+                    const mfaUser = auth.currentUser;
+                    const mfaRole = mfaUser ? await RBAC.getUserRole(mfaUser) : null;
+                    if (mfaRole) goToDashboard(mfaRole.toLowerCase() === 'admin' ? 'owner' : mfaRole.toLowerCase());
                 } catch (err) {
                     mfaBtn.disabled = false;
                     mfaSpinner.style.display = 'none';
@@ -395,8 +386,8 @@
 
             const MAX_ATTEMPTS = 5;
             const LOCKOUT_MS = 30 * 60 * 1000;
-            let attempts = parseInt(sessionStorage.getItem('login_attempts') || '0');
-            let lockUntil = parseInt(sessionStorage.getItem('login_lock_until') || '0');
+            let attempts = parseInt(window.safeStore.get(sessionStorage, 'login_attempts') || '0');
+            let lockUntil = parseInt(window.safeStore.get(sessionStorage, 'login_lock_until') || '0');
 
             function checkRateLimit() {
                 if (Date.now() < lockUntil) {
@@ -409,18 +400,18 @@
 
             function recordFailedAttempt() {
                 attempts++;
-                sessionStorage.setItem('login_attempts', attempts);
+                window.safeStore.set(sessionStorage, 'login_attempts', attempts);
                 if (attempts >= MAX_ATTEMPTS) {
                     const lockTime = Date.now() + LOCKOUT_MS;
-                    sessionStorage.setItem('login_lock_until', lockTime);
+                    window.safeStore.set(sessionStorage, 'login_lock_until', lockTime);
                     attempts = 0;
-                    sessionStorage.setItem('login_attempts', '0');
+                    window.safeStore.set(sessionStorage, 'login_attempts', '0');
                 }
             }
 
             function clearAttempts() {
-                sessionStorage.removeItem('login_attempts');
-                sessionStorage.removeItem('login_lock_until');
+                window.safeStore.del(sessionStorage, 'login_attempts');
+                window.safeStore.del(sessionStorage, 'login_lock_until');
             }
 
             const forgotBtn = document.getElementById('forgot-btn');
@@ -454,7 +445,7 @@
 
             function showError(msg) {
                 const el = document.getElementById('error-message');
-                el.textContent = msg;
+                el.innerHTML = msg;
                 el.style.display = 'block';
             }
 

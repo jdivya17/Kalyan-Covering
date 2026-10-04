@@ -12,6 +12,7 @@ service firebase.storage {
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.role == 'owner' || 
+        request.auth.token.role == 'admin' || 
         request.auth.token.role == 'manager' || 
         request.auth.token.role == 'staff'
       );

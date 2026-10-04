@@ -6,9 +6,13 @@ admin.initializeApp({
     credential: admin.credential.cert(sa)
 });
 
-const email = process.argv[2] || "owner@kalyancovering.com";
-const role = process.argv[3] || "owner";
-const password = process.argv[4] || "Admin@123456";
+const email = process.argv[2];
+const role = (process.argv[3] || '').toLowerCase();
+const password = process.argv[4];
+if (!email || !['owner', 'manager', 'staff'].includes(role) || !password) {
+    console.error('Usage: node verifyAndSetAdmin.js <email> <owner|manager|staff> <password>');
+    process.exit(1);
+}
 
 async function makeAdmin(targetEmail, targetRole, targetPassword) {
     try {
@@ -26,7 +30,7 @@ async function makeAdmin(targetEmail, targetRole, targetPassword) {
                 console.log(`User not found, creating new account for ${targetEmail}...`);
                 user = await admin.auth().createUser({
                     email: targetEmail,
-                    password: targetPassword || 'Admin@123456',
+                    password: targetPassword,
                     emailVerified: true,
                     displayName: 'Store Owner'
                 });
@@ -56,8 +60,9 @@ async function makeAdmin(targetEmail, targetRole, targetPassword) {
         console.log("\n🎉 Admin account is ready to login!");
     } catch (err) {
         console.error("❌ Error:", err.message);
+        process.exitCode = 1;
     } finally {
-        process.exit(0);
+        process.exit(process.exitCode || 0);
     }
 }
 
