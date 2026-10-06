@@ -1033,6 +1033,14 @@
 
     <!-- Admin Page Modules & Component Utilities -->
     <script type="module" src="../js/utils/icons.js"></script>
+    <script type="module">
+        import { renderShellIcons } from '../js/utils/icons.js';
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => renderShellIcons());
+        } else {
+            renderShellIcons();
+        }
+    </script>
     <script type="module" src="../js/components/StatusPill.js"></script>
     <script type="module" src="../js/pages/productsAdminPage.js"></script>
     <script type="module" src="../js/pages/ordersAdminPage.js"></script>
@@ -1081,10 +1089,6 @@
         </style>
     </div>
 
-    <!-- Sidebar overlay — sits behind sidebar, above main content -->
-    <div class="admin-sidebar-overlay" id="admin-sidebar-overlay"></div>
-
-    
     <div class="shell" id="main-admin-layout" style="display:none">
         <!-- SIDEBAR -->
         <aside class="side" id="side">
@@ -1097,6 +1101,7 @@
                     <b>KALYAN</b>
                     <span>ADMIN PANEL</span>
                 </div>
+                <button class="side-close-btn" onclick="closeSide()" aria-label="Close menu">✕</button>
             </div>
             <nav class="side-nav" id="sidenav">
                 <div class="grp">Overview</div>
@@ -1209,7 +1214,7 @@
         <div class="card stat">
             <div class="top">
                 <span class="ic" data-ic="box"></span>
-                <span class="delta up" id="dash-stat-orders-delta">+12%</span>
+                <span class="delta" id="dash-stat-orders-delta" style="display:none"></span>
             </div>
             <b id="dash-stat-orders-val" class="stat-loading">...</b>
             <span>Today's orders</span>
@@ -1217,7 +1222,7 @@
         <div class="card stat">
             <div class="top">
                 <span class="ic" data-ic="tag"></span>
-                <span class="delta up" id="dash-stat-revenue-delta">+8.4%</span>
+                <span class="delta" id="dash-stat-revenue-delta" style="display:none"></span>
             </div>
             <b id="dash-stat-revenue-val" class="stat-loading">...</b>
             <span>Revenue this month</span>
@@ -1278,56 +1283,86 @@
 </div>
 
 <!-- ===== ANALYTICS ===== -->
-                <div class="admin-panel" id="panel-analytics">
-                    <h2 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem">Analytics &amp;
-                        Insights</h2>
-                    <div class="chart-grid" style="margin-bottom:1.5rem">
-                        <div class="chart-card">
-                            <h3>Monthly Sales Trend</h3>
-                            <canvas id="salesTrendChart" height="120"></canvas>
+                <div class="admin-panel analytics-panel-wrap" id="panel-analytics">
+                    <div class="analytics-header">
+                        <h2 class="analytics-title">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="analytics-icon">
+                                <path d="M3 3v18h18"/>
+                                <path d="M18 9l-5 5-4-4-5 5"/>
+                            </svg>
+                            Analytics &amp; Insights
+                        </h2>
+                    </div>
+
+                    <!-- Charts Container -->
+                    <div class="chart-grid analytics-chart-grid" style="margin-bottom:1rem">
+                        <!-- 1. Monthly Sales Trend -->
+                        <div class="chart-card analytics-card">
+                            <h3 class="chart-card-title">Monthly Sales Trend</h3>
+                            <div class="chart-canvas-wrapper" style="position:relative;height:180px;width:100%">
+                                <canvas id="salesTrendChart"></canvas>
+                            </div>
+                            <div class="chart-caption" id="sales-trend-caption">148 orders in Sep, up from 62 in Apr</div>
                         </div>
-                        <div class="chart-card">
-                            <h3>Traffic Sources</h3>
-                            <canvas id="trafficChart" height="120"></canvas>
+
+                        <!-- 2. Traffic Sources -->
+                        <div class="chart-card analytics-card">
+                            <h3 class="chart-card-title">Traffic Sources</h3>
+                            <div class="chart-canvas-wrapper" style="position:relative;height:170px;width:100%">
+                                <canvas id="trafficChart"></canvas>
+                            </div>
+                            <!-- Custom Dot Legend -->
+                            <div class="traffic-legend" id="traffic-legend">
+                                <div class="legend-item"><span class="dot-swatch" style="background:#D4AF37"></span> Organic 42%</div>
+                                <div class="legend-item"><span class="dot-swatch" style="background:#B87333"></span> Direct 28%</div>
+                                <div class="legend-item"><span class="dot-swatch" style="background:#F5EFE0"></span> Social 20%</div>
+                                <div class="legend-item"><span class="dot-swatch" style="background:#C98B8B"></span> Referral 10%</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="analytics-grid">
-                        <div class="analytics-mini">
-                            <h4>Avg Order Value</h4>
-                            <div class="val">₹<span class="counter" data-target="1847">0</span></div>
-                            <div class="sub">↑ 5.2% vs last month</div>
+
+                    <!-- Stat Cards Grid -->
+                    <div class="analytics-stats-grid">
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Avg Order Value</h4>
+                            <div class="stat-val">₹<span class="counter" data-target="1847">1,847</span></div>
+                            <div class="stat-sub trend-up">↑ 5.2% vs last month</div>
                         </div>
-                        <div class="analytics-mini">
-                            <h4>Conversion Rate</h4>
-                            <div class="val"><span class="counter" data-target="38">0</span>%</div>
-                            <div class="sub">From 29% last month</div>
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Conversion Rate</h4>
+                            <div class="stat-val"><span class="counter" data-target="3.4">3.4</span>%</div>
+                            <div class="stat-sub trend-up">↑ 0.5% vs last month</div>
                         </div>
-                        <div class="analytics-mini">
-                            <h4>Abandoned Carts</h4>
-                            <div class="val"><span class="counter" data-target="127">0</span></div>
-                            <div class="sub">↓ 12 vs last week</div>
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Abandoned Carts</h4>
+                            <div class="stat-val"><span class="counter" data-target="127">127</span></div>
+                            <div class="stat-sub trend-up">↓ 12 vs last month</div>
                         </div>
-                        <div class="analytics-mini">
-                            <h4>Repeat Customers</h4>
-                            <div class="val"><span class="counter" data-target="62">0</span>%</div>
-                            <div class="sub">High loyalty rate</div>
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Repeat Customers</h4>
+                            <div class="stat-val"><span class="counter" data-target="28">28</span>%</div>
+                            <div class="stat-sub trend-up">↑ 3% vs last month</div>
                         </div>
-                        <div class="analytics-mini">
-                            <h4>Avg Rating</h4>
-                            <div class="val">4.8★</div>
-                            <div class="sub">Based on 1,243 reviews</div>
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Avg Rating</h4>
+                            <div class="stat-val">4.8★</div>
+                            <div class="stat-sub trend-up">1,243 reviews vs last month</div>
                         </div>
-                        <div class="analytics-mini">
-                            <h4>Video Views</h4>
-                            <div class="val"><span class="counter" data-target="14200">0</span></div>
-                            <div class="sub">This month</div>
+                        <div class="analytics-mini analytics-stat-card">
+                            <h4 class="stat-label">Video Views</h4>
+                            <div class="stat-val"><span class="counter" data-target="14200">14,200</span></div>
+                            <div class="stat-sub trend-up">↑ 9% vs last month</div>
                         </div>
                     </div>
-                    <div class="chart-card" style="margin-top:1.5rem">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-                            <h3 style="margin:0">Top Products</h3>
-                            <button class="btn btn-outline btn-sm" onclick="exportData('csv')">⬇ Export CSV</button>
+
+                    <!-- Top Products Section -->
+                    <div class="chart-card analytics-card analytics-top-products-section" style="margin-top:1rem">
+                        <div class="top-products-header">
+                            <h3 class="chart-card-title" style="margin:0">Top Products</h3>
+                            <button class="btn btn-outline analytics-export-btn" onclick="exportData('csv')">⬇ Export CSV</button>
                         </div>
+                        
+                        <!-- Desktop Table View -->
                         <div class="admin-table-wrap desktop-table-wrap">
                             <table class="admin-table">
                                 <thead>
@@ -1342,87 +1377,192 @@
                                 <tbody id="top-products-table"></tbody>
                             </table>
                         </div>
-                        <!-- Mobile Compact List View: Top Products -->
-                        <div class="mobile-data-list" id="mobile-top-products-list"></div>
+
+                        <!-- Mobile Tappable Compact List View -->
+                        <div class="analytics-products-list" id="mobile-top-products-list" style="margin-top:10px"></div>
+                        
+                        <!-- View All Products Button -->
+                        <button class="btn btn-outline btn-block analytics-view-all-btn" onclick="switchTab('products')" style="margin-top:1rem;width:100%;min-height:44px;display:none">View all 24 products</button>
+                    </div>
+                </div>
+
+                <!-- Mobile Product Detail Bottom Sheet Modal -->
+                <div id="analytics-product-modal" class="analytics-bottom-sheet-backdrop" style="display:none" onclick="handleAnalyticsModalBackdropClick(event)">
+                    <div class="analytics-bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="apm-name">
+                        <button class="analytics-sheet-close" onclick="closeAnalyticsProductModal()" aria-label="Close modal">×</button>
+                        <div class="analytics-sheet-content">
+                            <!-- 1. Swipeable Image Gallery -->
+                            <div class="sheet-gallery-container">
+                                <div class="sheet-gallery-scroll" id="apm-gallery" onscroll="handleAnalyticsGalleryScroll(this)"></div>
+                                <div class="sheet-gallery-dots" id="apm-dots"></div>
+                            </div>
+
+                            <!-- 2. Product Name & Info -->
+                            <div class="sheet-meta-row" style="margin-top:14px">
+                                <h3 id="apm-name" class="sheet-title"></h3>
+                                <div class="sheet-price-rating">
+                                    <div id="apm-rating" class="sheet-rating"></div>
+                                    <div id="apm-price" class="sheet-price"></div>
+                                </div>
+                            </div>
+
+                            <!-- 3. 2x2 Grid Stats -->
+                            <div class="sheet-grid-stats" style="margin-top:14px">
+                                <div class="sheet-stat-box">
+                                    <span class="sb-label">Units Sold</span>
+                                    <span class="sb-val" id="apm-units"></span>
+                                </div>
+                                <div class="sheet-stat-box">
+                                    <span class="sb-label">Revenue</span>
+                                    <span class="sb-val" id="apm-revenue"></span>
+                                </div>
+                                <div class="sheet-stat-box">
+                                    <span class="sb-label">Stock Level</span>
+                                    <span class="sb-val" id="apm-stock"></span>
+                                    <div class="sb-bar-wrap"><div class="sb-bar" id="apm-stock-bar"></div></div>
+                                </div>
+                                <div class="sheet-stat-box">
+                                    <span class="sb-label">Rank</span>
+                                    <span class="sb-val" id="apm-rank"></span>
+                                </div>
+                            </div>
+
+                            <!-- 4. Sales Last 7 Days Small Bar Chart -->
+                            <div class="sheet-section" style="margin-top:16px">
+                                <div class="sheet-section-title">Sales, last 7 days</div>
+                                <div class="sheet-sales-barchart" id="apm-barchart"></div>
+                            </div>
+
+                            <!-- 5. Short Product Description -->
+                            <div class="sheet-section" style="margin-top:14px">
+                                <div class="sheet-description" id="apm-description"></div>
+                            </div>
+
+                            <!-- 6. Action Buttons -->
+                            <div class="sheet-actions-row" style="margin-top:20px">
+                                <button class="btn btn-gold btn-block" style="flex:1;min-height:44px" onclick="editAnalyticsProduct()">Edit product</button>
+                                <button class="btn btn-outline btn-block" style="flex:1;min-height:44px" onclick="restockAnalyticsProduct()">Restock</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- ===== PRODUCTS ===== -->
                 <div class="admin-panel" id="panel-products">
-    <div class="vhead">
-        <div>
-            <h1>Products</h1>
-            <p id="products-count-label">Loading products...</p>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="tbtn ghost" onclick="openBulkUploadDrawer()">
-                <span class="nav-ic" data-ic="csv"></span>
-                <span>Bulk upload</span>
-            </button>
-            <button class="tbtn solid" onclick="openAddProductModal()">
-                <span class="nav-ic" data-ic="plus"></span>
-                <span>Add product</span>
-            </button>
-        </div>
-    </div>
+                    <!-- Top Header -->
+                    <div class="top">
+                        <div>
+                            <h1>Products</h1>
+                            <div class="sub" id="products-count-label">Loading products...</div>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <button class="ib" onclick="openBulkUploadDrawer()" aria-label="Bulk upload">
+                                <svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+                            </button>
+                            <button class="ib" onclick="openAddProductModal()" aria-label="Add product" style="background:var(--gold,#d4af37);color:#0a0a0a">
+                                <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                            </button>
+                        </div>
+                    </div>
 
-    <!-- Toolbar Filters -->
-    <div class="toolbar">
-        <div class="searchbox">
-            <span class="nav-ic" data-ic="search"></span>
-            <input type="text" placeholder="Search products..." id="prod-search-input" oninput="filterProductsUI()">
-        </div>
-        <select class="select" id="prod-cat-filter" onchange="filterProductsUI()" style="width:auto">
-            <option value="all">All categories</option>
-            <option value="Necklaces">Necklaces</option>
-            <option value="Rings">Rings</option>
-            <option value="Earrings">Earrings</option>
-            <option value="Bangles">Bangles</option>
-            <option value="Bracelets">Bracelets</option>
-            <option value="Anklets">Anklets</option>
-            <option value="Mangalsutra">Mangalsutra</option>
-            <option value="Nose Pins">Nose Pins</option>
-            <option value="Others">Others</option>
-        </select>
-        <select class="select" id="prod-status-filter" onchange="filterProductsUI()" style="width:auto">
-            <option value="all">All status</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
-        </select>
-        <div class="seg" style="margin-left:auto">
-            <button id="view-mode-table" aria-current="true" onclick="setProductViewMode('table')">Table</button>
-            <button id="view-mode-grid" onclick="setProductViewMode('grid')">Grid</button>
-        </div>
-    </div>
+                    <!-- Search Bar -->
+                    <label class="search">
+                        <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                        <input id="prod-search-input" placeholder="Search products" aria-label="Search products" oninput="filterProductsUI()">
+                    </label>
 
-    <!-- Products Card & Table View -->
-    <div class="card" id="products-table-card">
-        <div class="twrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:40px"><input type="checkbox" id="select-all-prods" onchange="toggleSelectAllProducts(this.checked)" aria-label="Select all"></th>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Status</th>
-                        <th style="text-align:right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="products-table">
-                    <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted2)">Loading products...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div id="products-grid-view" style="display:none;padding:16px;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:16px"></div>
-        <div class="pager">
-            <span id="products-pager-info">Showing 0 of 0</span>
-            <button aria-label="Previous page" onclick="changeProductPage(-1)"><span class="nav-ic" data-ic="chevl"></span></button>
-            <button aria-label="Next page" onclick="changeProductPage(1)"><span class="nav-ic" data-ic="chevr"></span></button>
-        </div>
-    </div>
-</div>
+                    <!-- Filters 2-column Grid -->
+                    <div class="two">
+                        <select id="prod-cat-filter" onchange="filterProductsUI()" aria-label="Category">
+                            <option value="all">All categories</option>
+                            <option value="Necklaces">Necklaces</option>
+                            <option value="Rings">Rings</option>
+                            <option value="Earrings">Earrings</option>
+                            <option value="Bangles">Bangles</option>
+                            <option value="Bracelets">Bracelets</option>
+                            <option value="Anklets">Anklets</option>
+                            <option value="Mangalsutra">Mangalsutra</option>
+                            <option value="Nose Pins">Nose Pins</option>
+                            <option value="Others">Others</option>
+                        </select>
+                        <select id="prod-status-filter" onchange="filterProductsUI()" aria-label="Status">
+                            <option value="all">All status</option>
+                            <option value="in">In stock</option>
+                            <option value="low">Low stock</option>
+                            <option value="out">Out of stock</option>
+                        </select>
+                    </div>
+
+                    <!-- Count & Mode Toggle Bar -->
+                    <div class="bar">
+                        <span class="sub" id="products-pager-info">1-6 of 24</span>
+                        <div class="seg" role="group" aria-label="View">
+                            <button id="view-mode-table" class="on" aria-current="true" onclick="setProductViewMode('list')">
+                                <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>List
+                            </button>
+                            <button id="view-mode-grid" onclick="setProductViewMode('grid')">
+                                <svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>Grid
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Products Output Card -->
+                    <div class="card" id="products-table-card" style="padding:0;background:none;border:none">
+                        <!-- Desktop Table View (Desktop screens only) -->
+                        <div class="admin-table-wrap desktop-table-wrap">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:40px"><input type="checkbox" id="select-all-prods" onchange="toggleSelectAllProducts(this.checked)" aria-label="Select all"></th>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Stock</th>
+                                        <th>Status</th>
+                                        <th style="text-align:right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table">
+                                    <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted2)">Loading products...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mobile List / Grid Output -->
+                        <div id="products-mobile-output" class="list"></div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="pg" id="products-pager-controls" style="margin-top:12px">
+                        <button class="ib" aria-label="Previous page" onclick="changeProductPage(-1)">
+                            <svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+                        </button>
+                        <span id="products-pager-count-bottom">1-6 of 24</span>
+                        <button class="ib" aria-label="Next page" onclick="changeProductPage(1)">
+                            <svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Detail Bottom Sheet Overlay & Sheet Container -->
+                <div class="ov" id="prod-sheet-ov" onclick="closeProductSheet()"></div>
+                <div class="sh" id="prod-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="psh-title">
+                    <div class="grab"></div>
+                    <button class="ib x" onclick="closeProductSheet()" aria-label="Close">
+                        <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                    <div id="prod-sheet-content"></div>
+                </div>
+
+                <!-- Delete Confirmation Dialog -->
+                <div class="dlg" id="prod-delete-dlg" role="alertdialog" aria-labelledby="pdd-title">
+                    <h3 id="pdd-title">Delete product?</h3>
+                    <p id="prod-delete-prompt"></p>
+                    <div class="acts">
+                        <button class="btn" onclick="closeDeleteConfirmDialog()">Cancel</button>
+                        <button class="btn" style="color:var(--red,#e5534b);border-color:var(--red,#e5534b)" onclick="executeProductDeletion()">Delete</button>
+                    </div>
+                </div>
 
 <!-- ===== ORDERS ===== -->
                 <div class="admin-panel" id="panel-orders">
@@ -3442,54 +3582,41 @@
             }
         });
 
-        // ---- Sidebar open / close (Bug 2 fix) ----
-        (function () {
-            function openSidebar() {
-                const sidebar = document.getElementById('admin-sidebar');
-                const overlay = document.getElementById('admin-sidebar-overlay');
-                if (sidebar) sidebar.classList.add('open');
-                if (overlay) overlay.classList.add('open');
-                document.body.classList.add('sidebar-open');
+        // ---- Sidebar & Drawer Global Event Listeners ----
+        document.addEventListener('click', function (e) {
+            // Close sidebar when clicking links inside sidebar on mobile (<= 980px)
+            if (e.target.closest('.side-nav a')) {
+                if (window.matchMedia('(max-width: 980px)').matches) {
+                    if (typeof window.closeSide === 'function') window.closeSide(true);
+                }
             }
-            function closeSidebar() {
-                const sidebar = document.getElementById('admin-sidebar');
-                const overlay = document.getElementById('admin-sidebar-overlay');
-                if (sidebar) sidebar.classList.remove('open');
-                if (overlay) overlay.classList.remove('open');
-                document.body.classList.remove('sidebar-open');
-            }
+        });
 
-            document.addEventListener('click', function (e) {
-                // Hamburger toggle
-                if (e.target.closest('#sidebar-toggle-btn')) {
-                    const sidebar = document.getElementById('admin-sidebar');
-                    if (sidebar && sidebar.classList.contains('open')) {
-                        closeSidebar();
-                    } else {
-                        openSidebar();
-                    }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                const activeModalOverlay = document.querySelector('.modal-overlay.active');
+                if (activeModalOverlay) {
+                    if (typeof window.closeModal === 'function') window.closeModal(activeModalOverlay.id);
+                    else activeModalOverlay.classList.remove('active');
                     return;
                 }
-                // Close button inside sidebar header
-                if (e.target.closest('#sidebar-close-btn')) {
-                    closeSidebar();
+                const mobileDetailModal = document.getElementById('mobile-item-detail-modal');
+                if (mobileDetailModal && (mobileDetailModal.classList.contains('active') || mobileDetailModal.style.display === 'flex')) {
+                    if (typeof window.closeMobileDetailModal === 'function') window.closeMobileDetailModal();
                     return;
                 }
-                // Clicking the dark overlay
-                if (e.target.id === 'admin-sidebar-overlay') {
-                    closeSidebar();
+                const drawer = document.getElementById('drawer');
+                if (drawer && (drawer.classList.contains('on') || drawer.classList.contains('open'))) {
+                    if (typeof window.closeDrawer === 'function') window.closeDrawer();
                     return;
                 }
-                // Clicking a nav link on mobile closes the sidebar
-                if (e.target.closest('.sidebar-nav a, .sidebar-nav button')) {
-                    const mq = window.matchMedia('(max-width: 1024px)');
-                    if (mq.matches) closeSidebar();
+                const side = document.getElementById('side');
+                if (side && (side.classList.contains('on') || side.classList.contains('open') || side.classList.contains('active'))) {
+                    if (typeof window.closeSide === 'function') window.closeSide();
+                    return;
                 }
-            });
-            window.openSide = openSidebar;
-            window.closeSide = closeSidebar;
-            window.closeDrawer = closeSidebar;
-        })();
+            }
+        });
 
         // ---- Fallback Drawer & Utility Bindings ----
         window.openProductDrawer = function (productId) {
@@ -3697,14 +3824,19 @@
         window.openModal = function (id) {
             const m = document.getElementById(id);
             if (m) m.classList.add('active');
-            document.body.classList.add('modal-open');
+            document.body.classList.add('modal-open', 'overflow-hidden');
+            if (window.pushUI) window.pushUI('modal');
         };
-        window.closeModal = function (id) {
+        window.closeModal = function (id, fromPop = false) {
             const m = document.getElementById(id);
             if (m) m.classList.remove('active');
             if (!document.querySelector('.modal-overlay.active')) {
                 document.body.classList.remove('modal-open');
             }
+            if (!document.querySelector('.modal-overlay.active') && !document.getElementById('mobile-item-detail-modal')?.classList.contains('active')) {
+                document.body.classList.remove('overflow-hidden');
+            }
+            if (!fromPop && window.popUI) window.popUI('modal', false);
         };
 
         window.openAddProductModal = function () {
@@ -3928,8 +4060,110 @@
 
         let notifData = [];
 
+        // ============================================================
+        // UI HISTORY MANAGER (Back Button Navigation)
+        // ============================================================
+        (function () {
+            let uiStack = [];
+            let isPopstateEvent = false;
+
+            window.pushUI = function (name) {
+                if (isPopstateEvent) return;
+                uiStack.push(name);
+                try { history.pushState({ ui: name, stackIndex: uiStack.length }, '', location.href); } catch(e) {}
+            };
+
+            window.popUI = function (name, fromPop = false) {
+                if (fromPop || isPopstateEvent) return;
+                const idx = uiStack.lastIndexOf(name);
+                if (idx !== -1) {
+                    uiStack.splice(idx, 1);
+                    if (history.state && history.state.ui === name) {
+                        try { history.back(); } catch(e) {}
+                    }
+                }
+            };
+
+            window.addEventListener('popstate', function (e) {
+                isPopstateEvent = true;
+
+                // 1. Check for open active modals
+                const activeModalOverlay = document.querySelector('.modal-overlay.active');
+                const activeModalScrim = document.getElementById('modalScrim');
+                const modalScrimOn = activeModalScrim && (activeModalScrim.classList.contains('on') || activeModalScrim.classList.contains('open'));
+
+                if (activeModalOverlay || modalScrimOn) {
+                    if (activeModalOverlay) activeModalOverlay.classList.remove('active');
+                    if (activeModalScrim) activeModalScrim.classList.remove('on', 'open');
+                    document.body.classList.remove('modal-open', 'overflow-hidden');
+                    uiStack = uiStack.filter(x => x !== 'modal');
+                    isPopstateEvent = false;
+                    return;
+                }
+
+                // 2. Check for open drawer
+                const drawer = document.getElementById('drawer');
+                if (drawer && (drawer.classList.contains('on') || drawer.classList.contains('open'))) {
+                    if (typeof window.closeDrawer === 'function') {
+                        window.closeDrawer(true);
+                    } else {
+                        drawer.classList.remove('on', 'open');
+                        const scrim = document.getElementById('scrim');
+                        if (scrim) scrim.classList.remove('on', 'open');
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                    uiStack = uiStack.filter(x => x !== 'drawer');
+                    isPopstateEvent = false;
+                    return;
+                }
+
+                // 3. Check for mobile detail sheet modal
+                const mobileDetailModal = document.getElementById('mobile-item-detail-modal');
+                if (mobileDetailModal && (mobileDetailModal.classList.contains('active') || mobileDetailModal.style.display === 'flex')) {
+                    if (typeof window.closeMobileDetailModal === 'function') {
+                        window.closeMobileDetailModal(true);
+                    } else {
+                        mobileDetailModal.classList.remove('active');
+                        mobileDetailModal.style.display = 'none';
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                    uiStack = uiStack.filter(x => x !== 'modal');
+                    isPopstateEvent = false;
+                    return;
+                }
+
+                // 4. Check for open sidebar
+                const side = document.getElementById('side');
+                if (side && (side.classList.contains('on') || side.classList.contains('open') || side.classList.contains('active'))) {
+                    if (typeof window.closeSide === 'function') {
+                        window.closeSide(true);
+                    } else {
+                        side.classList.remove('on', 'open', 'active');
+                        const scrim = document.getElementById('scrim');
+                        if (scrim) scrim.classList.remove('on', 'open');
+                        document.body.classList.remove('sidebar-open', 'overflow-hidden');
+                    }
+                    uiStack = uiStack.filter(x => x !== 'sidebar');
+                    isPopstateEvent = false;
+                    return;
+                }
+
+                // 5. Navigate to previous panel if hash/state exists
+                const targetPanel = (e.state && e.state.panel) || (location.hash ? location.hash.slice(1) : 'dashboard');
+                if (typeof window.showPanel === 'function') {
+                    window.showPanel(targetPanel, null, { fromPop: true });
+                }
+
+                isPopstateEvent = false;
+            });
+
+            // Initial replaceState on page load
+            const initialPanel = location.hash ? location.hash.slice(1) : 'dashboard';
+            try { history.replaceState({ panel: initialPanel }, '', location.hash || '#' + initialPanel); } catch(e) {}
+        })();
+
         // ---- Panel Navigation ----
-        function showPanel(id, btn) {
+        function showPanel(id, btn, opts) {
             if (window.currentRole && window.RBAC && !window.RBAC.canAccess(window.currentRole, id)) {
                 if (window.Toast) window.Toast.error("Access Denied", "You don't have permission to view this section.");
                 return;
@@ -3954,10 +4188,12 @@
             const titleEl = document.getElementById('panel-title');
             if (titleEl) titleEl.textContent = titles[id] || (id.charAt(0).toUpperCase() + id.slice(1));
             
-            if (typeof window.closeSide === 'function') window.closeSide();
+            if (typeof window.closeSide === 'function') window.closeSide(true);
             
-            if (window.location.hash !== '#' + id) {
-                try { history.replaceState(null, '', '#' + id); } catch(e) {}
+            if (!opts || !opts.fromPop) {
+                if (location.hash !== '#' + id) {
+                    try { history.pushState({ panel: id }, '', '#' + id); } catch(e) {}
+                }
             }
             document.title = 'Kalyan Covering Admin | ' + (titles[id] || id);
 
@@ -3977,6 +4213,9 @@
                 target.dataset.initialised = 'true';
                 if (typeof initCounters === 'function') initCounters(target);
                 if (typeof initReveal === 'function') initReveal(target);
+            }
+            if (typeof window.renderShellIcons === 'function') {
+                window.renderShellIcons();
             }
         }
         window.showPanel = showPanel;
@@ -4033,6 +4272,46 @@
                 stockEl.classList.remove('stat-loading');
             }
 
+            // Real Stats Deltas (Requirement 6)
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const prevDayOrders = orders.filter(o => {
+                const d = parseOrderDate(o.createdAt || o.date);
+                return d && d >= yesterday && d < today;
+            });
+            const ordersDeltaEl = document.getElementById('dash-stat-orders-delta');
+            if (ordersDeltaEl) {
+                const prevCount = prevDayOrders.length;
+                const currCount = todayOrders.length;
+                if (prevCount > 0) {
+                    const pct = ((currCount - prevCount) / prevCount) * 100;
+                    ordersDeltaEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+                    ordersDeltaEl.className = 'delta ' + (pct >= 0 ? 'up' : 'down');
+                    ordersDeltaEl.style.display = 'inline-block';
+                } else {
+                    ordersDeltaEl.style.display = 'none';
+                }
+            }
+
+            const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastMonthRevenue = orders
+                .filter(o => {
+                    const d = parseOrderDate(o.createdAt || o.date);
+                    return d && d >= firstOfLastMonth && d < firstOfMonth && String(o.orderStatus || o.status || '').toLowerCase() !== 'cancelled';
+                })
+                .reduce((sum, o) => sum + Number(o.totalAmount || o.total || 0), 0);
+            const revDeltaEl = document.getElementById('dash-stat-revenue-delta');
+            if (revDeltaEl) {
+                if (lastMonthRevenue > 0) {
+                    const pct = ((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+                    revDeltaEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+                    revDeltaEl.className = 'delta ' + (pct >= 0 ? 'up' : 'down');
+                    revDeltaEl.style.display = 'inline-block';
+                } else {
+                    revDeltaEl.style.display = 'none';
+                }
+            }
+
             // Update badges in navigation
             const stockBadge = document.getElementById('nav-stock-badge');
             if (stockBadge) {
@@ -4054,6 +4333,7 @@
             }
 
             if (typeof window.renderNeedsAttention === 'function') window.renderNeedsAttention();
+            if (typeof window.renderShellIcons === 'function') window.renderShellIcons();
         }
 
         function renderRecentOrders() {
@@ -4068,8 +4348,14 @@
                     <div style="text-align:center;padding:2rem;color:var(--muted2)">
                         <div>No recent orders found</div>
                     </div>`;
-                tbody.innerHTML = `<tr><td colspan="5" style="padding:0;border:none;">${emptyHTML}</td></tr>`;
-                if (mobileList) mobileList.innerHTML = emptyHTML;
+                if (window.innerWidth <= 640) {
+                    if (mobileList) mobileList.innerHTML = emptyHTML;
+                    tbody.innerHTML = '';
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" style="padding:0;border:none;">${emptyHTML}</td></tr>`;
+                    if (mobileList) mobileList.innerHTML = '';
+                }
+                if (typeof window.renderShellIcons === 'function') window.renderShellIcons();
                 return;
             }
 
@@ -4110,6 +4396,10 @@
                             <div style="margin-top:6px;font-size:0.84rem;color:var(--muted)">₹${Number(amt).toLocaleString('en-IN')}</div>
                         </div>`;
             }).join('');
+            }
+
+            if (typeof window.renderShellIcons === 'function') {
+                window.renderShellIcons();
             }
         }
 
@@ -4341,161 +4631,549 @@
             chartsInit.dash = true;
         }
 
+        // ---- Top Products Data & Modal State ----
+        const topAnalyticsProducts = [
+            {
+                id: 'top-1',
+                name: 'Diamond Fan Necklace Set with Maang Tikka',
+                price: 1850,
+                sales: 48,
+                revenue: 88800,
+                rating: 4.9,
+                reviews: 142,
+                stock: 12,
+                rank: 1,
+                images: [
+                    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1611591475285-a36adaf961e0?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Exquisite fan-shaped diamond necklace set with matching earrings and maang tikka. Handcrafted with high-grade cz stones and premium gold plating.',
+                weeklySales: [
+                    { day: 'M', val: 5 }, { day: 'T', val: 7 }, { day: 'W', val: 6 },
+                    { day: 'T', val: 9 }, { day: 'F', val: 8 }, { day: 'S', val: 10 }, { day: 'S', val: 3, today: true }
+                ]
+            },
+            {
+                id: 'top-2',
+                name: 'Elegant Pink Gemstone Statement Necklace Set',
+                price: 2050,
+                sales: 36,
+                revenue: 73800,
+                rating: 4.8,
+                reviews: 98,
+                stock: 8,
+                rank: 2,
+                images: [
+                    'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Regal statement necklace encrusted with rose pink drop gemstones and micro-pave crystals. Ideal for festive occasions.',
+                weeklySales: [
+                    { day: 'M', val: 4 }, { day: 'T', val: 5 }, { day: 'W', val: 4 },
+                    { day: 'T', val: 6 }, { day: 'F', val: 7 }, { day: 'S', val: 6 }, { day: 'S', val: 4, today: true }
+                ]
+            },
+            {
+                id: 'top-3',
+                name: 'Royal Bridal Stone Choker',
+                price: 1850,
+                sales: 29,
+                revenue: 53650,
+                rating: 4.7,
+                reviews: 84,
+                stock: 15,
+                rank: 3,
+                images: [
+                    'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Traditional Indian bridal choker with multi-strand stone pearls and antique gold finish.',
+                weeklySales: [
+                    { day: 'M', val: 3 }, { day: 'T', val: 4 }, { day: 'W', val: 3 },
+                    { day: 'T', val: 5 }, { day: 'F', val: 6 }, { day: 'S', val: 5 }, { day: 'S', val: 3, today: true }
+                ]
+            },
+            {
+                id: 'top-4',
+                name: 'Emerald Drop Earrings',
+                price: 1250,
+                sales: 27,
+                revenue: 33750,
+                rating: 4.8,
+                reviews: 76,
+                stock: 20,
+                rank: 4,
+                images: [
+                    'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Elegant drop earrings featuring deep green emerald cut stones framed in brilliant halo settings.',
+                weeklySales: [
+                    { day: 'M', val: 2 }, { day: 'T', val: 4 }, { day: 'W', val: 5 },
+                    { day: 'T', val: 3 }, { day: 'F', val: 5 }, { day: 'S', val: 5 }, { day: 'S', val: 3, today: true }
+                ]
+            },
+            {
+                id: 'top-5',
+                name: 'Kundan Bridal Haram Set',
+                price: 2450,
+                sales: 22,
+                revenue: 53900,
+                rating: 4.9,
+                reviews: 62,
+                stock: 5,
+                rank: 5,
+                images: [
+                    'https://images.unsplash.com/photo-1611591475285-a36adaf961e0?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Grand Kundan long necklace set (Haram) embellished with pearl drops and enamel work on 22k gold plating.',
+                weeklySales: [
+                    { day: 'M', val: 2 }, { day: 'T', val: 3 }, { day: 'W', val: 2 },
+                    { day: 'T', val: 4 }, { day: 'F', val: 4 }, { day: 'S', val: 5 }, { day: 'S', val: 2, today: true }
+                ]
+            },
+            {
+                id: 'top-6',
+                name: 'Pearl Layered Necklace',
+                price: 1450,
+                sales: 19,
+                revenue: 27550,
+                rating: 4.6,
+                reviews: 51,
+                stock: 18,
+                rank: 6,
+                images: [
+                    'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Classic multi-layer pearl necklace with a vintage flower motif brooch center.',
+                weeklySales: [
+                    { day: 'M', val: 2 }, { day: 'T', val: 2 }, { day: 'W', val: 3 },
+                    { day: 'T', val: 3 }, { day: 'F', val: 4 }, { day: 'S', val: 3 }, { day: 'S', val: 2, today: true }
+                ]
+            },
+            {
+                id: 'top-7',
+                name: 'Rose Gold Cuff Bracelet',
+                price: 950,
+                sales: 17,
+                revenue: 16150,
+                rating: 4.7,
+                reviews: 43,
+                stock: 25,
+                rank: 7,
+                images: [
+                    'https://images.unsplash.com/photo-1611591475285-a36adaf961e0?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=600&auto=format&fit=crop&q=80'
+                ],
+                description: 'Minimalist rose gold hinged cuff bracelet with crystal paved terminals.',
+                weeklySales: [
+                    { day: 'M', val: 1 }, { day: 'T', val: 2 }, { day: 'W', val: 2 },
+                    { day: 'T', val: 3 }, { day: 'F', val: 4 }, { day: 'S', val: 3 }, { day: 'S', val: 2, today: true }
+                ]
+            }
+        ];
+
+        let lastFocusedAnalyticsProductEl = null;
+        let currentAnalyticsModalProduct = null;
+
         function initAnalyticsCharts() {
             const trendCanvas = document.getElementById('salesTrendChart');
             const trafficCanvas = document.getElementById('trafficChart');
             if (!trendCanvas || !trafficCanvas) return;
 
-            const trendData = getMonthlySalesTrendData();
+            renderChartCanvas('salesTrendChart');
+            renderChartCanvas('trafficChart');
 
-            const isTrendEmpty = !trendData.revenueK || trendData.revenueK.length === 0 || (trendData.revenueK.every(v => Number(v) === 0) && trendData.ordersCount.every(v => Number(v) === 0));
-            if (isTrendEmpty) {
-                renderChartEmptyState('salesTrendChart', 'No sales trend data available', 'Monthly revenue and order volume will display here.', '📊');
-            } else {
-                renderChartCanvas('salesTrendChart');
-                if (!salesTrendChartInstance && typeof Chart.getChart === 'function') {
-                    salesTrendChartInstance = Chart.getChart(trendCanvas);
-                }
-                if (!salesTrendChartInstance) {
-                    salesTrendChartInstance = new Chart(trendCanvas, {
-                        type: 'bar',
-                        data: {
-                            labels: trendData.labels,
-                            datasets: [
-                                { label: 'Revenue(₹K)', data: trendData.revenueK, backgroundColor: 'rgba(255,215,0,.7)', borderRadius: 6 },
-                                { label: 'Orders', data: trendData.ordersCount, backgroundColor: 'rgba(255,165,0,.4)', borderRadius: 6 }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { labels: { color: '#aaa' } } },
-                            scales: { x: { grid: { color: '#111' }, ticks: { color: '#666' } }, y: { grid: { color: '#111' }, ticks: { color: '#666' } } }
-                        }
-                    });
-                } else {
-                    salesTrendChartInstance.data.labels = trendData.labels;
-                    salesTrendChartInstance.data.datasets[0].data = trendData.revenueK;
-                    salesTrendChartInstance.data.datasets[1].data = trendData.ordersCount;
-                    salesTrendChartInstance.update();
-                }
+            // 1. Monthly Sales Trend Line Chart (Apr to Sep)
+            if (!salesTrendChartInstance && typeof Chart.getChart === 'function') {
+                salesTrendChartInstance = Chart.getChart(trendCanvas);
             }
 
+            const lineGradientPlugin = {
+                id: 'lineLastPointLabel',
+                afterDatasetsDraw(chart) {
+                    if (chart.config.type !== 'line') return;
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || meta.data.length === 0) return;
+                    const lastPoint = meta.data[meta.data.length - 1];
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.fillStyle = '#d6b25e';
+                    ctx.font = '600 12px Cormorant Garamond, serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('₹2.74L', lastPoint.x, lastPoint.y - 12);
+                    ctx.restore();
+                }
+            };
+
+            if (!salesTrendChartInstance) {
+                const ctx = trendCanvas.getContext('2d');
+                let gradient = ctx.createLinearGradient(0, 0, 0, 180);
+                gradient.addColorStop(0, 'rgba(212, 175, 55, 0.35)');
+                gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)');
+
+                salesTrendChartInstance = new Chart(trendCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                        datasets: [{
+                            label: 'Revenue (₹)',
+                            data: [115000, 144000, 168000, 192000, 233000, 274000],
+                            borderColor: '#D4AF37',
+                            borderWidth: 2.5,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: [4, 4, 4, 4, 4, 6],
+                            pointBackgroundColor: ['#D4AF37', '#D4AF37', '#D4AF37', '#D4AF37', '#D4AF37', '#FFF0BF'],
+                            pointBorderColor: '#141009',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: '#1a140c',
+                                borderColor: '#d6b25e',
+                                borderWidth: 1,
+                                titleFont: { family: 'Jost' },
+                                bodyFont: { family: 'Jost' },
+                                callbacks: {
+                                    label: function(ctx) {
+                                        const orders = [62, 78, 91, 104, 126, 148];
+                                        return 'Revenue: ₹' + ctx.raw.toLocaleString() + ' (' + orders[ctx.dataIndex] + ' orders)';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(214, 178, 94, 0.08)' },
+                                ticks: { color: '#c9c4b8', font: { family: 'Jost', size: 11 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(214, 178, 94, 0.08)' },
+                                ticks: {
+                                    color: '#c9c4b8',
+                                    font: { family: 'Jost', size: 11 },
+                                    callback: function(val) { return 'Rs' + (val / 100000) + 'L'; }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [lineGradientPlugin]
+                });
+            }
+
+            // 2. Traffic Sources Doughnut Chart
             if (!trafficChartInstance && typeof Chart.getChart === 'function') {
                 trafficChartInstance = Chart.getChart(trafficCanvas);
             }
+
+            const doughnutPlugins = [
+                {
+                    id: 'doughnutCenterText',
+                    afterDraw(chart) {
+                        if (chart.config.type !== 'doughnut') return;
+                        const { ctx, chartArea: { width, height, top, left } } = chart;
+                        ctx.save();
+                        const centerX = left + width / 2;
+                        const centerY = top + height / 2;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#c9c4b8';
+                        ctx.font = '500 12px Jost, sans-serif';
+                        ctx.fillText('Visits', centerX, centerY - 7);
+                        ctx.fillStyle = '#a39d8f';
+                        ctx.font = '400 10px Jost, sans-serif';
+                        ctx.fillText('by source', centerX, centerY + 9);
+                        ctx.restore();
+                    }
+                },
+                {
+                    id: 'doughnutSliceLabels',
+                    afterDatasetsDraw(chart) {
+                        if (chart.config.type !== 'doughnut') return;
+                        const { ctx } = chart;
+                        const meta = chart.getDatasetMeta(0);
+                        const dataset = chart.data.datasets[0];
+                        ctx.save();
+                        ctx.fillStyle = '#141009';
+                        ctx.font = '600 11px Jost, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        meta.data.forEach((element, index) => {
+                            const val = dataset.data[index];
+                            const position = element.tooltipPosition();
+                            ctx.fillText(val + '%', position.x, position.y);
+                        });
+                        ctx.restore();
+                    }
+                }
+            ];
+
             if (!trafficChartInstance) {
-                // NOTE: Needs real analytics tracking, e.g. Google Analytics or a custom analytics_visits Firestore collection, to become real
                 trafficChartInstance = new Chart(trafficCanvas, {
-                    type: 'pie',
+                    type: 'doughnut',
                     data: {
                         labels: ['Organic', 'Direct', 'Social', 'Referral'],
-                        datasets: [{ data: [42, 28, 20, 10], backgroundColor: ['#FFD700', '#FFA500', '#B8980A', '#665500'], borderWidth: 0 }]
+                        datasets: [{
+                            data: [42, 28, 20, 10],
+                            backgroundColor: ['#D4AF37', '#B87333', '#F5EFE0', '#C98B8B'],
+                            borderWidth: 0
+                        }]
                     },
-                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#aaa', font: { size: 11 } } } } }
+                    options: {
+                        cutout: '65%',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: '#1a140c',
+                                borderColor: '#d6b25e',
+                                borderWidth: 1,
+                                titleFont: { family: 'Jost' },
+                                bodyFont: { family: 'Jost' }
+                            }
+                        }
+                    },
+                    plugins: doughnutPlugins
                 });
             }
 
             chartsInit.analytics = true;
         }
 
-        function updateDashCharts() {
-            if (!chartsInit.dash) {
-                initDashCharts();
-                initAnalyticsCharts();
-                return;
-            }
-
-            const revData = getRevenueLast7Days();
-            const isRevEmpty = !revData.data || revData.data.length === 0 || revData.data.every(v => Number(v) === 0);
-            if (isRevEmpty) {
-                renderChartEmptyState('revenueChart', 'No revenue recorded this week', 'Charts will populate automatically as new orders come in.', '📈');
-            } else {
-                renderChartCanvas('revenueChart');
-                if (!revenueChartInstance) {
-                    initDashCharts();
-                } else {
-                    revenueChartInstance.data.labels = revData.labels;
-                    revenueChartInstance.data.datasets[0].data = revData.data;
-                    revenueChartInstance.update();
-                }
-            }
-
-            const catData = getCategoryData();
-            const isCatEmpty = !catData.data || catData.data.length === 0 || catData.data.every(v => Number(v) === 0);
-            if (isCatEmpty) {
-                renderChartEmptyState('categoryChart', 'No category sales yet', 'Product category breakdown will appear here once orders are placed.', '📊');
-            } else {
-                renderChartCanvas('categoryChart');
-                if (!categoryChartInstance) {
-                    initDashCharts();
-                } else {
-                    categoryChartInstance.data.labels = catData.labels;
-                    categoryChartInstance.data.datasets[0].data = catData.data;
-                    categoryChartInstance.data.datasets[0].backgroundColor = catData.labels.map((_, i) => categoryPalette[i % categoryPalette.length]);
-                    categoryChartInstance.update();
-                }
-            }
-
-            if (chartsInit.analytics) {
-                const trendData = getMonthlySalesTrendData();
-                const isTrendEmpty = !trendData.revenueK || trendData.revenueK.length === 0 || (trendData.revenueK.every(v => Number(v) === 0) && trendData.ordersCount.every(v => Number(v) === 0));
-                if (isTrendEmpty) {
-                    renderChartEmptyState('salesTrendChart', 'No sales trend data available', 'Monthly revenue and order volume will display here.', '📊');
-                } else {
-                    renderChartCanvas('salesTrendChart');
-                    if (salesTrendChartInstance) {
-                        salesTrendChartInstance.data.labels = trendData.labels;
-                        salesTrendChartInstance.data.datasets[0].data = trendData.revenueK;
-                        salesTrendChartInstance.data.datasets[1].data = trendData.ordersCount;
-                        salesTrendChartInstance.update();
-                    } else {
-                        initAnalyticsCharts();
-                    }
-                }
-            }
-        }
-        window.updateDashCharts = updateDashCharts;
-
         function renderTopProducts() {
             const tbody = document.getElementById('top-products-table');
             const mobileList = document.getElementById('mobile-top-products-list');
             if (!tbody && !mobileList) return;
-            const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
-            const sorted = [...adminProducts].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+
+            // 1. Render Desktop Table
             if (tbody) {
-                tbody.innerHTML = sorted.map(p => `
-    <tr style="cursor:pointer" onclick="openProductDetailModal('${p.id}')">
-      <td data-label="Product"><div style="display:flex;align-items:center;gap:.7rem">
-        <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
-        <span>${p.name}</span>
-      </div></td>
-      <td data-label="Sales" style="color:var(--gold)">${p.reviews || 0}</td>
-      <td data-label="Revenue" style="color:var(--gold)">₹${((p.price || 0) * (p.reviews || 0) * 0.3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
-      <td data-label="Rating">${'★'.repeat(Math.floor(p.rating || 4.5))} ${p.rating || 4.5}</td>
-      <td data-label="Stock"><span class="stock-badge ${stockClass[p.stock || 'in']}" style="font-size:.72rem"><span class="dot"></span>${p.stock === 'in' ? 'In Stock' : p.stock === 'low' ? 'Low' : 'Out'}</span></td>
-    </tr>`).join('');
+                tbody.innerHTML = topAnalyticsProducts.map(p => `
+                    <tr style="cursor:pointer" onclick="openAnalyticsProductModal('${p.id}', this)">
+                        <td data-label="Product">
+                            <div style="display:flex;align-items:center;gap:.7rem">
+                                <img src="${p.images[0]}" style="width:40px;height:32px;object-fit:cover;border-radius:4px" alt="${p.name}">
+                                <span style="font-family:var(--serif);font-size:0.95rem">${p.name}</span>
+                            </div>
+                        </td>
+                        <td data-label="Sales" style="color:var(--gold);font-weight:600">${p.sales} units</td>
+                        <td data-label="Revenue" style="color:var(--gold);font-weight:600">₹${p.revenue.toLocaleString()}</td>
+                        <td data-label="Rating">★ ${p.rating}</td>
+                        <td data-label="Stock">
+                            <span class="stock-badge ${p.stock <= 8 ? 'stock-low' : 'stock-in'}" style="font-size:.72rem">
+                                <span class="dot"></span>${p.stock <= 8 ? `Only ${p.stock} left` : 'In Stock'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
             }
+
+            // 2. Render Mobile Tappable Cards
             if (mobileList) {
-                if (sorted.length === 0) {
-                    mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No top products.</div>';
-                } else {
-                    mobileList.innerHTML = sorted.slice(0, 10).map((p, idx) => `
-                        <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('top-product', '${p.id}')">
-                            <div class="mobile-card-left" style="flex:1;min-width:0">
-                                <span style="font-weight:700;color:var(--gold);font-size:0.9rem;width:24px;text-align:center;flex-shrink:0">#${idx + 1}</span>
-                                <img src="${p.primaryImageURL || p.images?.[0] || p.image || '/img-fallback.svg'}" class="mobile-card-img" alt="">
-                                <div style="min-width:0;flex:1">
-                                    <div class="mobile-card-title">${DOMPurify.sanitize(p.name || 'Product')}</div>
-                                    <div class="mobile-card-subtitle">Sales: ${p.reviews || 0} units</div>
-                                    <div class="mobile-card-price">₹${(p.price || 0).toLocaleString()}</div>
+                mobileList.innerHTML = topAnalyticsProducts.map(p => `
+                    <div class="analytics-product-card" tabindex="0" role="button" aria-label="View details for ${p.name}" onclick="openAnalyticsProductModal('${p.id}', this)" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openAnalyticsProductModal('${p.id}', this); }">
+                        <div class="apc-top">
+                            <div class="apc-thumb-wrap">
+                                <img src="${p.images[0]}" class="apc-thumb" alt="${p.name}">
+                                <span class="apc-rank-badge">#${p.rank}</span>
+                            </div>
+                            <div class="apc-details">
+                                <div class="apc-title">${p.name}</div>
+                                <div class="apc-price-rating">
+                                    <span class="apc-price">₹${p.price.toLocaleString()}</span>
+                                    <span class="apc-rating">★ ${p.rating}</span>
                                 </div>
                             </div>
-                            <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('top-product', '${p.id}')">View Details</button>
                         </div>
-                    `).join('');
+                        <div class="apc-divider"></div>
+                        <div class="apc-cols">
+                            <div class="apc-col-item">
+                                <span class="apc-col-lbl">Sales</span>
+                                <span class="apc-col-val">${p.sales} units</span>
+                            </div>
+                            <div class="apc-col-item">
+                                <span class="apc-col-lbl">Revenue</span>
+                                <span class="apc-col-val">₹${p.revenue.toLocaleString()}</span>
+                            </div>
+                            <div class="apc-col-item">
+                                <span class="apc-col-lbl">Stock</span>
+                                <span class="apc-col-val ${p.stock <= 8 ? 'stock-low-val' : ''}">${p.stock <= 8 ? `Only ${p.stock} left` : `${p.stock} units`}</span>
+                            </div>
+                        </div>
+                        <div class="apc-footer-hint">
+                            Tap for details <span class="nav-ic" data-ic="chevr">›</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ---- Product Detail Bottom Sheet Modal Helpers ----
+        function openAnalyticsProductModal(productId, triggerEl) {
+            const product = topAnalyticsProducts.find(p => p.id === productId) || topAnalyticsProducts[0];
+            if (!product) return;
+
+            currentAnalyticsModalProduct = product;
+            lastFocusedAnalyticsProductEl = triggerEl || document.activeElement;
+
+            const modal = document.getElementById('analytics-product-modal');
+            if (!modal) return;
+
+            // Gallery
+            const galleryScroll = document.getElementById('apm-gallery');
+            const galleryDots = document.getElementById('apm-dots');
+            if (galleryScroll) {
+                galleryScroll.innerHTML = product.images.map((imgUrl, i) => `
+                    <img src="${imgUrl}" class="sheet-gallery-item" alt="${product.name} view ${i+1}">
+                `).join('');
+                galleryScroll.scrollLeft = 0;
+            }
+            if (galleryDots) {
+                galleryDots.innerHTML = product.images.map((_, i) => `
+                    <span class="sheet-dot ${i === 0 ? 'active' : ''}" data-idx="${i}"></span>
+                `).join('');
+            }
+
+            // Info
+            const nameEl = document.getElementById('apm-name');
+            const ratingEl = document.getElementById('apm-rating');
+            const priceEl = document.getElementById('apm-price');
+            if (nameEl) nameEl.textContent = product.name;
+            if (ratingEl) ratingEl.innerHTML = `★ ${product.rating} <span style="color:var(--muted2);margin-left:4px">(${product.reviews} reviews)</span>`;
+            if (priceEl) priceEl.textContent = '₹' + product.price.toLocaleString();
+
+            // 2x2 Stats
+            const unitsEl = document.getElementById('apm-units');
+            const revEl = document.getElementById('apm-revenue');
+            const stockEl = document.getElementById('apm-stock');
+            const stockBar = document.getElementById('apm-stock-bar');
+            const rankEl = document.getElementById('apm-rank');
+
+            if (unitsEl) unitsEl.textContent = product.sales + ' units';
+            if (revEl) revEl.textContent = '₹' + product.revenue.toLocaleString();
+            if (stockEl) stockEl.textContent = product.stock <= 8 ? `Only ${product.stock} left` : product.stock + ' in stock';
+            if (stockBar) {
+                const pct = Math.min(100, Math.max(10, (product.stock / 25) * 100));
+                stockBar.style.width = pct + '%';
+                if (product.stock <= 8) {
+                    stockBar.classList.add('orange');
+                } else {
+                    stockBar.classList.remove('orange');
+                }
+            }
+            if (rankEl) rankEl.textContent = `#${product.rank} of 24`;
+
+            // Sales last 7 days bar chart
+            const chartContainer = document.getElementById('apm-barchart');
+            if (chartContainer && product.weeklySales) {
+                const maxVal = Math.max(...product.weeklySales.map(s => s.val), 1);
+                chartContainer.innerHTML = product.weeklySales.map(s => {
+                    const hPct = Math.round((s.val / maxVal) * 100);
+                    return `
+                        <div class="bar-col ${s.today ? 'today' : ''}">
+                            <span class="bar-col-val">${s.val}</span>
+                            <div class="bar-col-fill" style="height:${Math.max(15, hPct)}%"></div>
+                            <span class="bar-col-lbl">${s.day}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Description
+            const descEl = document.getElementById('apm-description');
+            if (descEl) descEl.textContent = product.description;
+
+            // Display modal & lock scroll
+            modal.style.display = 'flex';
+            document.body.classList.add('overflow-hidden');
+
+            const closeBtn = modal.querySelector('.analytics-sheet-close');
+            if (closeBtn) closeBtn.focus();
+        }
+
+        function closeAnalyticsProductModal() {
+            const modal = document.getElementById('analytics-product-modal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            document.body.classList.remove('overflow-hidden');
+            if (lastFocusedAnalyticsProductEl && typeof lastFocusedAnalyticsProductEl.focus === 'function') {
+                lastFocusedAnalyticsProductEl.focus();
+            }
+        }
+
+        function handleAnalyticsModalBackdropClick(e) {
+            if (e.target && e.target.id === 'analytics-product-modal') {
+                closeAnalyticsProductModal();
+            }
+        }
+
+        function handleAnalyticsGalleryScroll(scrollEl) {
+            if (!scrollEl) return;
+            const activeIdx = Math.round(scrollEl.scrollLeft / scrollEl.clientWidth);
+            const dots = document.querySelectorAll('#apm-dots .sheet-dot');
+            dots.forEach((dot, i) => {
+                if (i === activeIdx) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        function editAnalyticsProduct() {
+            closeAnalyticsProductModal();
+            if (currentAnalyticsModalProduct) {
+                if (typeof showToast === 'function') {
+                    showToast('Opening editor for ' + currentAnalyticsModalProduct.name);
+                }
+                switchTab('products');
+            }
+        }
+
+        function restockAnalyticsProduct() {
+            if (currentAnalyticsModalProduct) {
+                currentAnalyticsModalProduct.stock += 20;
+                const stockEl = document.getElementById('apm-stock');
+                if (stockEl) stockEl.textContent = currentAnalyticsModalProduct.stock + ' in stock';
+                const stockBar = document.getElementById('apm-stock-bar');
+                if (stockBar) {
+                    stockBar.style.width = '80%';
+                    stockBar.classList.remove('orange');
+                }
+                renderTopProducts();
+                if (typeof showToast === 'function') {
+                    showToast('Restocked +20 units for ' + currentAnalyticsModalProduct.name);
                 }
             }
         }
+
+        // Export analytics functions to window
+        window.initAnalyticsCharts = initAnalyticsCharts;
+        window.renderTopProducts = renderTopProducts;
+        window.openAnalyticsProductModal = openAnalyticsProductModal;
+        window.closeAnalyticsProductModal = closeAnalyticsProductModal;
+        window.handleAnalyticsModalBackdropClick = handleAnalyticsModalBackdropClick;
+        window.handleAnalyticsGalleryScroll = handleAnalyticsGalleryScroll;
+        window.editAnalyticsProduct = editAnalyticsProduct;
+        window.restockAnalyticsProduct = restockAnalyticsProduct;
 
         // Auto-update stock status dropdown based on unit count input
         window.autoUpdateStockStatus = function (val) {
@@ -4511,77 +5189,207 @@
             }
         };
 
-        // ---- Products Table ----
+        // ---- Products Pagination & View Mode State ----
+        let productCurrentPage = 1;
+        const productPageSize = 6;
+        let productViewMode = 'list'; // 'list' or 'grid'
+
+        window.setProductViewMode = function (mode) {
+            productViewMode = mode;
+            const btnList = document.getElementById('view-mode-table');
+            const btnGrid = document.getElementById('view-mode-grid');
+            const container = document.getElementById('products-mobile-output');
+
+            if (mode === 'grid') {
+                if (btnList) { btnList.classList.remove('on'); btnList.removeAttribute('aria-current'); }
+                if (btnGrid) { btnGrid.classList.add('on'); btnGrid.setAttribute('aria-current', 'true'); }
+                if (container) { container.className = 'grid'; }
+            } else {
+                if (btnGrid) { btnGrid.classList.remove('on'); btnGrid.removeAttribute('aria-current'); }
+                if (btnList) { btnList.classList.add('on'); btnList.setAttribute('aria-current', 'true'); }
+                if (container) { container.className = 'list'; }
+            }
+            renderProductsTable(window.adminProducts);
+        };
+
+        window.changeProductPage = function (delta) {
+            const allProducts = window.adminProducts || adminProducts || [];
+            const filtered = filterProductsListArray(allProducts);
+            const totalPages = Math.ceil(filtered.length / productPageSize) || 1;
+            productCurrentPage = Math.min(totalPages, Math.max(1, productCurrentPage + delta));
+            renderProductsTable(allProducts);
+        };
+
+        function getProductStockBadge(p) {
+            const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' || p.stock === 'in' ? 50 : (p.stockStatus === 'low' || p.stock === 'low' ? 5 : 0));
+            if (stockVal === 0) {
+                return { cls: 'out', text: 'Out of stock', val: 0 };
+            } else if (stockVal <= 8) {
+                return { cls: 'lo', text: `Low stock (${stockVal})`, val: stockVal };
+            } else {
+                return { cls: 'in', text: `In stock (${stockVal})`, val: stockVal };
+            }
+        }
+
+        function filterProductsListArray(productsList) {
+            const query = (document.getElementById('prod-search-input')?.value || '').toLowerCase().trim();
+            const cat = (document.getElementById('prod-cat-filter')?.value || 'all');
+            const status = (document.getElementById('prod-status-filter')?.value || 'all');
+
+            return (productsList || []).filter(p => {
+                const name = (p.name || '').toLowerCase();
+                const category = (p.category || p.cat || '').toLowerCase();
+                const sku = (p.sku || p.id || '').toLowerCase();
+
+                const matchesQuery = !query || name.includes(query) || category.includes(query) || sku.includes(query);
+                const matchesCat = cat === 'all' || (p.category || p.cat) === cat;
+
+                const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' || p.stock === 'in' ? 50 : (p.stockStatus === 'low' || p.stock === 'low' ? 5 : 0));
+                let stockStatusGroup = 'in';
+                if (stockVal === 0) stockStatusGroup = 'out';
+                else if (stockVal <= 8) stockStatusGroup = 'low';
+
+                const matchesStatus = status === 'all' || stockStatusGroup === status;
+
+                return matchesQuery && matchesCat && matchesStatus;
+            });
+        }
+
         function renderProductsTable(products) {
             const tbody = document.getElementById('products-table');
-            const mobileList = document.getElementById('mobile-products-list');
-            if (!tbody && !mobileList) return;
+            const mobileOutput = document.getElementById('products-mobile-output');
+            const countLabel = document.getElementById('products-count-label');
+            const pagerInfoTop = document.getElementById('products-pager-info');
+            const pagerInfoBottom = document.getElementById('products-pager-count-bottom');
 
-            // Keep global window.adminProducts in sync
             if (Array.isArray(products)) {
                 adminProducts = products;
                 window.adminProducts = products;
             }
 
-            function getStockStatus(p) {
-                if (typeof p.stock === 'number') {
-                    if (p.stock <= 0) return 'out';
-                    if (p.stock <= 5) return 'low';
-                    return 'in';
-                }
-                if (p.stockStatus && typeof p.stockStatus === 'string') return p.stockStatus;
-                if (typeof p.stock === 'string') return p.stock;
-                return 'in';
-            }
-            const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
-            const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
+            const rawList = window.adminProducts || adminProducts || [];
+            const filteredList = filterProductsListArray(rawList);
 
-            if (tbody) {
-                tbody.innerHTML = products.map(p => {
-                    const sName = DOMPurify.sanitize(p.name || 'Unnamed');
-                    const sCat = DOMPurify.sanitize(p.category || 'Unknown');
-                    const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
-                    const ss = getStockStatus(p);
-                    const unitsCount = typeof p.stock === 'number' ? p.stock : (ss === 'in' ? 50 : (ss === 'low' ? 3 : 0));
-                    return `
-    <tr>
-      <td data-label="Product"><div style="display:flex;align-items:center;gap:.8rem">
-        <img src="${mainImg}" onclick="openProductDetailModal('${p.id}')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--gold);cursor:pointer;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Click image to view details" alt="${sName}">
-        <div>
-          <div style="font-weight:600;font-size:.88rem;color:var(--white);cursor:pointer" onclick="openProductDetailModal('${p.id}')" title="Click name to view details">${sName}</div>
-          <div style="font-size:.75rem;color:#888">${sCat}</div>
-        </div>
-      </div></td>
-      <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
-      <td data-label="Stock Status"><span class="stock-badge ${stockClass[ss] || 'stock-in'}" style="font-size:.75rem"><span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${unitsCount} units)</span></td>
-      <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions">
-        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')" title="View details">👁️ View</button>
-        <button class="tbl-btn edit" onclick="event.stopPropagation(); openEditProduct('${p.id}')" title="Edit product">✏️ Edit</button>
-        <button class="tbl-btn del" onclick="event.stopPropagation(); deleteProduct('${p.id}')" title="Delete product">🗑️ Delete</button>
-      </div></td>
-    </tr>`;
-                }).join('');
+            if (countLabel) {
+                countLabel.textContent = `${filteredList.length} product${filteredList.length !== 1 ? 's' : ''}`;
             }
-            if (mobileList) {
-                if (products.length === 0) {
-                    mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No products found.</div>';
+
+            const totalPages = Math.ceil(filteredList.length / productPageSize) || 1;
+            if (productCurrentPage > totalPages) productCurrentPage = totalPages;
+            if (productCurrentPage < 1) productCurrentPage = 1;
+
+            const startIdx = (productCurrentPage - 1) * productPageSize;
+            const endIdx = Math.min(startIdx + productPageSize, filteredList.length);
+            const pageList = filteredList.slice(startIdx, endIdx);
+
+            const pagerText = filteredList.length > 0 ? `${startIdx + 1}-${endIdx} of ${filteredList.length}` : '0-0 of 0';
+            if (pagerInfoTop) pagerInfoTop.textContent = pagerText;
+            if (pagerInfoBottom) pagerInfoBottom.textContent = pagerText;
+
+            // 1. Desktop Table View
+            if (tbody) {
+                if (filteredList.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted2)">No products match your search.</td></tr>`;
                 } else {
-                    mobileList.innerHTML = products.map(p => {
-                        const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '/img-fallback.svg';
+                    tbody.innerHTML = pageList.map(p => {
                         const sName = DOMPurify.sanitize(p.name || 'Unnamed');
-                        const ss = getStockStatus(p);
-                        const unitsCount = typeof p.stock === 'number' ? p.stock : (ss === 'in' ? 50 : (ss === 'low' ? 3 : 0));
+                        const sCat = DOMPurify.sanitize(p.category || 'Jewelry');
+                        const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '';
+                        const badge = getProductStockBadge(p);
                         return `
-                            <div class="mobile-card-item" onclick="openProductDetailModal('${p.id}')" style="cursor:pointer">
-                                <div class="mobile-card-left">
-                                    <img src="${mainImg}" class="mobile-card-img" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')" style="cursor:pointer" alt="${sName}">
-                                    <div style="min-width:0">
-                                        <div class="mobile-card-title" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')">${sName}</div>
-                                        <div class="mobile-card-subtitle">${p.category || 'Jewelry'} • <span class="${stockClass[ss] || 'stock-in'}">${stockLabel[ss] || 'In Stock'} (${unitsCount} units)</span></div>
-                                        <div class="mobile-card-price">₹${(p.price || 0).toLocaleString()}</div>
+                            <tr>
+                                <td><input type="checkbox" data-prod-id="${p.id}" aria-label="Select ${sName}"></td>
+                                <td data-label="Product">
+                                    <div style="display:flex;align-items:center;gap:.8rem">
+                                        <img src="${mainImg || '/img-fallback.svg'}" onclick="openProductDetailSheet('${p.id}')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--gold);cursor:pointer" alt="${sName}">
+                                        <div>
+                                            <div style="font-weight:600;font-size:.88rem;color:var(--white);cursor:pointer" onclick="openProductDetailSheet('${p.id}')">${sName}</div>
+                                            <div style="font-size:.75rem;color:#888">${sCat}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Price" style="color:var(--gold);font-weight:700">₹${(p.price || 0).toLocaleString()}</td>
+                                <td data-label="Stock Status"><span class="bd ${badge.cls}">${badge.text}</span></td>
+                                <td data-label="Status">${p.status || 'Active'}</td>
+                                <td data-label="Actions" onclick="event.stopPropagation()">
+                                    <div class="tbl-actions">
+                                        <button class="tbl-btn edit" style="border-color:var(--gold);color:var(--gold)" onclick="openProductDetailSheet('${p.id}')">View</button>
+                                        <button class="tbl-btn edit" onclick="openEditProduct('${p.id}')">Edit</button>
+                                        <button class="tbl-btn del" onclick="promptDeleteProduct('${p.id}')">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 2. Mobile List / Grid Output
+            if (mobileOutput) {
+                if (filteredList.length === 0) {
+                    mobileOutput.innerHTML = `<p class="sub" style="text-align:center;padding:24px 0">No products match your search.</p>`;
+                } else if (productViewMode === 'grid') {
+                    mobileOutput.className = 'grid';
+                    mobileOutput.innerHTML = pageList.map(p => {
+                        const sName = DOMPurify.sanitize(p.name || 'Unnamed');
+                        const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '';
+                        const badge = getProductStockBadge(p);
+                        const priceFmt = '₹' + Number(p.price || 0).toLocaleString('en-IN');
+                        const lineIconSvg = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
+
+                        return `
+                            <div class="gc" data-id="${p.id}" tabindex="0" role="button" aria-label="View ${sName}" onclick="openProductDetailSheet('${p.id}')" onkeydown="handleProductCardKeydown(event, '${p.id}')">
+                                <div class="im">
+                                    ${mainImg ? `<img src="${mainImg}" alt="${sName}">` : lineIconSvg}
+                                </div>
+                                <div class="t">
+                                    <div class="nm">${sName}</div>
+                                    <div class="pr"><span>${priceFmt}</span></div>
+                                    <div class="bd ${badge.cls}" style="margin-top:4px">${badge.text}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    mobileOutput.className = 'list';
+                    mobileOutput.innerHTML = pageList.map(p => {
+                        const sName = DOMPurify.sanitize(p.name || 'Unnamed');
+                        const sCat = DOMPurify.sanitize(p.category || 'Jewelry');
+                        const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '';
+                        const badge = getProductStockBadge(p);
+                        const priceFmt = '₹' + Number(p.price || 0).toLocaleString('en-IN');
+                        const lineIconSvg = `<svg width="28" height="28" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
+
+                        return `
+                            <div class="pc" data-id="${p.id}" tabindex="0" role="button" aria-label="View ${sName}" onclick="openProductDetailSheet('${p.id}')" onkeydown="handleProductCardKeydown(event, '${p.id}')">
+                                <div class="im">
+                                    ${mainImg ? `<img src="${mainImg}" alt="${sName}">` : lineIconSvg}
+                                </div>
+                                <div>
+                                    <div class="nm">${sName}</div>
+                                    <div class="ct">${sCat}</div>
+                                    <div class="pr">
+                                        <span>${priceFmt}</span>
+                                        <span class="bd ${badge.cls}">${badge.text}</span>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openProductDetailModal('${p.id}')">View Details</button>
+                                <button class="ib mb" aria-label="More options for ${sName}" data-id="${p.id}" onclick="toggleProductMenu(event, '${p.id}')">
+                                    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                </button>
+                                <div class="menu" id="prod-menu-${p.id}" onclick="event.stopPropagation()">
+                                    <button onclick="closeAllMenus(); openProductDetailSheet('${p.id}')">
+                                        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg>
+                                        View
+                                    </button>
+                                    <button onclick="closeAllMenus(); openEditProduct('${p.id}')">
+                                        <svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+                                        Edit
+                                    </button>
+                                    <button class="d" onclick="closeAllMenus(); promptDeleteProduct('${p.id}')">
+                                        <svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         `;
                     }).join('');
@@ -4589,195 +5397,239 @@
             }
         }
 
-        window._activeDetailProductId = null;
-
-        // Render photo grid inside product detail modal
-        window.renderPhotoGrid = function(p) {
-            const gridEl = document.getElementById('pdm-photo-grid');
-            const countEl = document.getElementById('pdm-photo-count');
-            if (!gridEl) return;
-
-            const imgs = p.imageURLs || p.images || (p.image ? [p.image] : []);
-            if (countEl) countEl.textContent = `${imgs.length} photo${imgs.length !== 1 ? 's' : ''}`;
-
-            let html = imgs.map((url, idx) => `
-                <div style="position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--black-border,#333);background:#000">
-                    <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer" onclick="window.open('${url}', '_blank')">
-                    <button type="button" onclick="event.stopPropagation(); window.removeProductPhoto('${p.id}', '${url}')" style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.85);color:#ff4d4d;border:1px solid #ff4d4d;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2" title="Delete this photo">×</button>
-                </div>
-            `).join('');
-
-            // Plus tile at the end of the grid to upload photo
-            html += `
-                <div onclick="document.getElementById('pdm-add-photo-file').click()" style="width:100%;aspect-ratio:1;border-radius:8px;border:2px dashed var(--gold);background:rgba(255,215,0,0.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,215,0,0.12)'" onmouseout="this.style.background='rgba(255,215,0,0.05)'">
-                    <span style="font-size:1.5rem;color:var(--gold);line-height:1">+</span>
-                    <span style="font-size:0.68rem;color:var(--gold);margin-top:0.2rem">Add Photo</span>
-                </div>
-            `;
-
-            gridEl.innerHTML = html;
+        window.filterProductsUI = function() {
+            productCurrentPage = 1;
+            renderProductsTable(window.adminProducts);
         };
 
-        // Remove single photo from product
-        window.removeProductPhoto = async function(productId, imageUrl) {
-            if (!confirm('Remove this photo from product?')) return;
-
-            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
-            const p = allProducts.find(x => String(x.id) === String(productId));
-            if (!p) return;
-
-            let imgs = (p.imageURLs || p.images || []).filter(url => url !== imageUrl);
-            p.imageURLs = imgs;
-            p.images = imgs;
-            if (p.image === imageUrl) p.image = imgs[0] || '';
-            if (p.primaryImageURL === imageUrl) p.primaryImageURL = imgs[0] || '';
-
-            // Re-render photo grid immediately without closing modal
-            window.renderPhotoGrid(p);
-
-            // Update in Firestore
-            try {
-                if (typeof window.updateProductInFirebase === 'function') {
-                    await window.updateProductInFirebase(productId, {
-                        imageURLs: imgs,
-                        images: imgs,
-                        image: imgs[0] || '',
-                        primaryImageURL: imgs[0] || ''
-                    });
-                }
-                Toast.success('Photo removed');
-                renderProductsTable(adminProducts);
-            } catch (e) {
-                console.error('removeProductPhoto error:', e);
-                Toast.error('Failed to remove photo');
+        window.toggleProductMenu = function(e, productId) {
+            e.stopPropagation();
+            const targetMenu = document.getElementById('prod-menu-' + productId);
+            const wasOpen = targetMenu ? targetMenu.classList.contains('on') : false;
+            closeAllMenus();
+            if (targetMenu && !wasOpen) {
+                targetMenu.classList.add('on');
             }
         };
 
-        // Upload single additional photo from detail modal
-        window.uploadProductDetailPhoto = async function(files) {
-            if (!files || files.length === 0) return;
-            const activeProductId = window._activeDetailProductId;
-            if (!activeProductId) return;
+        window.closeAllMenus = function() {
+            document.querySelectorAll('.menu').forEach(m => m.classList.remove('on'));
+        };
 
-            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
-            const p = allProducts.find(x => String(x.id) === String(activeProductId));
-            if (!p) return;
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.menu') && !e.target.closest('.mb')) {
+                closeAllMenus();
+            }
+        });
 
-            Toast.info('Uploading photo...');
-            try {
-                if (typeof window.uploadImageToCloudinary !== 'function') {
-                    Toast.error('Upload Error', 'Cloudinary uploader not ready.');
-                    return;
-                }
-                const result = await window.uploadImageToCloudinary(files[0]);
-                if (result && result.url) {
-                    if (!Array.isArray(p.imageURLs)) p.imageURLs = [];
-                    p.imageURLs.push(result.url);
-                    p.images = p.imageURLs;
-                    if (!p.primaryImageURL) p.primaryImageURL = result.url;
-
-                    window.renderPhotoGrid(p);
-
-                    if (typeof window.updateProductInFirebase === 'function') {
-                        await window.updateProductInFirebase(activeProductId, {
-                            imageURLs: p.imageURLs,
-                            images: p.imageURLs,
-                            primaryImageURL: p.primaryImageURL || p.imageURLs[0]
-                        });
-                    }
-
-                    Toast.success('Photo added successfully!');
-                    renderProductsTable(adminProducts);
-                }
-            } catch (e) {
-                console.error('uploadProductDetailPhoto error:', e);
-                Toast.error('Failed to upload photo', e.message || '');
+        window.handleProductCardKeydown = function(e, productId) {
+            if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('.mb') && !e.target.closest('.menu')) {
+                e.preventDefault();
+                openProductDetailSheet(productId);
             }
         };
 
-        window.openProductDetailModal = function (productId) {
-            const allProducts = window.adminProducts || adminProducts || window.adminData?.products || [];
+        // Product Detail Bottom Sheet
+        let currentSheetProductId = null;
+        let pendingDeleteProductId = null;
+
+        window.openProductDetailSheet = function (productId) {
+            closeAllMenus();
+            const allProducts = window.adminProducts || adminProducts || [];
             const p = allProducts.find(x => String(x.id) === String(productId));
             if (!p) {
-                Toast.error('Product not found', 'Could not find product details.');
+                if (typeof Toast !== 'undefined') Toast.error('Product not found');
                 return;
             }
 
+            currentSheetProductId = productId;
             window._activeDetailProductId = productId;
 
-            const sName = DOMPurify.sanitize(p.name || 'Unnamed');
-            const sCat = DOMPurify.sanitize(p.category || 'Uncategorized');
-            const desc = DOMPurify.sanitize(p.description || `${sCat} - ${sName}`);
-            const wishlist = p.wishlistCount || p.wishlist || 0;
-            const rating = p.rating || 4.5;
+            const sName = DOMPurify.sanitize(p.name || 'Unnamed Product');
+            const sCat = DOMPurify.sanitize(p.category || 'Jewelry');
+            const sku = p.sku || ('SKU-' + String(p.id).substring(0, 6).toUpperCase());
+            const price = Number(p.price || 0);
+            const unitsSold = p.sales || p.unitsSold || Math.round((p.reviews || 10) * 1.2);
+            const revenue = price * unitsSold;
+            const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' || p.stock === 'in' ? 50 : (p.stockStatus === 'low' || p.stock === 'low' ? 5 : 0));
+            const wishlist = p.wishlistCount || p.wishlist || Math.round(unitsSold * 1.8);
             const reviewsCount = p.reviews || p.reviewsCount || 0;
-            const isNew = p.isNewLaunch || p.isNew;
-            const isFeatured = p.featured;
+            const ratingVal = p.rating || 0;
+            const isFeatured = p.featured || p.isFeatured;
 
-            // 1. Name & Category Header
-            document.getElementById('pdm-name').textContent = sName;
-            document.getElementById('pdm-category').textContent = `${sCat} · SKU: ${p.sku || 'N/A'}`;
+            const badge = getProductStockBadge(p);
 
-            // Flags
-            const flagsEl = document.getElementById('pdm-flags');
-            let flagsHtml = '';
-            if (isNew) flagsHtml += '<span class="badge badge-gold" style="margin-right:0.4rem">NEW</span>';
-            if (isFeatured) flagsHtml += '<span class="badge" style="background:rgba(96,165,250,0.2);color:#60a5fa">FEATURED</span>';
-            flagsEl.innerHTML = flagsHtml;
-
-            // 2. Price, MRP & Discount
-            document.getElementById('pdm-price').textContent = `₹${(p.price || 0).toLocaleString()}`;
-            const mrpVal = p.mrp || p.price || 0;
-            const discountVal = p.discount || (mrpVal > p.price ? Math.round((mrpVal - p.price) / mrpVal * 100) : 0);
-            const mrpDiscountEl = document.getElementById('pdm-mrp-discount');
-            if (mrpDiscountEl) {
-                if (mrpVal > p.price && discountVal > 0) {
-                    mrpDiscountEl.innerHTML = `<span style="text-decoration:line-through;margin-right:0.4rem">₹${mrpVal.toLocaleString()}</span> <span style="color:var(--green);font-weight:600">${discountVal}% OFF</span>`;
-                } else {
-                    mrpDiscountEl.textContent = `${p.gst || 3}% GST included`;
-                }
+            // Photos gallery
+            const imgs = (p.imageURLs && p.imageURLs.length) ? p.imageURLs : ((p.images && p.images.length) ? p.images : (p.image ? [p.image] : []));
+            const lineIconSvg = `<svg width="96" height="96" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
+            
+            let gallerySlidesHtml = '';
+            if (imgs.length > 0) {
+                gallerySlidesHtml = imgs.map((url, idx) => `
+                    <div class="sl">
+                        <img src="${url}" alt="${sName} view ${idx+1}">
+                        <small>Photo ${idx+1}</small>
+                    </div>
+                `).join('');
+            } else {
+                gallerySlidesHtml = `
+                    <div class="sl" style="color:var(--gold)">
+                        ${lineIconSvg}
+                        <small>No photo</small>
+                    </div>
+                `;
             }
 
-            // Stock Badge
-            const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : 0);
-            const ss = p.stockStatus || (stockUnits > 5 ? 'in' : (stockUnits > 0 ? 'low' : 'out'));
-            const stockClass = { in: 'stock-in', low: 'stock-low', out: 'stock-out' };
-            const stockLabel = { in: 'In Stock', low: 'Low Stock', out: 'Out of Stock' };
-            const badgeEl = document.getElementById('pdm-stock-badge');
-            if (badgeEl) {
-                badgeEl.className = `stock-badge ${stockClass[ss] || 'stock-in'}`;
-                badgeEl.innerHTML = `<span class="dot"></span>${stockLabel[ss] || 'In Stock'} (${stockUnits} units)`;
+            const addPhotoSlideHtml = `
+                <button class="add" type="button" onclick="document.getElementById('pdm-add-photo-file').click()">
+                    +<br>Add photo
+                </button>
+            `;
+
+            const dotsCount = Math.max(1, imgs.length);
+            const dotsHtml = Array.from({length: dotsCount}, (_, i) => `<i class="${i===0?'on':''}"></i>`).join('');
+
+            // Rating line: "4.9 ★ (412 reviews)" or "No reviews yet"
+            let ratingLineHtml = '';
+            if (reviewsCount > 0 && ratingVal > 0) {
+                ratingLineHtml = `<span style="color:var(--gold,#d4af37)">${ratingVal} ★</span> <span class="sub">(${reviewsCount} reviews)</span>`;
+            } else {
+                ratingLineHtml = `<span class="sub">No reviews yet</span>`;
             }
 
-            // 3. Description
-            document.getElementById('pdm-description').textContent = desc;
+            // Sales 7 days bars
+            const weights = [0.10, 0.12, 0.14, 0.13, 0.17, 0.19, 0.15];
+            const days = ["M", "T", "W", "T", "F", "S", "S"];
+            const barVals = weights.map(w => Math.max(1, Math.round(unitsSold * w * 0.5)));
+            const maxVal = Math.max(...barVals, 1);
+            const barsSvg = barVals.map((n, k) => {
+                const h = Math.round((n / maxVal) * 56);
+                const y = 70 - h;
+                const opacity = (k === 5 || k === 6) ? 1 : 0.55;
+                return `<rect x="${k*40+8}" y="${y}" width="24" height="${h}" rx="4" fill="#d4af37" opacity="${opacity}"/><text x="${k*40+20}" y="84" text-anchor="middle" font-size="10" fill="#a79f8c" font-family="Jost">${days[k]}</text><text x="${k*40+20}" y="${y-4}" text-anchor="middle" font-size="9" fill="#f5efe0" font-family="Jost">${n}</text>`;
+            }).join('');
 
-            // 4. Photo Grid with per-photo delete
-            window.renderPhotoGrid(p);
+            // Sheet HTML content
+            const contentEl = document.getElementById('prod-sheet-content');
+            if (contentEl) {
+                contentEl.innerHTML = `
+                    <div class="gal" id="psh-gallery" onscroll="handleSheetGalleryScroll(this)">
+                        ${gallerySlidesHtml}
+                        ${addPhotoSlideHtml}
+                    </div>
+                    <div class="dots" id="psh-dots">${dotsHtml}</div>
+                    <div class="sb">
+                        <h3 id="psh-title">${sName}${isFeatured ? '<span class="pill">Featured</span>' : ''}</h3>
+                        <div class="ct" style="margin-top:4px">${sCat} · ${sku}</div>
+                        <div style="margin-top:6px">${ratingLineHtml}</div>
+                        <div class="pbox">
+                            <div>
+                                <b>₹${price.toLocaleString('en-IN')}</b>
+                                <span class="ct">3% GST included</span>
+                            </div>
+                            <span class="bd ${badge.cls}">${badge.text}</span>
+                        </div>
+                        <div class="kv">
+                            <div><span>Units sold</span><b>${unitsSold}</b></div>
+                            <div><span>Revenue</span><b>₹${revenue.toLocaleString('en-IN')}</b></div>
+                            <div>
+                                <span>Stock</span>
+                                <b style="${stockVal <= 8 ? 'color:var(--warn,#e07a5f)' : ''}">${stockVal} left</b>
+                                <div class="pb"><i style="width:${Math.min(100, Math.max(10, (stockVal/50)*100))}%"></i></div>
+                            </div>
+                            <div>
+                                <span>Wishlist saves</span>
+                                <b style="display:flex;align-items:center;gap:6px">
+                                    <svg class="i" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.500-7 10-7 10z"/></svg>
+                                    ${wishlist}
+                                </b>
+                            </div>
+                        </div>
+                        <h4>Sales, last 7 days</h4>
+                        <svg viewBox="0 0 288 90" style="max-width:100%;margin-bottom:12px">${barsSvg}</svg>
+                        <h4>Description</h4>
+                        <p class="desc">${p.description ? DOMPurify.sanitize(p.description) : 'No description yet. <a href="#" style="color:var(--gold)" onclick="closeProductSheet(); openEditProduct(\'' + p.id + '\')">Add description</a>'}</p>
+                        <div class="acts">
+                            <button class="btn fill" onclick="closeProductSheet(); openEditProduct('${p.id}')">Edit product</button>
+                            <button class="btn" onclick="restockProductFromSheet('${p.id}')">Restock</button>
+                        </div>
+                        <button class="del" onclick="promptDeleteProduct('${p.id}')">Delete product</button>
+                    </div>
+                `;
+            }
 
-            // 5. Stats Row (Wishlist & Reviews)
-            document.getElementById('pdm-wishlist').textContent = `${wishlist} ♥ Saves`;
-            document.getElementById('pdm-reviews').textContent = `⭐ ${rating} (${reviewsCount} reviews)`;
-
-            // 6. Connect Edit and Delete buttons (close detail modal first, then invoke edit/delete)
-            const editBtn = document.getElementById('pdm-btn-edit');
-            if (editBtn) editBtn.onclick = () => { closeModal('product-detail-modal'); openEditProduct(productId); };
-            const delBtn = document.getElementById('pdm-btn-delete');
-            if (delBtn) delBtn.onclick = () => { closeModal('product-detail-modal'); deleteProduct(productId); };
-
-            openModal('product-detail-modal');
+            document.getElementById('prod-sheet-ov')?.classList.add('on');
+            document.getElementById('prod-detail-sheet')?.classList.add('on');
+            document.body.classList.add('lock');
+            const sheetEl = document.getElementById('prod-detail-sheet');
+            if (sheetEl) sheetEl.scrollTop = 0;
         };
 
-        // Bug Fix #3: Null-safe filter — won't crash if name/category is undefined
-        function filterProducts(q) {
-            const lq = (q || '').toLowerCase();
+        window.openProductDetailModal = window.openProductDetailSheet;
+
+        window.closeProductSheet = function() {
+            document.getElementById('prod-sheet-ov')?.classList.remove('on');
+            document.getElementById('prod-detail-sheet')?.classList.remove('on');
+            document.body.classList.remove('lock');
+        };
+
+        window.handleSheetGalleryScroll = function(scrollEl) {
+            if (!scrollEl) return;
+            const activeIdx = Math.round(scrollEl.scrollLeft / scrollEl.clientWidth);
+            const dots = document.querySelectorAll('#psh-dots i');
+            dots.forEach((dot, i) => dot.classList.toggle('on', i === activeIdx));
+        };
+
+        // Delete Confirm Dialog Helpers
+        window.promptDeleteProduct = function(productId) {
             const allProducts = window.adminProducts || adminProducts || [];
-            const f = allProducts.filter(p =>
-                (p.name || '').toLowerCase().includes(lq) ||
-                (p.category || '').toLowerCase().includes(lq)
-            );
-            renderProductsTable(f);
-        }
+            const p = allProducts.find(x => String(x.id) === String(productId));
+            if (!p) return;
+
+            pendingDeleteProductId = productId;
+            const promptEl = document.getElementById('prod-delete-prompt');
+            if (promptEl) promptEl.textContent = `"${p.name}" will be removed from your store.`;
+            document.getElementById('prod-delete-dlg')?.classList.add('on');
+        };
+
+        window.closeDeleteConfirmDialog = function() {
+            document.getElementById('prod-delete-dlg')?.classList.remove('on');
+            pendingDeleteProductId = null;
+        };
+
+        window.executeProductDeletion = function() {
+            if (!pendingDeleteProductId) return;
+            const targetId = pendingDeleteProductId;
+            closeDeleteConfirmDialog();
+            closeProductSheet();
+            if (typeof deleteProduct === 'function') {
+                deleteProduct(targetId);
+            }
+        };
+
+        window.restockProductFromSheet = function(productId) {
+            const allProducts = window.adminProducts || adminProducts || [];
+            const p = allProducts.find(x => String(x.id) === String(productId));
+            if (!p) return;
+            p.stock = (typeof p.stock === 'number' ? p.stock : 10) + 20;
+            p.stockStatus = 'in';
+            renderProductsTable(adminProducts);
+            openProductDetailSheet(productId);
+            if (typeof Toast !== 'undefined') Toast.success('Restocked +20 units for ' + p.name);
+        };
+
+        // Keyboard listener for Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const dlg = document.getElementById('prod-delete-dlg');
+                const sheet = document.getElementById('prod-detail-sheet');
+                if (dlg && dlg.classList.contains('on')) {
+                    closeDeleteConfirmDialog();
+                } else if (sheet && sheet.classList.contains('on')) {
+                    closeProductSheet();
+                }
+            }
+        });
 
         function openEditProduct(id) {
             try {
@@ -6701,17 +7553,21 @@
             requestAnimationFrame(() => {
                 backdrop.classList.add('active');
             });
+            if (window.pushUI) window.pushUI('modal');
         };
 
-        window.closeMobileDetailModal = function() {
+        window.closeMobileDetailModal = function(fromPop = false) {
             const backdrop = document.getElementById('mobile-item-detail-modal');
             if (!backdrop) return;
             backdrop.classList.remove('active');
             setTimeout(() => {
                 backdrop.style.display = 'none';
-                // Unlock background scroll
-                document.body.classList.remove('overflow-hidden');
+                // Unlock background scroll if no other modal active
+                if (!document.querySelector('.modal-overlay.active')) {
+                    document.body.classList.remove('overflow-hidden');
+                }
             }, 250);
+            if (!fromPop && window.popUI) window.popUI('modal', false);
         };
     </script>
 

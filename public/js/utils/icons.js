@@ -75,29 +75,44 @@ export function renderShellIcons() {
 }
 
 export function openSide() {
-  document.getElementById('side')?.classList.add('on');
-  document.getElementById('scrim')?.classList.add('on');
+  const side = document.getElementById('side') || document.getElementById('admin-sidebar') || document.querySelector('.side');
+  const scrim = document.getElementById('scrim') || document.querySelector('.drawer-scrim');
+  side?.classList.add('on', 'open', 'active');
+  scrim?.classList.add('on', 'open');
+  document.body.classList.add('sidebar-open', 'overflow-hidden');
+  if (window.pushUI) window.pushUI('sidebar');
 }
 
-export function closeSide() {
-  document.getElementById('side')?.classList.remove('on');
-  if (!document.getElementById('drawer')?.classList.contains('on')) {
-    document.getElementById('scrim')?.classList.remove('on');
-  }
+export function closeSide(fromPop = false) {
+  const side = document.getElementById('side') || document.getElementById('admin-sidebar') || document.querySelector('.side');
+  const scrim = document.getElementById('scrim') || document.querySelector('.drawer-scrim');
+  const wasOpen = side?.classList.contains('on') || side?.classList.contains('open') || side?.classList.contains('active');
+  side?.classList.remove('on', 'open', 'active');
+  scrim?.classList.remove('on', 'open');
+  document.body.classList.remove('sidebar-open', 'overflow-hidden');
+  if (wasOpen && !fromPop && window.popUI) window.popUI('sidebar', false);
 }
 
 export function openDrawer(html) {
   const drawer = document.getElementById('drawer');
   const scrim = document.getElementById('scrim');
-  if (drawer) { drawer.innerHTML = html; drawer.classList.add('on'); }
-  if (scrim) scrim.classList.add('on');
+  if (drawer) { drawer.innerHTML = html; drawer.classList.add('on', 'open'); }
+  if (scrim) { scrim.classList.add('on', 'open'); }
+  document.body.classList.add('overflow-hidden');
+  if (window.pushUI) window.pushUI('drawer');
 }
 
-export function closeDrawer() {
-  document.getElementById('drawer')?.classList.remove('on');
-  if (!document.getElementById('side')?.classList.contains('on')) {
-    document.getElementById('scrim')?.classList.remove('on');
+export function closeDrawer(fromPop = false) {
+  const drawer = document.getElementById('drawer');
+  const wasOpen = drawer?.classList.contains('on') || drawer?.classList.contains('open');
+  drawer?.classList.remove('on', 'open');
+  const side = document.getElementById('side') || document.getElementById('admin-sidebar');
+  if (!side?.classList.contains('on') && !side?.classList.contains('open')) {
+    const scrim = document.getElementById('scrim');
+    scrim?.classList.remove('on', 'open');
+    document.body.classList.remove('overflow-hidden');
   }
+  if (wasOpen && !fromPop && window.popUI) window.popUI('drawer', false);
 }
 
 export function toast(msg) {
@@ -139,4 +154,13 @@ if (typeof window !== 'undefined') {
   window.closeDrawer = closeDrawer;
   window.toast = toast;
   window.confirmModal = confirmModal;
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderShellIcons);
+    } else {
+      renderShellIcons();
+    }
+  }
 }
+

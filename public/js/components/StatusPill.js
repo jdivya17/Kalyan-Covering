@@ -64,14 +64,17 @@ export function renderNeedsAttention() {
         <b style="display:block;font-size:.86rem;color:var(--gold);margin-bottom:6px">Reviews waiting (${pendingRevs.length})</b>
         ${pendingRevs.map(r => `
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);padding:.35rem 0">
-            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px"><b>${String(r.userName || r.cust || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</b> on ${String(r.productName || 'Product').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
-            <a class="lb" href="#reviews" onclick="if(typeof window.showPanel==='function'){window.showPanel('reviews');return false;}" style="font-size:.78rem;color:var(--gold-hi)">Review →</a>
+            <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px"><b>${String(r.userName || r.cust || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</b> on ${String(r.productName || 'Product').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
+            <a class="lb" href="#reviews" onclick="if(typeof window.showPanel==='function'){window.showPanel('reviews');return false;}" style="font-size:.78rem;color:var(--gold-hi);flex:none">Review →</a>
           </div>
         `).join('')}
       </div>`;
   }
 
   container.innerHTML = html;
+  if (typeof window.renderShellIcons === 'function') {
+    window.renderShellIcons();
+  }
 }
 
 if (typeof window !== 'undefined') {
