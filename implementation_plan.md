@@ -3,7 +3,7 @@
 ## A. Current Architecture
 - **Frontend**: Vanilla HTML/CSS/JS bundled with Vite (`public/`). Pages exist in `public/` root as well as subfolders `public/customer/` and `public/admin/`. Shared JS is partially modular in `public/js/` but still heavily relies on a monolithic `public/app.js` (1437 lines) with window-level function attachments.
 - **Styling**: `public/css/` contains `design-system.css`, `components.css`, `customer.css`, `admin.css`.
-- **Backend Layer**: Firebase Cloud Functions in `functions/index.js` (2672 lines monolithic export file) using Node 18 runtime and Firebase v2 SDK (`onCall`, `onRequest`). Sub-services partially split in `functions/shipping/`, `functions/product/`, `functions/user/`, `functions/payment/`.
+- **Backend Layer**: Vercel Express API in `api/index.js` and modular Express routers in `server/routes/` (`orders.js`, `payments.js`, `products.js`, `shipping.js`, `admin.js`, `invoices.js`, `uploads.js`).
 - **Database & Storage**: Firestore with collections (`products`, `orders`, `users`, `carts`, `wishlists`, `videos`, `reviews`, `coupons`, `settings`, `audit_logs`). Images/videos managed via Cloudinary and Firebase Storage.
 - **Services**: Razorpay for payments (live keys configured via Cloud Functions secrets), Shiprocket for shipping.
 
@@ -83,24 +83,26 @@ Kalyan-Covering/
 │   │
 │   └── 404.html
 │
-├── functions/
-│   ├── index.js
-│   ├── user/
-│   │   └── userController.js
-│   ├── product/
-│   │   └── productController.js
-│   ├── order/
-│   │   └── orderController.js
-│   ├── payment/
-│   │   └── razorpay.js
-│   ├── content/
-│   │   └── contentController.js
-│   ├── shipping/
-│   │   └── shiprocket.js
-│   └── utils/
-│       ├── auth.js
-│       ├── validation.js
-│       └── audit.js
+├── api/
+│   └── index.js
+│
+├── server/
+│   ├── lib/
+│   │   ├── admin.js
+│   │   └── utils.js
+│   ├── middleware/
+│   │   └── auth.js
+│   ├── routes/
+│   │   ├── admin.js
+│   │   ├── invoices.js
+│   │   ├── notifications.js
+│   │   ├── orders.js
+│   │   ├── payments.js
+│   │   ├── products.js
+│   │   ├── shipping.js
+│   │   └── uploads.js
+│   └── shipping/
+│       └── shiprocketClient.js
 │
 ├── scripts/
 │   └── setRole.js
@@ -128,15 +130,14 @@ Kalyan-Covering/
 - Legacy root HTML files (`public/admin.html`, `public/products.html`, `public/checkout.html`, etc.) → Clean up redundant legacy files after redirecting imports to target `public/customer/` and `public/admin/` routes.
 - Script references in all `public/customer/*.html` and `public/admin/*.html` → Update imports to load modular `public/js/` services & components cleanly.
 
-### Backend Cloud Functions
-- `functions/index.js` monolithic definitions → Modular domain controllers:
-  - **Payment**: `createRazorpayOrder`, `verifyPayment`, `razorpayWebhook` → `functions/payment/razorpay.js`
-  - **Order**: `createCODOrder`, `updateOrderStatus`, `cancelOrder`, `initiateReturn` → `functions/order/orderController.js`
-  - **Product**: `createProduct`, `updateProduct`, `deleteProduct`, `adjustStock` → `functions/product/productController.js`
-  - **User**: `onUserCreated`, `setUserRole`, `getUserProfile` → `functions/user/userController.js`
-  - **Content**: `submitVideoReview`, `updateTheme`, `getSocialLinks` → `functions/content/contentController.js`
-  - **Shipping**: `checkShippingServiceability`, `getShippingCouriers`, `getShipmentTracking` → `functions/shipping/shiprocket.js`
-  - **Utils**: `logAudit`, `verifyRole`, `validateAddress` → `functions/utils/`
+### Backend Vercel Express API Routes
+- `api/index.js` entrypoint → Modular Express domain routes in `server/routes/`:
+  - **Payment**: `create-order`, `verify`, `webhook`, `create-cod-order` → `server/routes/payments.js`
+  - **Order**: `update-status`, `cancel`, `return` → `server/routes/orders.js`
+  - **Product**: `create`, `update`, `delete` → `server/routes/products.js`
+  - **Uploads**: `sign` → `server/routes/uploads.js`
+  - **Invoices**: `generate`, `my`, `list`, `email` → `server/routes/invoices.js`
+  - **Shipping**: `serviceability`, `couriers`, `track` → `server/routes/shipping.js`
 
 ---
 
@@ -166,7 +167,7 @@ Kalyan-Covering/
 | Admin Dashboard, Products, Orders, Reviews management | **Already exists** | Functioning under `public/admin/` |
 | Video Review submission flow | **Already exists** | Integrated with Cloudinary and Firestore |
 | Modular JS services & UI components structure | **Needs refactoring** | Code split across `app.js` and `public/js/`; needs unified import cleanup |
-| Cloud Functions monolithic structure | **Needs refactoring** | 2672-line `functions/index.js` needs domain splitting |
+| Vercel Express API structure | **Already exists** | Split across `api/index.js` and `server/routes/` |
 | Shiprocket shipment auto-dispatch (`createShipment`) | **Needs implementation** | Tracking/serviceability endpoints exist; creation logic to be completed |
 | Automated multi-branch inventory routing | **Future feature** | Reserved for multi-warehouse expansion |
 
@@ -187,10 +188,9 @@ Kalyan-Covering/
 - Route data calls in HTML views through `public/js/services/` (`productService.js`, `cartService.js`, `orderService.js`, `authService.js`, `paymentService.js`, `shippingService.js`, `reviewService.js`, `userService.js`).
 - Refactor `public/app.js` to act solely as a lightweight entry module loading services and components.
 
-### Phase 4: Backend Modularization (`functions/`)
-- Extract domain controllers into `functions/user/`, `functions/product/`, `functions/order/`, `functions/payment/`, `functions/content/`, `functions/shipping/`, and `functions/utils/`.
-- Re-export all Cloud Functions cleanly from `functions/index.js`.
-- Verify Node.js 18 syntax and Firebase Functions v2 `onCall` / `onRequest` handlers compile without error.
+### Phase 4: Backend API Hardening (`server/routes/`)
+- Maintain domain routes in `server/routes/payments.js`, `orders.js`, `products.js`, `shipping.js`, `invoices.js`, `uploads.js`.
+- Express app exported cleanly from `api/index.js` for Vercel Serverless Functions.
 
 ### Phase 5: Database & Security Hardening
 - Audit `firestore.rules` and `storage.rules` to ensure strict RBAC control for admin vs customer operations.

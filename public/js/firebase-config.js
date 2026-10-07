@@ -69,7 +69,13 @@ const functions = getFunctions(app);
 // ── App Check (moved here from app.js — ONE app, ONE App Check) ──
 const _isLocalhostAC = (
     typeof window !== 'undefined' &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname.startsWith("192.168.") ||
+        window.location.hostname.startsWith("10.") ||
+        window.location.hostname.endsWith(".local")
+    )
 );
 if (typeof window !== 'undefined' && !_isLocalhostAC) {
     try {
@@ -82,7 +88,7 @@ if (typeof window !== 'undefined' && !_isLocalhostAC) {
             console.log('App Check initialized (single shared app instance)');
         }
     } catch (err) {
-        console.warn('App Check init skipped/failed:', err);
+        console.warn('App Check init skipped/failed (non-blocking):', err.message || err);
     }
 }
 

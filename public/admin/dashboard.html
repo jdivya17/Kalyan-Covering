@@ -3949,7 +3949,7 @@
             }
 
             const MAX_IMAGE_MB = 10;
-            const MAX_VIDEO_MB = 100;
+            const MAX_VIDEO_MB = 50;
             const maxBytes = (type === 'video' ? MAX_VIDEO_MB : MAX_IMAGE_MB) * 1024 * 1024;
             const oversized = filesToUpload.filter(f => f.size > maxBytes);
             if (oversized.length > 0) {
@@ -3999,6 +3999,7 @@
                 setTimeout(() => { progressContainer.style.display = 'none'; }, 1000);
             }
         }
+        window.handleProductMultiUpload = handleProductMultiUpload;
 
         window.removeMedia = function (url, type) {
             const list = type === 'image' ? currentUploadedImages : currentUploadedVideos;
@@ -6123,6 +6124,7 @@
                 }
             }
         }
+        window.approveVideo = approveVideo;
 
         async function removeVideo(id) {
             if (!confirm('Remove this video?')) return;
@@ -6137,6 +6139,7 @@
                 Toast.error('Failed to remove video');
             }
         }
+        window.removeVideo = removeVideo;
 
         // ---- Theme ----
         let previewThemeVal = window.KC?.theme || window.safeStore.get(localStorage, 'kc_theme') || 'normal';

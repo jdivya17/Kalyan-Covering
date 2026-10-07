@@ -90,16 +90,23 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
     if (data.paymentStatus === "paid") return { success: true, alreadyPaid: true, orderId, orderNumber: data.orderNumber };
     if (data.totalAmount * 100 !== paymentAmount || (data.payment.currency || "INR") !== paymentCurrency) throw new Error("Payment amount or currency mismatch.");
 
+    // Perform ALL reads first before any writes
+    const validItems = (data.items || []).filter(item => item && item.id && item.qty);
+    const productDocs = [];
+    for (const item of validItems) {
+        const productRef = db.collection("products").doc(item.id);
+        const productDoc = await transaction.get(productRef);
+        productDocs.push({ item, productRef, productDoc });
+    }
+
+    // Now perform ALL writes
     const now = admin.firestore.FieldValue.serverTimestamp();
     let isOversold = false, oversoldNotes = "";
 
-    for (const item of (data.items || [])) {
-        if (!item.id || !item.qty) continue;
-        const productRef = db.collection("products").doc(item.id);
-        const productDoc = await transaction.get(productRef);
+    for (const { item, productRef, productDoc } of productDocs) {
         if (!productDoc.exists) continue;
         const pd = productDoc.data();
-        const currentStock = pd.stock || 0;
+        const currentStock = typeof pd.stock === "number" ? pd.stock : (parseInt(pd.stock, 10) || 0);
         if (currentStock < item.qty) { isOversold = true; oversoldNotes += `Product ${item.id} oversold. `; }
         const newStock = Math.max(0, currentStock - item.qty);
         transaction.update(productRef, { stock: newStock, ...(newStock <= 0 ? { status: "out_of_stock" } : {}), updatedAt: now });
@@ -170,8 +177,14 @@ const handlePaymentVerification = async (req, res) => {
             return sendError(res, 400, "invalid-argument", "Missing payment verification fields.");
         }
 
+        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!keySecret) {
+            console.error("[payments/verify] Error: RAZORPAY_KEY_SECRET environment variable is missing.");
+            return sendError(res, 500, "internal", "Payment gateway configuration error.");
+        }
+
         const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "default_secret").update(body).digest("hex");
+        const expectedSig = crypto.createHmac("sha256", keySecret).update(body).digest("hex");
         const sigBuf = Buffer.from(razorpay_signature, "hex");
         const expBuf = Buffer.from(expectedSig, "hex");
         if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
@@ -197,11 +210,16 @@ router.post("/verify-payment", authMiddleware, handlePaymentVerification);
 // ── POST /api/payments/webhook (Razorpay webhook — no auth) ──────────────────
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     try {
-        const rawBody = req.rawBody || req.body;
-        const signature = req.headers["x-razorpay-signature"];
-        const secret = process.env.RAZORPAY_KEY_SECRET;
-        if (!signature || !secret) return res.status(400).send("Missing signature or configuration");
+        const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        if (!secret) {
+            console.error("[Webhook] Error: RAZORPAY_WEBHOOK_SECRET environment variable is not configured.");
+            return res.status(500).send("Webhook secret not configured");
+        }
 
+        const signature = req.headers["x-razorpay-signature"];
+        if (!signature) return res.status(400).send("Missing signature");
+
+        const rawBody = req.rawBody || req.body;
         const payloadBuffer = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody));
         const expectedSig = crypto.createHmac("sha256", secret).update(payloadBuffer).digest("hex");
         const sigBuf = Buffer.from(signature, "hex");
@@ -231,10 +249,9 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             if (eventDoc.exists) return; // Already processed (idempotency)
 
             if (event === "payment.captured") {
-                try {
-                    const result = await fulfillOrder(paymentData.order_id, paymentData.id, paymentData.amount, paymentData.currency, transaction);
-                    if (!result.alreadyPaid) actionLog = { id: result.orderId, status: "PAYMENT_VERIFIED_WEBHOOK" };
-                } catch (e) { console.error("[Webhook] fulfillOrder error:", e.message); }
+                // Let fulfillOrder throw on error so transaction aborts & event is NOT marked processed
+                const result = await fulfillOrder(paymentData.order_id, paymentData.id, paymentData.amount, paymentData.currency, transaction);
+                if (!result.alreadyPaid) actionLog = { id: result.orderId, status: "PAYMENT_VERIFIED_WEBHOOK" };
             }
             transaction.set(eventRef, { processedAt: admin.firestore.FieldValue.serverTimestamp(), event });
         });
@@ -266,10 +283,16 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
 
         let docRefId = null;
         await db.runTransaction(async (transaction) => {
-            // Verify stock and deduct for each item
+            // Read phase: fetch all product docs first
+            const productDocs = [];
             for (const item of trustedItems) {
                 const productRef = db.collection("products").doc(item.id);
                 const productDoc = await transaction.get(productRef);
+                productDocs.push({ item, productRef, productDoc });
+            }
+
+            // Write phase: update stock for each item
+            for (const { item, productRef, productDoc } of productDocs) {
                 if (!productDoc.exists) throw { code: 404, message: `Product ${item.id} not found.` };
                 const pd = productDoc.data();
                 const currentStock = typeof pd.stock === "number" ? pd.stock : (parseInt(pd.stock, 10) || 0);

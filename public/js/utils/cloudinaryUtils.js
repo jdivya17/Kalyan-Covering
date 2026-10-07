@@ -1,45 +1,61 @@
-// ---- Cloudinary Config ----
-export const CLOUDINARY = {
-    cloudName: 'ddw2whxh7',
-    defaultPreset: 'kalyan_covering_upload',
-    reviewPreset: 'kalyan_reviews',
-    videoPreset: 'kalyan_videos'
-};
+import { callVercelApi } from '../firebase-config.js';
 
-export async function uploadToCloudinary(file, resourceType = 'auto', customPreset = null) {
+export async function uploadToCloudinary(file, resourceType = 'auto') {
     if (!file) return null;
     
-    // Max size validations: 50MB for video, 10MB for image/other
+    // Max size validations: 50MB for video, 5MB for review image, 10MB for product image
     const maxVideoSize = 50 * 1024 * 1024;
+    const maxReviewImageSize = 5 * 1024 * 1024;
     const maxImageSize = 10 * 1024 * 1024;
     const isVideo = resourceType === 'video';
+    const isReview = resourceType === 'review';
+
+    if (isReview && (!file.type || !file.type.startsWith('image/'))) {
+        const msg = 'Review attachments must be image files.';
+        if (typeof window.Toast !== 'undefined') window.Toast.error('Invalid File Type', msg);
+        throw new Error(msg);
+    }
 
     if (isVideo && file.size > maxVideoSize) {
         const msg = 'Video file size exceeds maximum limit of 50MB. Please choose a smaller video.';
         if (typeof window.Toast !== 'undefined') window.Toast.error('File Too Large', msg);
         throw new Error(msg);
     }
-    if (!isVideo && file.size > maxImageSize) {
+    if (isReview && file.size > maxReviewImageSize) {
+        const msg = 'Review image size exceeds maximum limit of 5MB.';
+        if (typeof window.Toast !== 'undefined') window.Toast.error('File Too Large', msg);
+        throw new Error(msg);
+    }
+    if (!isVideo && !isReview && file.size > maxImageSize) {
         const msg = 'Image file size exceeds maximum limit of 10MB.';
         if (typeof window.Toast !== 'undefined') window.Toast.error('File Too Large', msg);
         throw new Error(msg);
     }
 
-    let preset = customPreset;
-    if (!preset) {
-        if (resourceType === 'review') preset = CLOUDINARY.reviewPreset;
-        else if (resourceType === 'video') preset = CLOUDINARY.videoPreset;
-        else preset = CLOUDINARY.defaultPreset;
+    // Obtain signed authorization from server
+    let signFn = callVercelApi;
+    if (typeof signFn !== 'function' && typeof window.callVercelApi === 'function') {
+        signFn = window.callVercelApi;
+    }
+
+    const uploadType = isReview ? 'review' : (isVideo ? 'product_video' : 'product_image');
+    const signData = await signFn('/api/uploads/sign', { uploadType });
+
+    if (!signData || !signData.signature) {
+        throw new Error('Failed to obtain Cloudinary upload authorization signature.');
     }
 
     const endpointResourceType = isVideo ? 'video' : 'image';
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', preset);
+    formData.append('api_key', signData.api_key);
+    formData.append('timestamp', signData.timestamp);
+    formData.append('signature', signData.signature);
+    formData.append('folder', signData.folder);
 
     try {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/${endpointResourceType}/upload`);
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${signData.cloud_name}/${endpointResourceType}/upload`);
 
         return new Promise((resolve, reject) => {
             xhr.upload.onprogress = (event) => {
@@ -60,11 +76,7 @@ export async function uploadToCloudinary(file, resourceType = 'auto', customPres
                     try {
                         const errRes = JSON.parse(xhr.responseText);
                         if (errRes.error?.message) {
-                            if (errRes.error.message.toLowerCase().includes('preset')) {
-                                errMsg = `Cloudinary preset "${preset}" is missing or not configured as Unsigned.`;
-                            } else {
-                                errMsg = errRes.error.message;
-                            }
+                            errMsg = errRes.error.message;
                         }
                     } catch (_) {}
                     if (typeof window.Toast !== 'undefined') window.Toast.error('Upload Failed', errMsg);
@@ -98,7 +110,6 @@ export function getOptimizedUrl(url, width = 800) {
 }
 
 // Bind to window for legacy support
-window.CLOUDINARY = CLOUDINARY;
 window.uploadToCloudinary = uploadToCloudinary;
 window.uploadImageToCloudinary = (file) => uploadToCloudinary(file, 'image');
 window.uploadReviewPhotoToCloudinary = (file) => uploadToCloudinary(file, 'review');
