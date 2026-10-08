@@ -80,7 +80,31 @@
     import { ic } from '../js/utils/icons.js';
     import { generateInvoicePDF } from '../js/utils/invoiceGenerator.js';
 
-    const STEPS = ['Placed', 'Packed', 'Shipped', 'Out for delivery', 'Delivered'];
+    // Canonical step slugs + labels for the progress tracker
+    const STEPS = [
+      { slug: 'pending',           label: 'Order Placed' },
+      { slug: 'packed',            label: 'Packed' },
+      { slug: 'shipped',           label: 'Shipped' },
+      { slug: 'out_for_delivery',  label: 'Out for Delivery' },
+      { slug: 'delivered',         label: 'Delivered' }
+    ];
+
+    /** Map canonical slug to human-readable label */
+    function statusLabel(slug) {
+      const s = String(slug || '').toLowerCase();
+      return {
+        payment_pending:          'Payment Pending',
+        pending:                  'Order Placed',
+        confirmed:                'Confirmed',
+        packed:                   'Packed',
+        shipped:                  'Shipped',
+        out_for_delivery:         'Out for Delivery',
+        delivered:                'Delivered',
+        cancelled:                'Cancelled',
+        returned:                 'Returned',
+        action_required_oversold: 'Under Review'
+      }[s] || (s ? s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : s);
+    }
 
     let orders = [];
     let currentTab = window.location.hash.replace('#', '') || 'orders';
@@ -125,17 +149,18 @@
     }
 
     function getStepIndex(status) {
+      const s = String(status || '').toLowerCase();
       const map = {
-        'pending': 0,
-        'placed': 0,
-        'confirmed': 0,
-        'packed': 1,
-        'processing': 1,
-        'shipped': 2,
+        'payment_pending': 0,
+        'pending':         0,
+        'placed':          0,
+        'confirmed':       0,
+        'packed':          1,
+        'shipped':         2,
         'out_for_delivery': 3,
-        'delivered': 4
+        'delivered':       4
       };
-      return map[status] !== undefined ? map[status] : 0;
+      return map[s] !== undefined ? map[s] : -1;
     }
 
     function renderOrdersList(container) {
@@ -152,10 +177,11 @@
       container.innerHTML = `
         <h2 class="t">My Orders (${orders.length})</h2>
         ${orders.map(order => {
-          const stepIdx = getStepIndex(order.status);
-          const isCancelled = order.status === 'cancelled';
-          const isDelivered = order.status === 'delivered';
-          const canCancel = !isCancelled && stepIdx < 2;
+          const status = String(order.orderStatus || order.status || 'pending').toLowerCase();
+          const stepIdx = getStepIndex(status);
+          const isCancelled = status === 'cancelled';
+          const isDelivered = status === 'delivered';
+          const canCancel = !isCancelled && stepIdx >= 0 && stepIdx < 2;
           const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt ? new Date(order.createdAt) : new Date());
           const isEligibleForReturn = isDelivered && (Date.now() - orderDate.getTime() < 7 * 24 * 60 * 60 * 1000);
 
@@ -167,7 +193,7 @@
                   <span>Placed on ${formatDate(orderDate)}</span>
                 </div>
                 <div style="text-align:right;">
-                  <span class="badge" style="background:rgba(214,178,94,0.15);color:var(--gold-hi);">${escapeHtml(order.status || 'Confirmed')}</span>
+                  <span class="badge" style="background:rgba(214,178,94,0.15);color:var(--gold-hi);">${escapeHtml(statusLabel(status))}</span>
                   <div style="margin-top:4px;font-weight:600;color:var(--ivory);">${formatCurrency(order.amount || order.total || 0)}</div>
                 </div>
               </div>
@@ -190,7 +216,7 @@
               ${!isCancelled ? `
                 <div class="track">
                   ${STEPS.map((s, idx) => `
-                    <div class="${idx <= stepIdx ? 'on' : ''}">${s}</div>
+                    <div class="${idx <= stepIdx ? 'on' : ''}">${s.label}</div>
                   `).join('')}
                 </div>
               ` : `
@@ -222,17 +248,15 @@
         return;
       }
 
-      const stepIdx = getStepIndex(order.status);
-      const isCancelled = order.status === 'cancelled';
+      const status = String(order.orderStatus || order.status || 'pending').toLowerCase();
+      const stepIdx = getStepIndex(status);
+      const isCancelled = status === 'cancelled';
       const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt ? new Date(order.createdAt) : new Date());
 
-      const timelineData = [
-        { title: 'Order Placed & Confirmed', desc: 'Received and verified at our Erode workshop' },
-        { title: 'Quality Checked & Packed', desc: 'Packaged in signature velvet luxury box' },
-        { title: 'Shipped with Courier', desc: order.trackingId ? `Tracking ID: ${order.trackingId}` : 'Handed over to delivery logistics partner' },
-        { title: 'Out For Delivery', desc: 'Courier agent is on the way to your address' },
-        { title: 'Delivered', desc: 'Delivered to your address' }
-      ];
+      const sd = order.shippingDetails || {};
+      const awb = sd.awbCode || sd.trackingNumber || order.trackingId || null;
+      const carrier = sd.courierName || sd.carrier || null;
+      const trackUrl = sd.trackingUrl || (awb ? `https://shiprocket.co/tracking/${awb}` : null);
 
       container.innerHTML = `
         <div style="margin-bottom:1.2rem;">
@@ -245,21 +269,37 @@
               <b>Track Order: ${escapeHtml(order.id || order.orderId)}</b>
               <span>Placed on ${formatDate(orderDate)}</span>
             </div>
-            <span class="badge" style="background:rgba(214,178,94,0.15);color:var(--gold-hi);">${escapeHtml(order.status || 'Processing')}</span>
+            <span class="badge" style="background:rgba(214,178,94,0.15);color:var(--gold-hi);">${escapeHtml(statusLabel(status))}</span>
           </div>
+
+          ${awb || carrier ? `
+            <div style="margin: 1rem 0; padding: 0.8rem 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--line);">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                  ${carrier ? `<div><small style="color:var(--muted)">Courier Partner:</small> <b style="color:var(--ivory)">${escapeHtml(carrier)}</b></div>` : ''}
+                  ${awb ? `<div><small style="color:var(--muted)">AWB / Tracking No:</small> <b style="color:var(--gold-hi)">${escapeHtml(awb)}</b></div>` : ''}
+                </div>
+                ${trackUrl ? `
+                  <a href="${trackUrl}" target="_blank" rel="noopener" class="btn sm solid">
+                    Track Package ↗
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Vertical Timeline -->
           ${!isCancelled ? `
             <ol class="tl">
-              ${timelineData.map((step, idx) => {
+              ${STEPS.map((step, idx) => {
                 const isDone = idx <= stepIdx;
                 const isNow = idx === stepIdx;
                 return `
                   <li class="${isDone ? 'done' : ''} ${isNow ? 'now' : ''}">
                     <i>${isDone ? ic('check', 14) : ''}</i>
                     <div>
-                      <b>${step.title}</b>
-                      <p>${step.desc}</p>
+                      <b>${step.label}</b>
+                      <p>${step.desc || ''}</p>
                     </div>
                   </li>
                 `;
@@ -273,7 +313,10 @@
     }
 
     function renderReturnsTab(container) {
-      const returns = orders.filter(o => o.status === 'return_requested' || o.status === 'returned');
+      const returns = orders.filter(o => {
+        const s = String(o.orderStatus || o.status || '').toLowerCase();
+        return s === 'returned' || s === 'return_requested';
+      });
       if (!returns.length) {
         container.innerHTML = `
           <div class="empty box">

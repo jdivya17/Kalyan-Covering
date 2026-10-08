@@ -4,20 +4,39 @@
 
 export function statusPill(s, label) {
   const st = String(s || '').toLowerCase();
+  // Canonical slug → pill type
   const pillType = {
-    delivered: 'ok',
-    active: 'ok',
-    approved: 'ok',
-    shipped: 'warn',
-    packed: 'warn',
-    low: 'warn',
-    cancelled: 'danger',
-    rejected: 'danger',
-    out_of_stock: 'danger',
-    draft: 'muted',
-    pending: 'muted'
+    delivered:                'ok',
+    active:                   'ok',
+    approved:                 'ok',
+    shipped:                  'warn',
+    out_for_delivery:         'warn',
+    packed:                   'warn',
+    confirmed:                'warn',
+    low:                      'warn',
+    cancelled:                'danger',
+    rejected:                 'danger',
+    returned:                 'danger',
+    action_required_oversold: 'danger',
+    out_of_stock:             'danger',
+    draft:                    'muted',
+    pending:                  'muted',
+    payment_pending:          'muted'
   }[st] || '';
-  const displayLabel = label || (st ? st.charAt(0).toUpperCase() + st.slice(1) : '—');
+  // Human-readable label map
+  const labelMap = {
+    payment_pending:          'Payment Pending',
+    pending:                  'Order Placed',
+    confirmed:                'Confirmed',
+    packed:                   'Packed',
+    shipped:                  'Shipped',
+    out_for_delivery:         'Out for Delivery',
+    delivered:                'Delivered',
+    cancelled:                'Cancelled',
+    returned:                 'Returned',
+    action_required_oversold: 'Action Required'
+  };
+  const displayLabel = label || labelMap[st] || (st ? st.charAt(0).toUpperCase() + st.slice(1) : '—');
   return `<span class="pill ${pillType}"><i></i>${displayLabel}</span>`;
 }
 

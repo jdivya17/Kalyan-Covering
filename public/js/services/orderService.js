@@ -58,39 +58,23 @@ export async function getOrder(orderId) {
  */
 export async function cancelOrder(orderId, reason = 'Customer requested cancellation') {
     try {
-        const orderRef = doc(db, 'orders', orderId);
-        const snap = await getDoc(orderRef);
-        if (!snap.exists()) {
-            throw new Error('Order not found.');
-        }
-        const currentStatus = (snap.data().status || '').toLowerCase();
-        const cancellableStatuses = ['placed', 'pending', 'confirmed', 'processing'];
-        if (!cancellableStatuses.includes(currentStatus)) {
-            throw new Error(`This order cannot be cancelled because its status is "${currentStatus}".`);
-        }
-
-        try {
-            const cancelFn = httpsCallable(functions, 'cancelOrder');
-            const result = await cancelFn({ orderId, reason });
-            if (result.data?.success) {
-                Toast.success('Order Cancelled', 'Your cancellation request has been processed.');
-                return { success: true };
-            }
-        } catch (fnErr) {
-            console.warn('[orderService] Cloud Function cancelOrder unavailable, attempting direct Firestore update:', fnErr.message);
-        }
-
-        // Direct Firestore update
-        const { updateDoc, serverTimestamp } = await import('../firebase-config.js');
-        await updateDoc(orderRef, {
-            status: 'cancel_requested',
-            cancelReason: reason,
-            cancelRequestedAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+        const token = localStorage.getItem('kc_auth_token') || localStorage.getItem('token') || '';
+        const res = await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ orderId, reason })
         });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            throw new Error(data.message || data.error || 'Failed to cancel order.');
+        }
 
-        Toast.success('Cancellation Requested', 'Your order cancellation request has been submitted.');
-        return { success: true };
+        const msg = data.message || 'Order cancelled successfully.';
+        Toast.success('Order Cancelled', msg);
+        return { success: true, message: msg };
     } catch (e) {
         const msg = e.message || 'Unable to cancel order. Please contact support.';
         Toast.error('Cancellation Failed', msg);

@@ -112,79 +112,207 @@ async function getPickupLocations() {
     }));
 }
 
-async function createShipmentForOrder(orderId, pickupLocation = "") {
+async function createShipmentForOrder(orderId, pickupLocation = "", courierId = null) {
     if (!orderId) throw new Error("orderId is required.");
+
     const orderRef = db.collection("orders").doc(orderId);
-    const orderSnap = await orderRef.get();
-    if (!orderSnap.exists) throw new Error(`Order ${orderId} not found.`);
-    const order = orderSnap.data();
-    if (order.paymentStatus !== "paid" && order.payment?.method !== "cod") throw new Error(`Order ${orderId} is not paid.`);
-    if (order.shippingDetails?.shiprocketShipmentId) throw new Error(`Order ${orderId} already has a shipment.`);
+    let orderData = null;
 
-    let deliveryAddress;
-    try { deliveryAddress = formatAddressForShiprocket(order.shippingAddress); }
-    catch (err) { throw new Error(`Invalid shipping address: ${err.message}`); }
+    // Transaction lock for idempotency
+    const lockResult = await db.runTransaction(async (transaction) => {
+        const snap = await transaction.get(orderRef);
+        if (!snap.exists) throw new Error(`Order ${orderId} not found.`);
+        const data = snap.data();
 
-    const dims = calculateDimensions(order.items || []);
-    const orderItems = (order.items || []).map(item => ({
-        name: item.name || "Jewellery Item", sku: item.sku || item.id || "SKU-UNKNOWN",
-        units: item.qty || 1, selling_price: item.price || 0, discount: 0, tax: 0, hsn: 7113
-    }));
-
-    const dateObj = order.createdAt ? (order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt)) : new Date();
-    const orderDate = dateObj.toISOString().replace("T", " ").replace(/\.\d+Z$/, "").substring(0, 16);
-    const isCod = order.payment?.method === "cod";
-
-    const payload = {
-        order_id: order.orderNumber, order_date: orderDate,
-        pickup_location: pickupLocation || process.env.STORE_PICKUP_LOCATION || "",
-        ...deliveryAddress,
-        billing_customer_name: deliveryAddress.delivery_customer_name,
-        billing_last_name: deliveryAddress.delivery_last_name,
-        billing_address: deliveryAddress.delivery_address,
-        billing_city: deliveryAddress.delivery_city,
-        billing_pincode: deliveryAddress.delivery_pincode,
-        billing_state: deliveryAddress.delivery_state,
-        billing_country: deliveryAddress.delivery_country,
-        billing_email: deliveryAddress.delivery_email,
-        billing_phone: deliveryAddress.delivery_phone,
-        shipping_is_billing: true, order_items: orderItems,
-        payment_method: isCod ? "COD" : "Prepaid",
-        sub_total: order.totalAmount, length: dims.length, breadth: dims.breadth, height: dims.height, weight: dims.weight
-    };
-
-    let result;
-    const stagingRef = db.collection("shipment_staging").doc(orderId);
-    const stagingDoc = await stagingRef.get();
-    if (stagingDoc.exists && stagingDoc.data().shipmentId) {
-        result = { shipment_id: stagingDoc.data().shipmentId, order_id: stagingDoc.data().sOrderId, awb_code: stagingDoc.data().awbCode };
-    } else {
-        await stagingRef.set({ status: "pending", createdAt: admin.firestore.FieldValue.serverTimestamp() });
-        try {
-            result = await shiprocketRequest("POST", "/orders/create/adhoc", payload);
-            await stagingRef.update({ status: "api_success", shipmentId: result.shipment_id, awbCode: result.awb_code || null });
-        } catch (err) {
-            await stagingRef.update({ status: "api_failed", error: err.message });
-            throw new Error(`Shiprocket API failed: ${err.message}`);
+        if (data.paymentStatus !== "paid" && data.payment?.method !== "cod") {
+            throw new Error(`Order ${orderId} is not paid and is not COD.`);
         }
-    }
+        if (data.shippingDetails?.shiprocketShipmentId) {
+            return { alreadyCreated: true, data: data.shippingDetails };
+        }
+        if (data.shippingDetails?.creatingShipment) {
+            throw new Error(`Shipment creation already in progress for order ${orderId}.`);
+        }
 
-    const shipmentId = result.shipment_id;
-    const awbCode = result.awb_code || null;
-    if (!shipmentId) throw new Error("Shiprocket returned no shipment_id.");
-
-    await orderRef.update({
-        "shippingDetails.shiprocketShipmentId": String(shipmentId),
-        "shippingDetails.awbCode": awbCode,
-        orderStatus: "packed", shippingStatus: "not_shipped",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        statusHistory: admin.firestore.FieldValue.arrayUnion({
-            status: "packed", changedAt: admin.firestore.FieldValue.serverTimestamp(),
-            changedBy: "system_shiprocket", note: `Shipment created. ID: ${shipmentId}${awbCode ? `, AWB: ${awbCode}` : ""}`
-        })
+        transaction.update(orderRef, {
+            "shippingDetails.creatingShipment": true,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { alreadyCreated: false, data };
     });
 
-    return { success: true, orderId, shipmentId, awbCode, message: `Shipment created. ID: ${shipmentId}` };
+    if (lockResult.alreadyCreated) {
+        const sd = lockResult.data;
+        return {
+            success: true,
+            orderId,
+            shiprocketOrderId: sd.shiprocketOrderId || null,
+            shiprocketShipmentId: sd.shiprocketShipmentId,
+            awbCode: sd.awbCode || sd.trackingNumber || null,
+            courierName: sd.courierName || sd.carrier || null,
+            trackingUrl: sd.trackingUrl || null,
+            trackingNumber: sd.awbCode || sd.trackingNumber || null,
+            carrier: sd.courierName || sd.carrier || null,
+            message: "Shipment already exists."
+        };
+    }
+
+    orderData = lockResult.data;
+
+    try {
+        // Check pickup locations
+        const pickupLocations = await getPickupLocations();
+        const availableNames = pickupLocations.map(l => l.name);
+        const selectedPickup = pickupLocation || process.env.STORE_PICKUP_LOCATION || "";
+
+        if (!selectedPickup || !availableNames.includes(selectedPickup)) {
+            const locationList = availableNames.length > 0 ? availableNames.join(", ") : "none available";
+            throw new Error(`STORE_PICKUP_LOCATION '${selectedPickup || "undefined"}' missing or not found in Shiprocket pickup locations. Available pickup locations: [${locationList}]`);
+        }
+
+        let deliveryAddress;
+        try {
+            deliveryAddress = formatAddressForShiprocket(orderData.shippingAddress);
+        } catch (err) {
+            throw new Error(`Invalid shipping address: ${err.message}`);
+        }
+
+        const dims = calculateDimensions(orderData.items || []);
+        const orderItems = (orderData.items || []).map(item => ({
+            name: item.name || "Jewellery Item",
+            sku: item.sku || item.id || "SKU-UNKNOWN",
+            units: item.qty || 1,
+            selling_price: item.price || 0,
+            discount: 0,
+            tax: 0,
+            hsn: 7113
+        }));
+
+        const dateObj = orderData.createdAt ? (orderData.createdAt.toDate ? orderData.createdAt.toDate() : new Date(orderData.createdAt)) : new Date();
+        const orderDate = dateObj.toISOString().replace("T", " ").replace(/\.\d+Z$/, "").substring(0, 16);
+        const isCod = orderData.payment?.method === "cod";
+
+        const adhocPayload = {
+            order_id: orderData.orderNumber || orderId,
+            order_date: orderDate,
+            pickup_location: selectedPickup,
+            ...deliveryAddress,
+            billing_customer_name: deliveryAddress.delivery_customer_name,
+            billing_last_name: deliveryAddress.delivery_last_name,
+            billing_address: deliveryAddress.delivery_address,
+            billing_city: deliveryAddress.delivery_city,
+            billing_pincode: deliveryAddress.delivery_pincode,
+            billing_state: deliveryAddress.delivery_state,
+            billing_country: deliveryAddress.delivery_country,
+            billing_email: deliveryAddress.delivery_email,
+            billing_phone: deliveryAddress.delivery_phone,
+            shipping_is_billing: true,
+            order_items: orderItems,
+            payment_method: isCod ? "COD" : "Prepaid",
+            sub_total: orderData.totalAmount,
+            length: dims.length,
+            breadth: dims.breadth,
+            height: dims.height,
+            weight: dims.weight
+        };
+
+        // 1. Create order on Shiprocket
+        const adhocRes = await shiprocketRequest("POST", "/orders/create/adhoc", adhocPayload);
+        const shipmentId = adhocRes.shipment_id;
+        const shiprocketOrderId = adhocRes.order_id;
+        if (!shipmentId) throw new Error("Shiprocket returned no shipment_id.");
+
+        // 2. Assign courier / AWB
+        let selectedCourierId = courierId;
+        if (!selectedCourierId) {
+            try {
+                const serviceability = await checkServiceability({
+                    pickupPincode: process.env.STORE_PICKUP_PINCODE || orderData.pickupPincode,
+                    deliveryPincode: orderData.shippingAddress?.pin || orderData.shippingAddress?.pincode,
+                    weight: dims.weight,
+                    isCOD: isCod
+                });
+                if (serviceability.availableCouriers && serviceability.availableCouriers.length > 0) {
+                    const rec = serviceability.availableCouriers.find(c => c.isRecommended) || serviceability.availableCouriers[0];
+                    selectedCourierId = rec.courierId;
+                }
+            } catch (sErr) {
+                log("warn", "Serviceability check during AWB assignment skipped", { error: sErr.message });
+            }
+        }
+
+        const awbPayload = { shipment_id: shipmentId };
+        if (selectedCourierId) awbPayload.courier_id = selectedCourierId;
+
+        let awbCode = null;
+        let courierName = null;
+        let trackingUrl = null;
+        try {
+            const awbRes = await shiprocketRequest("POST", "/courier/assign/awb", awbPayload);
+            const awbData = awbRes?.response?.data || awbRes;
+            awbCode = awbData?.awb_code || awbRes?.awb_code || null;
+            courierName = awbData?.courier_name || awbRes?.courier_name || null;
+            trackingUrl = awbData?.tracking_url || (awbCode ? `https://shiprocket.co/tracking/${awbCode}` : null);
+        } catch (awbErr) {
+            log("warn", "AWB assignment deferred", { error: awbErr.message });
+        }
+
+        // 3. Generate pickup
+        try {
+            await shiprocketRequest("POST", "/courier/generate/pickup", { shipment_id: [shipmentId] });
+        } catch (pickErr) {
+            log("warn", "Pickup generation notice", { error: pickErr.message });
+        }
+
+        const updates = {
+            "shippingDetails.shiprocketOrderId": shiprocketOrderId ? String(shiprocketOrderId) : null,
+            "shippingDetails.shiprocketShipmentId": String(shipmentId),
+            "shippingDetails.awbCode": awbCode,
+            "shippingDetails.courierName": courierName,
+            "shippingDetails.trackingUrl": trackingUrl,
+            "shippingDetails.trackingNumber": awbCode,
+            "shippingDetails.carrier": courierName,
+            "shippingDetails.creatingShipment": false,
+            orderStatus: "packed",
+            shippingStatus: "packed",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            statusHistory: admin.firestore.FieldValue.arrayUnion({
+                status: "packed",
+                changedAt: admin.firestore.FieldValue.serverTimestamp(),
+                changedBy: "system_shiprocket",
+                note: `Shipment created. ID: ${shipmentId}${awbCode ? `, AWB: ${awbCode}` : ""}`
+            })
+        };
+
+        await orderRef.update(updates);
+
+        return {
+            success: true,
+            orderId,
+            shiprocketOrderId: shiprocketOrderId ? String(shiprocketOrderId) : null,
+            shiprocketShipmentId: String(shipmentId),
+            awbCode,
+            courierName,
+            trackingUrl,
+            trackingNumber: awbCode,
+            carrier: courierName,
+            message: `Shipment created. ID: ${shipmentId}`
+        };
+    } catch (err) {
+        await orderRef.update({
+            "shippingDetails.creatingShipment": false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }).catch(() => {});
+async function cancelShiprocketOrder(shiprocketOrderId) {
+    if (!shiprocketOrderId) return { success: false, message: "No shiprocketOrderId provided." };
+    try {
+        const res = await shiprocketRequest("POST", "/orders/cancel", { ids: [shiprocketOrderId] });
+        return { success: true, response: res };
+    } catch (err) {
+        log("warn", "Shiprocket cancellation failed", { shiprocketOrderId, error: err.message });
+        throw err;
+    }
 }
 
-module.exports = { checkServiceability, getAvailableCouriersForOrder, getTrackingByShipmentId, getTrackingByOrderId, getPickupLocations, createShipmentForOrder };
+module.exports = { checkServiceability, getAvailableCouriersForOrder, getTrackingByShipmentId, getTrackingByOrderId, getPickupLocations, createShipmentForOrder, cancelShiprocketOrder };
+

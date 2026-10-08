@@ -71,7 +71,7 @@ function extractErrorMessage(err, fallback = "Shiprocket API error") {
     return fallback;
 }
 
-async function shiprocketRequest(method, endpoint, data = null, params = {}) {
+async function shiprocketRequest(method, endpoint, data = null, params = {}, isRetry = false) {
     const requestId = Math.random().toString(36).substring(2, 9);
     const url = `${SHIPROCKET_BASE_URL}${endpoint}`;
     log("info", `[${requestId}] Shiprocket API request`, { method: method.toUpperCase(), endpoint });
@@ -92,6 +92,12 @@ async function shiprocketRequest(method, endpoint, data = null, params = {}) {
         const status = err.response?.status;
         const message = extractErrorMessage(err, `Shiprocket ${method.toUpperCase()} ${endpoint} failed`);
         log("error", `[${requestId}] API error`, { statusCode: status, errorMessage: message });
+        if (status === 401 && !isRetry) {
+            log("warn", `[${requestId}] 401 Unauthorized received. Invalidating token and retrying once...`);
+            _cachedToken = null;
+            _tokenExpiresAt = 0;
+            return shiprocketRequest(method, endpoint, data, params, true);
+        }
         if (status === 401) { _cachedToken = null; _tokenExpiresAt = 0; }
         throw new Error(message);
     }

@@ -1581,7 +1581,8 @@
     <div class="toolbar">
         <div class="seg" id="order-status-tabs">
             <button class="active" aria-current="true" onclick="filterOrdersByTab('all', this)">All</button>
-            <button onclick="filterOrdersByTab('placed', this)">Placed</button>
+            <button onclick="filterOrdersByTab('payment_pending', this)">Awaiting Payment</button>
+            <button onclick="filterOrdersByTab('pending', this)">Pending</button>
             <button onclick="filterOrdersByTab('packed', this)">Packed</button>
             <button onclick="filterOrdersByTab('shipped', this)">Shipped</button>
             <button onclick="filterOrdersByTab('delivered', this)">Delivered</button>
@@ -2255,14 +2256,14 @@
                 <div class="form-group">
                     <label class="form-label">Update Order Status *</label>
                     <select class="form-input" id="aom-status-select">
-                        <option value="Order Placed">Order Placed</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Packed">Packed</option>
-                        <option value="Shipped">Shipped</option>
-                        <option value="Out for Delivery">Out for Delivery</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                        <option value="Returned">Returned</option>
+                        <option value="pending">Order Placed</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="packed">Packed</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="out_for_delivery">Out for Delivery</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="returned">Returned</option>
                     </select>
                 </div>
 
@@ -5811,12 +5812,30 @@
         function _getOrderStatusClass(status) {
             if (!status) return 'os-pending';
             const s = status.toString().toLowerCase();
-            if (s.includes('deliver')) return 'os-delivered';
-            if (s.includes('ship')) return 'os-shipped';
-            if (s.includes('cancel')) return 'os-cancelled';
-            if (s.includes('return')) return 'os-cancelled';
-            if (s.includes('out for delivery')) return 'os-shipped';
-            return 'os-pending';
+            if (s === 'delivered') return 'os-delivered';
+            if (s === 'shipped') return 'os-shipped';
+            if (s === 'out_for_delivery' || s === 'out for delivery') return 'os-shipped';
+            if (s === 'confirmed' || s === 'packed') return 'os-pending';
+            if (s === 'cancelled') return 'os-cancelled';
+            if (s === 'returned') return 'os-cancelled';
+            if (s === 'action_required_oversold') return 'os-cancelled';
+            return 'os-pending'; // pending, payment_pending
+        }
+
+        /** Map canonical slug to UI label */
+        function _statusLabel(slug) {
+            return {
+                payment_pending: 'Payment Pending',
+                pending: 'Order Placed',
+                confirmed: 'Confirmed',
+                packed: 'Packed',
+                shipped: 'Shipped',
+                out_for_delivery: 'Out for Delivery',
+                delivered: 'Delivered',
+                cancelled: 'Cancelled',
+                returned: 'Returned',
+                action_required_oversold: 'Action Required'
+            }[slug] || (slug ? slug.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—');
         }
 
         function _fmtOrderDate(ts) {
@@ -5836,8 +5855,8 @@
             // Normalize: handle both old mock-data shape and live Firestore shape
             const rows = orders.map(o => {
                 // Firestore live order shape
-                const rawStatus = o.orderStatus || o.status || 'Order Placed';
-                const displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+                const rawStatus = o.orderStatus || o.status || 'pending';
+                const displayStatus = _statusLabel(rawStatus);
                 const statusClass = _getOrderStatusClass(rawStatus);
 
                 const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
@@ -5877,8 +5896,8 @@
                 } else {
                     mobileList.innerHTML = orders.map(o => {
                         const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
-                        const rawStatus = o.orderStatus || o.status || 'Order Placed';
-                        const displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+                        const rawStatus = o.orderStatus || o.status || 'pending';
+                        const displayStatus = _statusLabel(rawStatus);
                         const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
                         const total = o.totalAmount || o.payment?.total || o.total || 0;
                         const orderDate = _fmtOrderDate(o.createdAt || o.date);
@@ -5904,8 +5923,8 @@
             if (recentMobileList && orders.length > 0) {
                 recentMobileList.innerHTML = orders.slice(0, 5).map(o => {
                     const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
-                    const rawStatus = o.orderStatus || o.status || 'Order Placed';
-                    const displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+                    const rawStatus = o.orderStatus || o.status || 'pending';
+                    const displayStatus = _statusLabel(rawStatus);
                     const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
                     const total = o.totalAmount || o.payment?.total || o.total || 0;
                     return `
@@ -5930,8 +5949,9 @@
         function filterOrders(status) {
             const f = status === 'all' ? ordersData : ordersData.filter(o => {
                 const s = (o.orderStatus || o.status || '').toLowerCase();
-                if (status === 'pending') return s === 'order placed' || s === 'confirmed' || s === 'packed' || s === 'pending';
-                return s.includes(status);
+                // 'pending' tab covers order-placed variants
+                if (status === 'pending') return s === 'pending' || s === 'payment_pending' || s === 'confirmed' || s === 'packed';
+                return s === status || s.includes(status);
             });
             renderOrdersTable(f);
         }
@@ -5945,7 +5965,7 @@
                 return;
             }
 
-            const rawStatus = o.orderStatus || o.status || 'Order Placed';
+            const rawStatus = o.orderStatus || o.status || 'pending';
             const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
             const history = Array.isArray(o.statusHistory) ? o.statusHistory : [];
             const shortId = orderId.substring(0, 10).toUpperCase();
@@ -5963,7 +5983,7 @@
             // Status badge
             const badge = document.getElementById('aom-current-status-badge');
             const statusClass = _getOrderStatusClass(rawStatus);
-            badge.innerHTML = `<span class="order-status ${statusClass}">${rawStatus}</span>`;
+            badge.innerHTML = `<span class="order-status ${statusClass}">${_statusLabel(rawStatus)}</span>`;
 
             // Status History log
             const histList = document.getElementById('aom-history-list');
@@ -7528,13 +7548,13 @@
                 if (!o) return;
                 const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
                 title = `Order #${shortId}`;
-                const rawStatus = o.orderStatus || o.status || 'Order Placed';
+                const rawStatus = o.orderStatus || o.status || 'pending';
                 const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
                 const total = o.totalAmount || o.payment?.total || o.total || 0;
                 bodyHTML = `
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Order Number</span><span class="mobile-detail-val" style="color:var(--gold);font-family:monospace">#${shortId}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Customer</span><span class="mobile-detail-val">${customerName}</span></div>
-                    <div class="mobile-detail-row"><span class="mobile-detail-label">Order Status</span><span class="mobile-detail-val"><span class="order-status ${_getOrderStatusClass(rawStatus)}">${rawStatus}</span></span></div>
+                    <div class="mobile-detail-row"><span class="mobile-detail-label">Order Status</span><span class="mobile-detail-val"><span class="order-status ${_getOrderStatusClass(rawStatus)}">${_statusLabel(rawStatus)}</span></span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Total Amount</span><span class="mobile-detail-val" style="color:var(--gold);font-weight:700">₹${Number(total).toLocaleString()}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Payment Mode</span><span class="mobile-detail-val">${(o.paymentMethod || 'ONLINE').toUpperCase()}</span></div>
                     <div class="mobile-detail-row"><span class="mobile-detail-label">Date Placed</span><span class="mobile-detail-val">${_fmtOrderDate(o.createdAt || o.date)}</span></div>

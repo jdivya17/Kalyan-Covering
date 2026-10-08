@@ -153,8 +153,9 @@
                 </label>
 
                 <label class="f full">Pincode *
-                  <input type="text" id="f-pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit Pincode" value="${escapeHtml(defaultAddr.pin || '')}" required />
+                  <input type="text" id="f-pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="6-digit Pincode" value="${escapeHtml(defaultAddr.pin || '')}" oninput="checkPincodeServiceability(this.value)" required />
                   <span class="err" id="err-pin"></span>
+                  <span id="pincode-status" style="display:block;font-size:0.83rem;margin-top:4px;"></span>
                 </label>
               </div>
 
@@ -257,8 +258,46 @@
       document.getElementById('f-addr').value = addr.line || '';
       document.getElementById('f-city').value = addr.city || '';
       document.getElementById('f-state').value = addr.state || 'Tamil Nadu';
-      document.getElementById('f-pin').value = addr.pin || '';
+      const pinEl = document.getElementById('f-pin');
+      if (pinEl) {
+        pinEl.value = addr.pin || '';
+        checkPincodeServiceability(pinEl.value);
+      }
     };
+
+    let pincodeTimer = null;
+    window.checkPincodeServiceability = function(val) {
+      const statusEl = document.getElementById('pincode-status');
+      if (!statusEl) return;
+      const pin = String(val || '').trim();
+      if (!/^\d{6}$/.test(pin)) {
+        statusEl.innerHTML = '';
+        return;
+      }
+
+      statusEl.style.color = 'var(--muted)';
+      statusEl.textContent = 'Checking delivery serviceability…';
+
+      clearTimeout(pincodeTimer);
+      pincodeTimer = setTimeout(async () => {
+        try {
+          const res = await callVercelApi('/api/shipping/pincode-check', { pincode: pin });
+          if (res && res.isServiceable) {
+            statusEl.style.color = 'var(--ok, #4cd964)';
+            const eta = res.estimatedDays ? `Estimated delivery in ${res.estimatedDays} days` : 'Express delivery available';
+            const courier = res.courierName ? ` via ${res.courierName}` : '';
+            statusEl.textContent = `✓ ${eta}${courier}`;
+          } else {
+            statusEl.style.color = 'var(--danger, #ff4d4f)';
+            statusEl.textContent = '✕ Delivery is currently not available for this pincode.';
+          }
+        } catch (_) {
+          statusEl.style.color = 'var(--muted)';
+          statusEl.textContent = '';
+        }
+      }, 400);
+    };
+
 
     window.toggleGiftWrap = function(enabled) {
       isGiftWrap = enabled;
@@ -394,7 +433,7 @@
           rzp.open();
         } else {
           // Cash On Delivery (COD) Flow
-          const codRes = await callVercelApi('/api/orders/create-cod-order', {
+          const codRes = await callVercelApi('/api/payments/create-cod-order', {
             items,
             shippingAddress,
             couponCode,
