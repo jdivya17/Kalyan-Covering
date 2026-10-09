@@ -131,11 +131,22 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             return { alreadyCreated: true, data: data.shippingDetails };
         }
         if (data.shippingDetails?.creatingShipment) {
-            throw new Error(`Shipment creation already in progress for order ${orderId}.`);
+            const creatingAt = data.shippingDetails?.creatingShipmentAt;
+            let isStale = false;
+            if (creatingAt) {
+                const creatingMs = creatingAt.toDate ? creatingAt.toDate().getTime() : new Date(creatingAt).getTime();
+                if (Date.now() - creatingMs > 5 * 60 * 1000) {
+                    isStale = true;
+                }
+            }
+            if (!isStale) {
+                throw new Error(`Shipment creation already in progress for order ${orderId}.`);
+            }
         }
 
         transaction.update(orderRef, {
             "shippingDetails.creatingShipment": true,
+            "shippingDetails.creatingShipmentAt": admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         return { alreadyCreated: false, data };
@@ -303,6 +314,11 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             "shippingDetails.creatingShipment": false,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }).catch(() => {});
+        log("error", "Shipment creation failed", { orderId, error: err.message });
+        throw err;
+    }
+}
+
 async function cancelShiprocketOrder(shiprocketOrderId) {
     if (!shiprocketOrderId) return { success: false, message: "No shiprocketOrderId provided." };
     try {

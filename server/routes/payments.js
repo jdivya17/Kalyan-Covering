@@ -285,6 +285,10 @@ const handlePaymentVerification = async (req, res) => {
 
         const result = await db.runTransaction(t => fulfillOrder(razorpay_order_id, razorpay_payment_id, paymentDetails.amount, paymentDetails.currency, t));
 
+        if (result.cancelledAfterPayment) {
+            return res.json({ success: false, cancelled: true, message: "Order was cancelled. Your payment will be refunded." });
+        }
+
         if (!result.success && (result.notFound || result.mismatch)) {
             return sendError(res, 400, "failed-precondition", "Payment verification failed: invalid order or amount mismatch.");
         }
@@ -442,6 +446,7 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
 // ── POST /api/payments/refund (Owner / Manager only) ──────────────────────────
 router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) => {
     let targetOrderId = null;
+    let acquiredLock = false;
     try {
         const { orderId, amount, notes } = req.body;
         targetOrderId = orderId;
@@ -458,6 +463,13 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
             if (!snap.exists) throw { code: 404, message: "Order not found." };
             const data = snap.data();
 
+            const st = String(data.orderStatus || data.status || "").toLowerCase();
+            const isCancelledOrReturned = ["cancelled", "returned"].includes(st);
+            const isRefundRequired = data.cancellation?.refundRequired === true;
+            if (!isCancelledOrReturned && !isRefundRequired) {
+                throw { code: 400, message: "Refund requires order to be cancelled, returned, or marked as refund required." };
+            }
+
             paymentIdToRefund = data.payment?.razorpay_payment_id || data.paymentId;
             originalTotal = data.totalAmount || data.amount || 0;
 
@@ -472,10 +484,11 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
                 refunding: true,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+            acquiredLock = true;
         });
 
         if (!paymentIdToRefund) {
-            await orderRef.update({ refunding: false }).catch(() => {});
+            if (acquiredLock) await orderRef.update({ refunding: false }).catch(() => {});
             return sendError(res, 400, "failed-precondition", "Order has no associated Razorpay payment ID to refund.");
         }
 
@@ -492,11 +505,12 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
 
         const now = admin.firestore.FieldValue.serverTimestamp();
         const finalRefundAmount = refundRes.amount ? (refundRes.amount / 100) : (amount || originalTotal);
+        const realRefundStatus = refundRes.status || "processed";
 
         await orderRef.update({
             refunding: false,
             refundId: refundRes.id,
-            refundStatus: "processed",
+            refundStatus: realRefundStatus,
             refundedAt: now,
             refundAmount: finalRefundAmount,
             "cancellation.refundRequired": false,
@@ -509,18 +523,18 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
             })
         });
 
-        await logAudit(req, "PAYMENT_REFUND", "orders", targetOrderId, null, { refundId: refundRes.id, amount: finalRefundAmount });
+        await logAudit(req, "PAYMENT_REFUND", "orders", targetOrderId, null, { refundId: refundRes.id, amount: finalRefundAmount, refundStatus: realRefundStatus });
 
         return res.json({
             success: true,
             orderId: targetOrderId,
             refundId: refundRes.id,
-            refundStatus: "processed",
+            refundStatus: realRefundStatus,
             refundAmount: finalRefundAmount,
             message: "Refund processed successfully."
         });
     } catch (err) {
-        if (targetOrderId) {
+        if (targetOrderId && acquiredLock) {
             await db.collection("orders").doc(targetOrderId).update({ refunding: false }).catch(() => {});
         }
         console.error("[payments/refund]", err);

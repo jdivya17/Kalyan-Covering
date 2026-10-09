@@ -431,8 +431,10 @@
                 if (verifyRes && verifyRes.success) {
                   Cart.clear();
                   window.location.href = `order-success.html?orderId=${orderRes.orderId}`;
+                } else if (verifyRes && verifyRes.cancelled) {
+                  alert(verifyRes.message || "Order was cancelled. Your payment will be refunded.");
                 } else {
-                  alert('Payment verification failed. Please contact support.');
+                  alert(verifyRes?.message || 'Payment verification failed. Please contact support.');
                 }
               } catch (err) {
                 alert('Payment verification error: ' + err.message);

@@ -6,14 +6,24 @@ const app = express();
 const defaultOrigins = [
     "https://kalyancoveringstore-c53e4.web.app",
     "https://kalyancoveringstore-c53e4.firebaseapp.com",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173"
 ];
 const extraOrigins = (process.env.CUSTOM_DOMAIN || "")
     .split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
 const allowedOrigins = new Set([...defaultOrigins, ...extraOrigins]);
+const firebaseWebAppRegex = /^https:\/\/kalyancoveringstore-c53e4(--[a-z0-9-]+)?\.web\.app$/;
 
 const corsOptions = {
-    origin: (origin, cb) => cb(null, !origin || allowedOrigins.has(origin)),
+    origin: (origin, cb) => {
+        if (!origin || allowedOrigins.has(origin) || firebaseWebAppRegex.test(origin)) {
+            cb(null, true);
+        } else {
+            cb(null, false);
+        }
+    },
     credentials: true
 };
 
