@@ -18,10 +18,22 @@
 
     <!-- Early redirect -->
     <script>
+        function safeRedirect(raw, fallback = 'profile.html') {
+            try {
+                if (!raw || typeof raw !== 'string') return fallback;
+                if (/[\u0000-\u001f\\]/.test(raw)) return fallback;
+                if (!raw.startsWith('/') || raw.startsWith('//')) return fallback;
+                const u = new URL(raw, window.location.origin);
+                if (u.origin !== window.location.origin) return fallback;
+                return u.pathname + u.search + u.hash;
+            } catch (_) {
+                return fallback;
+            }
+        }
         (function () {
             if (localStorage.getItem('kc_user')) {
                 var params = new URLSearchParams(window.location.search);
-                window.location.replace(params.get('redirect') || 'profile.html');
+                window.location.replace(safeRedirect(params.get('redirect')));
             }
         })();
     </script>
@@ -632,7 +644,7 @@
             if (res.success) {
                 if (window.Toast) Toast.success('Welcome!', 'Login successful');
                 setTimeout(() => {
-                    window.location.href = urlParams.get('redirect') || 'profile.html';
+                    window.location.href = safeRedirect(urlParams.get('redirect'));
                 }, 800);
             } else {
                 if (window.Toast) Toast.error('Verification Failed', res.error || 'Invalid code');
@@ -695,7 +707,7 @@
 
                 if (window.Toast) Toast.success('Welcome Back!', `Logged in as ${userName}`);
                 setTimeout(() => {
-                    window.location.href = urlParams.get('redirect') || 'profile.html';
+                    window.location.href = safeRedirect(urlParams.get('redirect'));
                 }, 800);
             } catch (error) {
                 btn.disabled = false;

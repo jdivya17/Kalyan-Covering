@@ -4,7 +4,6 @@ const { admin, db } = require("../lib/admin");
 const { sendError } = require("../lib/utils");
 const { authMiddleware, requireAdmin } = require("../middleware/auth");
 const PDFDocument = require("pdfkit");
-const nodemailer = require("nodemailer");
 
 const router = express.Router();
 

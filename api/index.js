@@ -3,24 +3,17 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 
-const allowedOrigins = [
+const defaultOrigins = [
     "https://kalyancoveringstore-c53e4.web.app",
     "https://kalyancoveringstore-c53e4.firebaseapp.com",
     "http://localhost:5173"
 ];
-
-if (process.env.CUSTOM_DOMAIN) {
-    allowedOrigins.push(process.env.CUSTOM_DOMAIN.trim());
-}
+const extraOrigins = (process.env.CUSTOM_DOMAIN || "")
+    .split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
+const allowedOrigins = new Set([...defaultOrigins, ...extraOrigins]);
 
 const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("CORS policy violation: origin not allowed"));
-        }
-    },
+    origin: (origin, cb) => cb(null, !origin || allowedOrigins.has(origin)),
     credentials: true
 };
 

@@ -104,8 +104,8 @@ const _isLocalhost = (
     window.location.hostname.startsWith("192.168.")
 );
 const VERCEL_API_BASE = _isLocalhost
-    ? ""   // relative URL works on local Vite dev server
-    : "https://kalyan-covering-store.vercel.app"; // ← ⚠️ UPDATE THIS if your Vercel deployment URL changes
+    ? ""
+    : (import.meta.env.VITE_API_BASE || "https://kalyan-covering-store.vercel.app");
 
 /**
  * Helper to call Vercel API endpoints with Firebase Auth Token.

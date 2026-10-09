@@ -6,6 +6,9 @@ const { authMiddleware, requireAdmin, requireOwnerOrManager } = require("../midd
 
 const router = express.Router();
 
+const ROLE_RANK = { staff: 1, manager: 2, admin: 3, owner: 4 };
+const rankOf = (r) => ROLE_RANK[r] || 0;
+
 // POST /api/admin/update-settings
 router.post("/update-settings", authMiddleware, requireOwnerOrManager, async (req, res) => {
     try {
@@ -54,32 +57,37 @@ router.post("/log-audit", authMiddleware, requireAdmin, async (req, res) => {
     }
 });
 
-// ── NEW: POST /api/admin/set-user-role (Owner only) ─────────────────────────
-// Migrated from the old Cloud Function `setUserRole`. This is the ONLY
-// place (besides the CLI script scripts/setRole.js used to create the very
-// first owner) that should ever call setCustomUserClaims. Restricted to
-// owner/manager via requireOwnerOrManager, and role list is standardized
-// to owner/manager/staff to match authMiddleware, firestore.rules and
-// scripts/setRole.js (the old userController.js accepted a different,
-// mismatched list — do not reuse that list).
+// POST /api/admin/set-user-role (Owner or Manager with rank constraints)
 router.post("/set-user-role", authMiddleware, requireOwnerOrManager, async (req, res) => {
     try {
         const { targetUid, role } = req.body;
         const allowedRoles = ["owner", "manager", "staff"];
         if (!targetUid || !role) return sendError(res, 400, "invalid-argument", "targetUid and role are required.");
         if (!allowedRoles.includes(role)) return sendError(res, 400, "invalid-argument", `role must be one of: ${allowedRoles.join(", ")}`);
-        // Only an owner may grant the owner role
-        if (role === "owner" && req.user.role !== "owner") {
-            return sendError(res, 403, "permission-denied", "Only an existing owner can grant the owner role.");
+        if (targetUid === req.user.uid) return sendError(res, 403, "permission-denied", "You cannot change your own role.");
+
+        const callerRole = req.user.role;
+        const target = await admin.auth().getUser(targetUid);
+        const targetRole = (target.customClaims && target.customClaims.role) || null;
+
+        if (callerRole !== "owner") {
+            // managers: can only manage staff / plain customers, and can only grant "staff"
+            if (rankOf(targetRole) >= rankOf(callerRole)) {
+                return sendError(res, 403, "permission-denied", "You cannot modify a user with an equal or higher role.");
+            }
+            if (role !== "staff") {
+                return sendError(res, 403, "permission-denied", "Managers can only assign the staff role.");
+            }
         }
 
-        await admin.auth().setCustomUserClaims(targetUid, { role });
+        await admin.auth().setCustomUserClaims(targetUid, { ...(target.customClaims || {}), role });
+        await admin.auth().revokeRefreshTokens(targetUid); // force new token with new claims
         await db.collection("users").doc(targetUid).set(
             { role, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
 
-        await logAudit(req, "SET_USER_ROLE", "users", targetUid, null, { role });
+        await logAudit(req, "SET_USER_ROLE", "users", targetUid, { role: targetRole }, { role });
         return res.json({ success: true, message: `User role updated to ${role}.` });
     } catch (err) {
         console.error("[admin/set-user-role]", err);
@@ -87,84 +95,31 @@ router.post("/set-user-role", authMiddleware, requireOwnerOrManager, async (req,
     }
 });
 
-// ── NEW: POST /api/admin/update-account-status (Admin only) ─────────────────
+// POST /api/admin/update-account-status (Admin only with rank constraints)
 router.post("/update-account-status", authMiddleware, requireAdmin, async (req, res) => {
     try {
         const { userId, status, reason } = req.body;
         if (!userId || !["active", "suspended", "disabled"].includes(status)) {
             return sendError(res, 400, "invalid-argument", "Invalid account status.");
         }
+        if (userId === req.user.uid) return sendError(res, 403, "permission-denied", "You cannot change your own account status.");
+
+        const target = await admin.auth().getUser(userId);
+        const targetRole = (target.customClaims && target.customClaims.role) || null;
+        if (targetRole && rankOf(targetRole) >= rankOf(req.user.role)) {
+            return sendError(res, 403, "permission-denied", "You cannot change the status of a user with an equal or higher role.");
+        }
 
         const now = admin.firestore.FieldValue.serverTimestamp();
         await db.collection("users").doc(userId).update({ status, statusReason: reason || null, updatedAt: now });
-
-        try {
-            await admin.auth().updateUser(userId, { disabled: status !== "active" });
-        } catch (e) {
-            console.error("[admin/update-account-status] Auth user update failed:", e.message);
-        }
+        await admin.auth().updateUser(userId, { disabled: status !== "active" });
+        if (status !== "active") await admin.auth().revokeRefreshTokens(userId);
 
         await logAudit(req, "UPDATE_ACCOUNT_STATUS", "users", userId, null, { status, reason });
         return res.json({ success: true });
     } catch (err) {
         console.error("[admin/update-account-status]", err);
         return sendError(res, 500, "internal", "Failed to update account status.");
-    }
-});
-
-// ── POST /api/admin/bootstrap-first-owner ────────────────────────────────────
-// One-time safely-locked-down bootstrap endpoint.
-// ONLY works when ZERO users currently have the `owner` claim/role in Auth or Firestore.
-// Once at least one owner exists, this endpoint is permanently locked and returns 403.
-router.post("/bootstrap-first-owner", authMiddleware, async (req, res) => {
-    try {
-        if (!req.user || !req.user.uid) {
-            return sendError(res, 401, "unauthenticated", "Authentication required to bootstrap owner.");
-        }
-
-        // 1. Check Firestore users & admins collections for existing owner
-        const usersOwnerSnap = await db.collection("users").where("role", "==", "owner").limit(1).get();
-        const adminsOwnerSnap = await db.collection("admins").limit(1).get();
-        
-        let ownerExists = !usersOwnerSnap.empty || !adminsOwnerSnap.empty;
-
-        // 2. Check Firebase Auth users list for any user with custom claim `role === 'owner'` or `admin === true`
-        if (!ownerExists) {
-            try {
-                const listResult = await admin.auth().listUsers(100);
-                for (const u of listResult.users) {
-                    if (u.customClaims && (u.customClaims.role === "owner" || u.customClaims.role === "admin" || u.customClaims.admin === true)) {
-                        ownerExists = true;
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.warn("[bootstrap-first-owner] listUsers check error:", e.message);
-            }
-        }
-
-        if (ownerExists) {
-            return sendError(res, 403, "bootstrap-locked", "An owner account already exists in the system. Bootstrap is disabled.");
-        }
-
-        // Grant owner custom claim to requesting user
-        const targetUid = req.user.uid;
-        await admin.auth().setCustomUserClaims(targetUid, { role: "owner", admin: true });
-        
-        await db.collection("users").doc(targetUid).set(
-            { role: "owner", updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-            { merge: true }
-        );
-
-        await logAudit(req, "BOOTSTRAP_FIRST_OWNER", "users", targetUid, null, { role: "owner" });
-
-        return res.json({
-            success: true,
-            message: "First owner account successfully bootstrapped! Please refresh or log in again."
-        });
-    } catch (err) {
-        console.error("[admin/bootstrap-first-owner]", err);
-        return sendError(res, 500, "internal", "Failed to bootstrap first owner: " + err.message);
     }
 });
 

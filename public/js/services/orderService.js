@@ -5,7 +5,7 @@
  * Firestore collections: orders
  */
 
-import { db, functions, httpsCallable, collection, doc, getDoc, getDocs, query, where, orderBy } from '../firebase-config.js';
+import { db, functions, httpsCallable, collection, doc, getDoc, getDocs, query, where, orderBy, callVercelApi } from '../firebase-config.js';
 import { KC } from '../store/state.js';
 import { Toast } from '../components/Toast.js';
 
@@ -58,18 +58,9 @@ export async function getOrder(orderId) {
  */
 export async function cancelOrder(orderId, reason = 'Customer requested cancellation') {
     try {
-        const token = localStorage.getItem('kc_auth_token') || localStorage.getItem('token') || '';
-        const res = await fetch('/api/orders/cancel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({ orderId, reason })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-            throw new Error(data.message || data.error || 'Failed to cancel order.');
+        const data = await callVercelApi('/api/orders/cancel', { orderId, reason });
+        if (!data || !data.success) {
+            throw new Error((data && (data.message || data.error)) || 'Failed to cancel order.');
         }
 
         const msg = data.message || 'Order cancelled successfully.';

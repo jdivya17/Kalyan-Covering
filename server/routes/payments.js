@@ -6,6 +6,7 @@ const Razorpay = require("razorpay");
 const { admin, db } = require("../lib/admin");
 const { logAudit, sendError } = require("../lib/utils");
 const { authMiddleware, requireOwnerOrManager } = require("../middleware/auth");
+const { rateLimit } = require("../middleware/rateLimit");
 
 const router = express.Router();
 
@@ -43,7 +44,33 @@ function validateAddress(address) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email || "")) throw { code: 400, message: "Invalid email address format." };
 }
 
-async function calculateOrderTotals(items, promoCode, isCOD = false) {
+async function resolveCoupon(code, subtotal, uid) {
+    if (!code) return { discount: 0, couponId: null, couponCode: null };
+    const norm = String(code).trim().toUpperCase();
+    const snap = await db.collection("coupons").where("code", "==", norm).where("status", "==", "active").limit(1).get();
+    if (snap.empty) throw { code: 400, message: "Invalid or inactive coupon code." };
+    const cdoc = snap.docs[0];
+    const c = cdoc.data();
+    if (c.expiryDate && new Date(c.expiryDate) < new Date()) throw { code: 400, message: "This coupon has expired." };
+    const minP = typeof c.minPurchase === "number" ? c.minPurchase : (c.minOrder || 0);
+    if (minP && subtotal < minP) throw { code: 400, message: `Minimum purchase of ₹${minP} required for this coupon.` };
+    if (c.usageLimit && (c.usedCount || 0) >= c.usageLimit) throw { code: 400, message: "This coupon has reached its usage limit." };
+    if (c.perUserLimit && uid) {
+        const mine = await db.collection("orders").where("customerId", "==", uid).get();
+        const used = mine.docs.filter((d) => {
+            const o = d.data();
+            return (o.couponCode || "").toUpperCase() === norm && !["cancelled", "payment_pending"].includes(o.orderStatus);
+        }).length;
+        if (used >= c.perUserLimit) throw { code: 400, message: "You have already used this coupon the maximum number of times." };
+    }
+    const isPercent = c.discountType === "percentage" || c.discountType === "percent";
+    const discount = isPercent
+        ? Math.min(Math.round(subtotal * ((c.discountValue || 0) / 100)), subtotal)
+        : Math.min(c.discountValue || 0, subtotal);
+    return { discount, couponId: cdoc.id, couponCode: norm };
+}
+
+async function calculateOrderTotals(items, promoCode, isCOD = false, uid = null) {
     let subtotal = 0;
     const trustedItems = [];
 
@@ -60,26 +87,12 @@ async function calculateOrderTotals(items, promoCode, isCOD = false) {
         trustedItems.push({ id: item.id, name: p.productName || p.name || item.id, price, qty: item.qty, sku: p.sku || null });
     }
 
-    let discount = 0;
-    if (promoCode) {
-        const promoSnap = await db.collection("coupons").where("code", "==", promoCode.trim().toUpperCase()).where("status", "==", "active").limit(1).get();
-        if (!promoSnap.empty) {
-            const pd = promoSnap.docs[0].data();
-            const isExpired = pd.expiryDate && new Date(pd.expiryDate) < new Date();
-            const meetsMin = !pd.minPurchase || subtotal >= pd.minPurchase;
-            if (!isExpired && meetsMin) {
-                discount = pd.discountType === "percentage"
-                    ? Math.min(Math.round(subtotal * (pd.discountValue / 100)), subtotal)
-                    : Math.min(pd.discountValue || 0, subtotal);
-            }
-        }
-    }
-
+    const { discount, couponId, couponCode } = await resolveCoupon(promoCode, subtotal, uid);
     const gst = Math.round((subtotal - discount) * 0.12);
     const deliveryCharge = subtotal > 999 ? 0 : 99;
     const codFee = isCOD ? 50 : 0;
     const totalAmount = (subtotal - discount) + gst + deliveryCharge + codFee;
-    return { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount };
+    return { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponId, couponCode };
 }
 
 async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, transaction) {
@@ -133,24 +146,35 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
         productDocs.push({ item, productRef, productDoc });
     }
 
+    let couponRef = null, couponSnap = null;
+    if (data.couponId) {
+        couponRef = db.collection("coupons").doc(data.couponId);
+        couponSnap = await transaction.get(couponRef);
+    }
+
     // Now perform ALL writes
     const now = admin.firestore.FieldValue.serverTimestamp();
     let isOversold = false, oversoldNotes = "";
 
+    // TASK 8: Track exact deducted qty
+    const deductedByItem = {};
     for (const { item, productRef, productDoc } of productDocs) {
         if (!productDoc.exists) continue;
         const pd = productDoc.data();
         const currentStock = typeof pd.stock === "number" ? pd.stock : (parseInt(pd.stock, 10) || 0);
+        const deduct = Math.min(currentStock, item.qty);
         if (currentStock < item.qty) { isOversold = true; oversoldNotes += `Product ${item.id} oversold. `; }
-        const newStock = Math.max(0, currentStock - item.qty);
+        deductedByItem[item.id] = deduct;
+        const newStock = Math.max(0, currentStock - deduct);
         transaction.update(productRef, { stock: newStock, ...(newStock <= 0 ? { status: "out_of_stock" } : {}), updatedAt: now });
     }
 
-    // REQUIREMENT 1: Save deductedQty on each item for exact restore tracking
-    const updatedItems = (data.items || []).map(item => ({
-        ...item,
-        deductedQty: item.qty || item.quantity || 1
-    }));
+    // TASK 7c: Increment coupon usedCount
+    if (couponRef && couponSnap && couponSnap.exists) {
+        transaction.update(couponRef, { usedCount: admin.firestore.FieldValue.increment(1) });
+    }
+
+    const updatedItems = (data.items || []).map((i) => ({ ...i, deductedQty: deductedByItem[i.id] ?? 0 }));
 
     transaction.update(orderRef, {
         items: updatedItems,
@@ -168,6 +192,19 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
     return { success: true, alreadyPaid: false, orderId, orderNumber: data.orderNumber };
 }
 
+// ── POST /api/payments/validate-coupon (Task 7d) ──────────────────────────────
+router.post("/validate-coupon", authMiddleware, rateLimit({ windowMs: 60_000, max: 15 }), async (req, res) => {
+    try {
+        const { items, promoCode } = req.body;
+        if (!Array.isArray(items) || !items.length) return sendError(res, 400, "invalid-argument", "Cart cannot be empty.");
+        const t = await calculateOrderTotals(items, promoCode, false, req.user.uid);
+        return res.json({ success: true, discount: t.discount, couponCode: t.couponCode, subtotal: t.subtotal, gst: t.gst, totalAmount: t.totalAmount });
+    } catch (err) {
+        const status = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599) ? err.code : 500;
+        return sendError(res, status, "invalid-argument", err.message || "Could not validate coupon.");
+    }
+});
+
 // ── POST /api/payments/create-order ──────────────────────────────────────────
 router.post("/create-order", authMiddleware, async (req, res) => {
     try {
@@ -178,7 +215,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
         if (!shippingAddress) return sendError(res, 400, "invalid-argument", "Shipping address is required.");
         validateAddress(shippingAddress);
 
-        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, activeCoupon, false);
+        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponId, couponCode: normCouponCode } = await calculateOrderTotals(items, activeCoupon, false, req.user.uid);
         const amountPaise = Math.round(totalAmount * 100);
         const receipt = `rc_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
         const order = await getRazorpayClient().orders.create({ amount: amountPaise, currency: "INR", receipt });
@@ -190,7 +227,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
             orderStatus: "payment_pending", paymentStatus: "pending", shippingStatus: "not_shipped",
             payment: { razorpay_order_id: order.id, method: paymentMethod || "razorpay", amount: totalAmount, currency: "INR", paidAt: null },
             shippingDetails: { carrier: null, trackingNumber: null, estimatedDelivery: null, shippedAt: null, deliveredAt: null },
-            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: activeCoupon || null,
+            subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: normCouponCode || null, couponId: couponId || null,
             statusHistory: [{ status: "payment_pending", changedAt: now, changedBy: "system", note: "Order created, pending payment." }],
             notes: notes || null, createdAt: now, updatedAt: now
         });
@@ -327,11 +364,10 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
         if (!shippingAddress) return sendError(res, 400, "invalid-argument", "Shipping address is required.");
         validateAddress(shippingAddress);
 
-        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount } = await calculateOrderTotals(items, promoCode, true);
+        const { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponId, couponCode: normCouponCode } = await calculateOrderTotals(items, promoCode, true, req.user.uid);
         const orderNumber = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
         const now = admin.firestore.FieldValue.serverTimestamp();
 
-        // REQUIREMENT 1: Save deductedQty on items for COD orders
         const itemsWithDeducted = trustedItems.map(item => ({
             ...item,
             deductedQty: item.qty
@@ -339,12 +375,24 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
 
         let docRefId = null;
         await db.runTransaction(async (transaction) => {
-            // Read phase: fetch all product docs first
+            // Read phase: fetch all product docs and coupon doc first
             const productDocs = [];
             for (const item of itemsWithDeducted) {
                 const productRef = db.collection("products").doc(item.id);
                 const productDoc = await transaction.get(productRef);
                 productDocs.push({ item, productRef, productDoc });
+            }
+
+            let couponRef = null, couponSnap = null;
+            if (couponId) {
+                couponRef = db.collection("coupons").doc(couponId);
+                couponSnap = await transaction.get(couponRef);
+                if (couponSnap.exists) {
+                    const c = couponSnap.data();
+                    if (c.usageLimit && (c.usedCount || 0) >= c.usageLimit) {
+                        throw { code: 400, message: "This coupon has reached its usage limit." };
+                    }
+                }
             }
 
             // Write phase: update stock for each item
@@ -363,6 +411,11 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
                 });
             }
 
+            // TASK 7c: Increment coupon usedCount
+            if (couponRef && couponSnap && couponSnap.exists) {
+                transaction.update(couponRef, { usedCount: admin.firestore.FieldValue.increment(1) });
+            }
+
             const codOrderRef = db.collection("orders").doc();
             docRefId = codOrderRef.id;
             const codOrder = {
@@ -370,7 +423,7 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
                 orderStatus: "pending", paymentStatus: "pending", shippingStatus: "not_shipped",
                 payment: { method: "cod", amount: totalAmount, currency: "INR", paidAt: null },
                 shippingDetails: { carrier: null, trackingNumber: null, shippedAt: null, deliveredAt: null },
-                subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: promoCode || null,
+                subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: normCouponCode || null, couponId: couponId || null,
                 statusHistory: [{ status: "pending", changedAt: now, changedBy: "system", note: "COD Order placed." }],
                 notes: notes || null, createdAt: now, updatedAt: now
             };
@@ -477,4 +530,3 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
 });
 
 module.exports = router;
-

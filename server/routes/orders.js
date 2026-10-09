@@ -72,58 +72,8 @@ function statusLabel(slug) {
     }[slug] || (slug ? slug.replace(/_/g, " ") : slug);
 }
 
-/** Helper function to execute stock restoration within a Firestore transaction */
-async function restoreOrderStockInTransaction(transaction, orderRef, oData, now) {
-    if (oData.stockRestored) return false;
+const { restoreOrderStockInTransaction } = require("../lib/stock");
 
-    // Restore stock ONLY if stock was deducted for this order (COD or paid, never payment_pending)
-    const isPaidOrCod = oData.payment?.method === "cod" || oData.paymentStatus === "paid";
-    if (!isPaidOrCod) {
-        transaction.update(orderRef, { stockRestored: true });
-        return false;
-    }
-
-    const currentStatus = normalizeStatus(oData.orderStatus || oData.status);
-    const isOversold = currentStatus === "action_required_oversold";
-    const validItems = (oData.items || []).filter(item => item && item.id && (item.qty > 0 || item.quantity > 0));
-
-    const productReads = [];
-    for (const item of validItems) {
-        const productRef = db.collection("products").doc(item.id);
-        const pDoc = await transaction.get(productRef);
-        productReads.push({ item, productRef, pDoc });
-    }
-
-    for (const { item, productRef, pDoc } of productReads) {
-        if (!pDoc.exists) continue;
-        const pd = pDoc.data();
-        const itemQty = item.qty || item.quantity || 0;
-        let restoreQty = itemQty;
-
-        if (isOversold) {
-            // For action_required_oversold, restore min(item.qty, qty actually deducted)
-            const qtyDeducted = typeof item.qtyDeducted === "number" ? item.qtyDeducted : (oData.qtyDeductedMap?.[item.id] ?? 0);
-            restoreQty = Math.min(itemQty, qtyDeducted);
-        }
-
-        if (restoreQty > 0) {
-            const currentStock = typeof pd.stock === "number" ? pd.stock : (parseInt(pd.stock, 10) || 0);
-            const restoredStock = currentStock + restoreQty;
-            const updatePayload = {
-                stock: restoredStock,
-                updatedAt: now
-            };
-            // Only reactivate product to "active" if its status is "out_of_stock", never if "archived"
-            if (pd.status === "out_of_stock" && restoredStock > 0) {
-                updatePayload.status = "active";
-            }
-            transaction.update(productRef, updatePayload);
-        }
-    }
-
-    transaction.update(orderRef, { stockRestored: true });
-    return true;
-}
 
 // ── POST /api/orders/update-status (Admin only) ─────────────────────────────
 router.post("/update-status", authMiddleware, requireAdmin, async (req, res) => {

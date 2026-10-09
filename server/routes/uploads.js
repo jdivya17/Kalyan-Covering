@@ -7,6 +7,12 @@ const { authMiddleware } = require("../middleware/auth");
 
 const router = express.Router();
 
+const FORMATS = {
+    review: "jpg,jpeg,png,webp",
+    product_video: "mp4,webm",
+    product_image: "jpg,jpeg,png,webp"
+};
+
 // ── POST /api/uploads/sign ────────────────────────────────────────────────────
 router.post("/sign", authMiddleware, async (req, res) => {
     try {
@@ -21,21 +27,26 @@ router.post("/sign", authMiddleware, async (req, res) => {
 
         const { uploadType } = req.body;
         let folder = "kalyan_products";
+        let allowedFormats = FORMATS.product_image;
 
         if (uploadType === "review") {
             // Any logged-in user can sign review uploads (image only, size limit checked on client)
             folder = "kalyan_reviews";
+            allowedFormats = FORMATS.review;
         } else if (uploadType === "product_video") {
             if (!req.isAdmin) return sendError(res, 403, "permission-denied", "Admin role required for product video uploads.");
             folder = "kalyan_videos";
+            allowedFormats = FORMATS.product_video;
         } else {
             // Default product images / store assets - Admin only
             if (!req.isAdmin) return sendError(res, 403, "permission-denied", "Admin role required for product image uploads.");
             folder = "kalyan_products";
+            allowedFormats = FORMATS.product_image;
         }
 
         const timestamp = Math.floor(Date.now() / 1000);
-        const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+        // Parameters to sign must be sorted alphabetically by key name
+        const paramsToSign = `allowed_formats=${allowedFormats}&folder=${folder}&timestamp=${timestamp}${apiSecret}`;
         const signature = crypto.createHash("sha1").update(paramsToSign).digest("hex");
 
         return res.json({
@@ -43,7 +54,8 @@ router.post("/sign", authMiddleware, async (req, res) => {
             timestamp,
             api_key: apiKey,
             cloud_name: cloudName,
-            folder
+            folder,
+            allowed_formats: allowedFormats
         });
     } catch (err) {
         console.error("[uploads/sign]", err);

@@ -21,11 +21,10 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // Orders: Customers can read their own orders (customerId); Staff can read/update/delete all orders. Client order creation is disabled.
+    // Orders: Customers can read their own orders (customerId); Staff can read all orders. Direct client writes are disabled (all writes go through API).
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.customerId || isStaff());
-      allow create: if false;
-      allow update, delete: if isStaff();
+      allow write: if false;
     }
 
     // Coupons: Public read for active coupons, write restricted to staff
@@ -41,7 +40,7 @@ service cloud.firestore {
                     && !('role' in request.resource.data);
       allow update: if isOwner() || (
                       isAuthenticated() && request.auth.uid == userId
-                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+                      && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'statusReason'])
                     );
       allow delete: if isOwner();
 
@@ -89,11 +88,11 @@ service cloud.firestore {
     }
 
     match /stockAlerts/{id} {
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if isStaff();
     }
     match /stock_alerts/{id} {
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if isStaff();
     }
 

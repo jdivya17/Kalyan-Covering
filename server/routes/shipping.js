@@ -1,11 +1,31 @@
 "use strict";
 const express = require("express");
+const crypto = require("crypto");
 const { admin, db } = require("../lib/admin");
 const { logAudit, sendError } = require("../lib/utils");
-const { authMiddleware, requireAdmin, requireOwnerOrManager } = require("../middleware/auth");
+const { restoreOrderStockInTransaction } = require("../lib/stock");
+const { authMiddleware, requireAdmin } = require("../middleware/auth");
+const { rateLimit } = require("../middleware/rateLimit");
 const { createShipmentForOrder, checkServiceability, getTrackingByOrderId, getPickupLocations, getAvailableCouriersForOrder, getTrackingByShipmentId } = require("../shipping/shippingService");
 
 const router = express.Router();
+
+function safeEqual(a, b) {
+    const A = Buffer.from(String(a || "")), B = Buffer.from(String(b || ""));
+    return A.length === B.length && crypto.timingSafeEqual(A, B);
+}
+
+function mapShiprocketStatus(raw) {
+    const s = String(raw || "").trim().toUpperCase();
+    if (!s) return null;
+    if (s.includes("RTO") || s.includes("RETURN")) return "returned";
+    if (s.includes("UNDELIVERED") || s.includes("NDR")) return null; // record only, no status change
+    if (s.includes("OUT FOR DELIVERY")) return "out_for_delivery";
+    if (s.includes("DELIVERED")) return "delivered";
+    if (s.includes("CANCEL")) return "cancelled";
+    if (["SHIPPED", "IN TRANSIT", "IN-TRANSIT", "DISPATCHED", "PICKED UP"].some((k) => s.includes(k))) return "shipped";
+    return null;
+}
 
 // POST /api/shipping/create-shipment (Admin only)
 router.post("/create-shipment", authMiddleware, requireAdmin, async (req, res) => {
@@ -22,15 +42,17 @@ router.post("/create-shipment", authMiddleware, requireAdmin, async (req, res) =
 });
 
 // POST /api/shipping/pincode-check (Public endpoint for checkout & product detail)
-router.post("/pincode-check", async (req, res) => {
+router.post("/pincode-check", rateLimit({ windowMs: 60_000, max: 20 }), async (req, res) => {
     try {
-        const { pincode, deliveryPincode, weight, isCOD } = req.body;
-        const targetPin = pincode || deliveryPincode;
-        if (!targetPin) return sendError(res, 400, "invalid-argument", "Pincode is required.");
-        const pickupPincode = process.env.STORE_PICKUP_PINCODE || "638001";
-        const packageWeight = typeof weight === "number" && weight > 0 ? weight : 0.5;
-        const result = await checkServiceability({ pickupPincode, deliveryPincode: targetPin, weight: packageWeight, isCOD: isCOD === true });
-        
+        const targetPin = String(req.body.pincode || req.body.deliveryPincode || "").trim();
+        if (!/^\d{6}$/.test(targetPin)) return sendError(res, 400, "invalid-argument", "Enter a valid 6-digit pincode.");
+
+        const pickupPincode = process.env.STORE_PICKUP_PINCODE;
+        if (!pickupPincode) return sendError(res, 500, "internal", "STORE_PICKUP_PINCODE is not configured.");
+
+        const packageWeight = typeof req.body.weight === "number" && req.body.weight > 0 ? req.body.weight : 0.5;
+        const result = await checkServiceability({ pickupPincode, deliveryPincode: targetPin, weight: packageWeight, isCOD: req.body.isCOD === true });
+
         const fastestCourier = result.availableCouriers && result.availableCouriers.length > 0
             ? [...result.availableCouriers].sort((a, b) => (parseInt(a.estimatedDays) || 99) - (parseInt(b.estimatedDays) || 99))[0]
             : null;
@@ -48,7 +70,6 @@ router.post("/pincode-check", async (req, res) => {
         return sendError(res, 500, "internal", err.message);
     }
 });
-
 
 // POST /api/shipping/get-couriers (Admin only)
 router.post("/get-couriers", authMiddleware, requireAdmin, async (req, res) => {
@@ -106,35 +127,24 @@ router.get("/pickup-locations", authMiddleware, requireAdmin, async (req, res) =
 router.post("/webhook", async (req, res) => {
     try {
         const webhookToken = process.env.SHIPROCKET_WEBHOOK_TOKEN;
-        if (webhookToken) {
-            const apiKey = req.headers["x-api-key"] || req.headers["x-shiprocket-token"];
-            if (apiKey !== webhookToken) {
-                return sendError(res, 401, "unauthenticated", "Invalid or missing webhook token.");
-            }
+        if (!webhookToken) {
+            console.error("[shipping/webhook] SHIPROCKET_WEBHOOK_TOKEN is not configured — rejecting.");
+            return sendError(res, 500, "internal", "Webhook not configured.");
+        }
+        if (!safeEqual(req.headers["x-api-key"] || req.headers["x-shiprocket-token"], webhookToken)) {
+            return sendError(res, 401, "unauthenticated", "Invalid or missing webhook token.");
         }
 
         const payload = req.body || {};
         const shipmentId = payload.shipment_id ? String(payload.shipment_id) : null;
         const awbCode = payload.awb || payload.awb_code || null;
-        const rawStatus = String(payload.current_status || payload.status || "").trim().toUpperCase();
+        const rawStatus = String(payload.current_status || payload.status || "").trim();
 
         if (!shipmentId && !awbCode && !payload.order_id) {
             return res.status(200).json({ success: true, message: "Order not found or ignored." });
         }
 
-        // Map Shiprocket status to canonical order status
-        let targetStatus = null;
-        if (["SHIPPED", "IN TRANSIT", "DISPATCHED", "PICKED UP", "IN-TRANSIT"].some(s => rawStatus.includes(s))) {
-            targetStatus = "shipped";
-        } else if (rawStatus.includes("OUT FOR DELIVERY")) {
-            targetStatus = "out_for_delivery";
-        } else if (rawStatus.includes("DELIVERED")) {
-            targetStatus = "delivered";
-        } else if (rawStatus.includes("CANCELED") || rawStatus.includes("CANCELLED")) {
-            targetStatus = "cancelled";
-        } else if (rawStatus.includes("RETURN") || rawStatus.includes("RTO")) {
-            targetStatus = "returned";
-        }
+        const targetStatus = mapShiprocketStatus(rawStatus);
 
         let orderSnap = null;
         if (shipmentId) {
@@ -161,7 +171,8 @@ router.post("/webhook", async (req, res) => {
         }
 
         const orderRef = orderSnap.ref;
-        const currentStatus = String(orderSnap.data().orderStatus || orderSnap.data().status || "pending").toLowerCase();
+        const orderData = orderSnap.data();
+        const currentStatus = String(orderData.orderStatus || orderData.status || "pending").toLowerCase();
         const now = admin.firestore.FieldValue.serverTimestamp();
 
         // State hierarchy rank: don't downgrade a higher state to a lower state
@@ -185,6 +196,25 @@ router.post("/webhook", async (req, res) => {
             updatedAt: now
         };
 
+        if (targetStatus === "delivered" && orderData.payment?.method === "cod" && orderData.paymentStatus !== "paid") {
+            updatePayload.paymentStatus = "paid";
+            updatePayload["payment.paidAt"] = now;
+        }
+
+        if (targetStatus === "returned") {
+            updatePayload["returnInfo.stockReviewPending"] = true;
+        }
+
+        if (targetStatus === "cancelled") {
+            await db.runTransaction(async (t) => {
+                const d = await t.get(orderRef);
+                if (d.exists) await restoreOrderStockInTransaction(t, orderRef, d.data(), now);
+            });
+            if (orderData.paymentStatus === "paid") {
+                updatePayload["cancellation.refundRequired"] = true;
+            }
+        }
+
         // Only promote status if targetRank > currentRank
         if (targetStatus && targetRank > currentRank) {
             updatePayload.orderStatus = targetStatus;
@@ -204,6 +234,5 @@ router.post("/webhook", async (req, res) => {
         return sendError(res, 500, "internal", err.message || "Failed to process shipping webhook.");
     }
 });
-
 
 module.exports = router;

@@ -307,15 +307,26 @@
       renderCheckoutForm(user);
     };
 
-    window.applyCheckoutCoupon = function() {
+    window.applyCheckoutCoupon = async function() {
       const input = document.getElementById('co-coupon');
       if (!input) return;
       const code = input.value.trim().toUpperCase();
-      if (code === 'KALYAN10') {
-        couponCode = 'KALYAN10';
-      } else {
+      if (!code) {
         couponCode = '';
-        alert('Invalid coupon code. Try "KALYAN10" for 10% off.');
+        const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');
+        renderCheckoutForm(user);
+        return;
+      }
+      try {
+        const items = Cart.toOrderItems();
+        const res = await callVercelApi('/api/payments/validate-coupon', { items, promoCode: code });
+        if (res && res.success) {
+          couponCode = res.couponCode || code;
+          alert(`✓ Coupon ${couponCode} applied (Discount: ₹${res.discount})`);
+        }
+      } catch (err) {
+        couponCode = '';
+        alert(err.message || 'Could not validate coupon.');
       }
       const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');
       renderCheckoutForm(user);
