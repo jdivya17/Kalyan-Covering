@@ -1,6 +1,9 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "redirects": [
     {
       "source": "/",
@@ -12,6 +15,18 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/admin/admin-login.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin/dashboard.html"
+    },
+    {
+      "source": "/admin/dashboard",
+      "destination": "/admin/dashboard.html"
     },
     {
       "source": "/(.*)",
