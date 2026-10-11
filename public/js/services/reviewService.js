@@ -91,7 +91,7 @@ export async function isVerifiedBuyer(uid, productId) {
 
 /**
  * Upload a customer review photo with client-side compression (max 800px, JPEG 0.75, < 500KB)
- * Uploads to Cloudinary (cloud name: ddw2whxh7, preset: kalyan_covering_upload)
+ * Uploads via signed Cloudinary upload (POST /api/uploads/sign). Cloud name comes from server env.
  * @param {File} file
  * @param {string} productId
  * @returns {Promise<string>} Cloudinary secure URL
