@@ -11,14 +11,6 @@ import { Cart } from '../services/cartService.js';
 import { Wishlist } from '../services/wishlistService.js';
 
 export function initGlobalShell() {
-  // Ensure CSS theme stylesheet is loaded
-  if (!document.getElementById('theme-stylesheet')) {
-    const link = document.createElement('link');
-    link.id = 'theme-stylesheet';
-    link.rel = 'stylesheet';
-    link.href = '../css/theme.css';
-    document.head.appendChild(link);
-  }
 
   // Mount Header
   const headerContainer = document.getElementById('global-header') || document.querySelector('header') || document.querySelector('nav.nav');
