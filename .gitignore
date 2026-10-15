@@ -29,6 +29,9 @@ Thumbs.db
 
 .vercel
 .env*
+.env
+.env.*
+serviceAccount*.json
 {
 powershell.cmd
 
