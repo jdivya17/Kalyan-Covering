@@ -20,9 +20,15 @@ router.post("/sign", authMiddleware, async (req, res) => {
         const apiSecret = process.env.CLOUDINARY_API_SECRET;
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 
-        if (!apiKey || !apiSecret || !cloudName) {
-            console.error("[uploads/sign] Error: Missing Cloudinary configuration environment variables.");
-            return sendError(res, 500, "internal", "Cloudinary configuration is missing on server.");
+        const missing = [];
+        if (!apiKey) missing.push("CLOUDINARY_API_KEY");
+        if (!apiSecret) missing.push("CLOUDINARY_API_SECRET");
+        if (!cloudName) missing.push("CLOUDINARY_CLOUD_NAME");
+
+        if (missing.length > 0) {
+            const missingVars = missing.join(", ");
+            console.error(`[uploads/sign] Error: Missing Cloudinary configuration environment variables: ${missingVars}`);
+            return sendError(res, 500, "internal", `Cloudinary configuration is missing on server: ${missingVars}`);
         }
 
         const { uploadType } = req.body;
