@@ -67,6 +67,7 @@ const auth = getAuth(app);
 const functions = getFunctions(app);
 
 // ── App Check (moved here from app.js — ONE app, ONE App Check) ──
+// ── App Check (Optional: only initialized when valid site key is provided) ──
 const _isLocalhostAC = (
     typeof window !== 'undefined' &&
     (
@@ -78,17 +79,16 @@ const _isLocalhostAC = (
     )
 );
 if (typeof window !== 'undefined' && !_isLocalhostAC) {
-    try {
-        const RECAPTCHA_V3_SITE_KEY = '6LdWCp0tAAAAAD0xB9blIVm3IT6A7KBC2o50SfS-';
-        if (RECAPTCHA_V3_SITE_KEY) {
+    const RECAPTCHA_V3_SITE_KEY = window.RECAPTCHA_V3_SITE_KEY || '';
+    if (RECAPTCHA_V3_SITE_KEY) {
+        try {
             initializeAppCheck(app, {
                 provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
-                isTokenAutoRefreshEnabled: true
+                isTokenAutoRefreshEnabled: false
             });
-            console.log('App Check initialized (single shared app instance)');
+        } catch (err) {
+            console.warn('App Check init skipped:', err.message || err);
         }
-    } catch (err) {
-        console.warn('App Check init skipped/failed (non-blocking):', err.message || err);
     }
 }
 

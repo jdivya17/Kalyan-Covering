@@ -285,12 +285,14 @@
     };
 
     let pincodeTimer = null;
+    let isPincodeServiceable = true;
     window.checkPincodeServiceability = function(val) {
       const statusEl = document.getElementById('pincode-status');
       if (!statusEl) return;
       const pin = String(val || '').trim();
       if (!/^\d{6}$/.test(pin)) {
         statusEl.innerHTML = '';
+        isPincodeServiceable = true;
         return;
       }
 
@@ -302,17 +304,24 @@
         try {
           const res = await callVercelApi('/api/shipping/pincode-check', { pincode: pin });
           if (res && res.isServiceable) {
+            isPincodeServiceable = true;
             statusEl.style.color = 'var(--ok, #4cd964)';
             const eta = res.estimatedDays ? `Estimated delivery in ${res.estimatedDays} days` : 'Express delivery available';
             const courier = res.courierName ? ` via ${res.courierName}` : '';
             statusEl.textContent = `✓ ${eta}${courier}`;
-          } else {
+          } else if (res && res.isServiceable === false) {
+            isPincodeServiceable = false;
             statusEl.style.color = 'var(--danger, #ff4d4f)';
             statusEl.textContent = '✕ Delivery is currently not available for this pincode.';
+          } else {
+            isPincodeServiceable = true;
+            statusEl.style.color = 'var(--muted)';
+            statusEl.textContent = 'Could not verify delivery for this pincode right now';
           }
         } catch (_) {
+          isPincodeServiceable = true;
           statusEl.style.color = 'var(--muted)';
-          statusEl.textContent = '';
+          statusEl.textContent = 'Could not verify delivery for this pincode right now';
         }
       }, 400);
     };
@@ -373,7 +382,11 @@
       if (!addr) setError('err-addr', 'Street address is required');
       if (!city) setError('err-city', 'City is required');
       if (!state) setError('err-state', 'State is required');
-      if (!pin || !/^\d{6}$/.test(pin)) setError('err-pin', 'Enter valid 6-digit pincode');
+      if (!pin || !/^\d{6}$/.test(pin)) {
+        setError('err-pin', 'Enter valid 6-digit pincode');
+      } else if (isPincodeServiceable === false) {
+        setError('err-pin', 'Delivery is currently not available for this pincode');
+      }
 
       return isValid;
     }
