@@ -51,7 +51,7 @@
   <script type="module" src="../js/app.js"></script>
   <script type="module" src="../js/utils/shellInit.js"></script>
   <script type="module">
-    import { db, auth, callVercelApi } from '../js/firebase-config.js';
+    import { db, auth, callVercelApi, getDoc, doc } from '../js/firebase-config.js';
     import { Cart } from '../js/services/cartService.js';
     import { getUserProfile, getAddresses, addAddress } from '../js/services/userService.js';
     import { formatCurrency, escapeHtml } from '../js/utils/helpers.js';
@@ -59,6 +59,7 @@
 
     let savedAddresses = [];
     let selectedAddressId = null;
+    let selectedPayMethod = 'ONLINE';
     let isGiftWrap = false;
     let giftMessage = '';
     let couponCode = '';
@@ -84,6 +85,14 @@
         savedAddresses = await getAddresses();
       }
 
+      // Sync active store shipping rules
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'shipping'));
+        if (snap.exists()) {
+          Cart.setShippingConfig(snap.data());
+        }
+      } catch (_) {}
+
       renderCheckoutForm(user);
     }
 
@@ -91,11 +100,14 @@
       const layout = document.getElementById('checkout-layout');
       const items = KC.cart || [];
       const subtotal = Cart.subtotal();
-      const freeShippingLimit = 999;
-      const delivery = subtotal > freeShippingLimit ? 0 : 99;
+      const shipCfg = Cart.getShippingConfig();
+      const freeShippingLimit = shipCfg.freeThreshold || 499;
+      const isAllFree = Boolean(shipCfg.allFree);
+      const delivery = isAllFree ? 0 : (subtotal >= freeShippingLimit ? 0 : (shipCfg.standardFee || 49));
+      const codFee = selectedPayMethod === 'COD' ? (shipCfg.codFee || 0) : 0;
       const couponDiscount = couponCode === 'KALYAN10' ? Math.round(subtotal * 0.1) : 0;
       const giftFee = isGiftWrap ? 99 : 0;
-      const grandTotal = subtotal - couponDiscount + delivery + giftFee;
+      const grandTotal = subtotal - couponDiscount + delivery + giftFee + codFee;
 
       const defaultAddr = savedAddresses[0] || {};
 
@@ -183,18 +195,18 @@
             <div class="box">
               <h2>Payment Method</h2>
               <div class="pay">
-                <label class="opt active">
-                  <input type="radio" name="payMethod" value="ONLINE" checked />
+                <label class="opt ${selectedPayMethod === 'ONLINE' ? 'active' : ''}">
+                  <input type="radio" name="payMethod" value="ONLINE" ${selectedPayMethod === 'ONLINE' ? 'checked' : ''} onchange="selectPaymentMethod('ONLINE')" />
                   <span>
                     <b>Razorpay (UPI, GPay, Credit/Debit Card, Netbanking)</b>
                     <small>Instant 100% secure payment gateway</small>
                   </span>
                 </label>
-                <label class="opt">
-                  <input type="radio" name="payMethod" value="COD" />
+                <label class="opt ${selectedPayMethod === 'COD' ? 'active' : ''}">
+                  <input type="radio" name="payMethod" value="COD" ${selectedPayMethod === 'COD' ? 'checked' : ''} onchange="selectPaymentMethod('COD')" />
                   <span>
                     <b>Cash on Delivery (COD)</b>
-                    <small>Pay with cash when your package is delivered</small>
+                    <small>Pay with cash upon delivery ${shipCfg.codFee ? `(+${formatCurrency(shipCfg.codFee)} fee)` : ''}</small>
                   </span>
                 </label>
               </div>
@@ -232,6 +244,7 @@
               <div><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
               ${couponDiscount ? `<div><span>Coupon Discount</span><span style="color:var(--ok)">-${formatCurrency(couponDiscount)}</span></div>` : ''}
               <div><span>Delivery Charge</span><span>${delivery === 0 ? '<b style="color:var(--ok)">FREE</b>' : formatCurrency(delivery)}</span></div>
+              ${codFee > 0 ? `<div><span>COD Handling Fee</span><span>${formatCurrency(codFee)}</span></div>` : ''}
               ${isGiftWrap ? `<div><span>Gift Wrap</span><span>${formatCurrency(99)}</span></div>` : ''}
               <div class="grand">
                 <span>Total Amount</span>
@@ -247,6 +260,12 @@
         </div>
       `;
     }
+
+    window.selectPaymentMethod = function(method) {
+      selectedPayMethod = method;
+      const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');
+      renderCheckoutForm(user);
+    };
 
     window.selectSavedAddress = function(id) {
       selectedAddressId = id;

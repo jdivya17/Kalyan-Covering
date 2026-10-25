@@ -41,8 +41,8 @@ export const STORE_CONFIG = {
     
     // Shipping & Dispatch Rules
     shipping: {
-        freeShippingThreshold: 999, // Free delivery above ₹999
-        standardDeliveryFee: 99,    // Delivery fee below threshold
+        freeShippingThreshold: 499, // Free delivery above ₹499 (configurable via Admin Panel)
+        standardDeliveryFee: 49,    // Delivery fee below threshold (configurable via Admin Panel)
         giftWrapFee: 99,            // Optional gift wrap charge
         showShipsIn24Hours: true,   // If true, shows "Ships in 24 hrs" badge; if false, shows "In Stock"
         dispatchTimeText: "Ships in 24 hrs",

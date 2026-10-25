@@ -2,7 +2,7 @@
  * settingsAdminPage.js — Store settings & branch locations management for Kalyan Covering admin panel.
  */
 
-import { db, collection, getDocs, doc, setDoc, deleteDoc } from '../firebase-config.js';
+import { db, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from '../firebase-config.js';
 import { callVercelApi } from '../firebase-config.js';
 import { toast, confirmModal, openDrawer, closeDrawer, ic } from '../utils/icons.js';
 
@@ -81,9 +81,84 @@ export async function deleteBranch(id) {
   );
 }
 
+export async function loadShippingSettings() {
+  const stdInput = document.getElementById('setting-standard-fee');
+  const threshInput = document.getElementById('setting-free-threshold');
+  const codInput = document.getElementById('setting-cod-fee');
+  const allFreeInput = document.getElementById('setting-all-free');
+  if (!stdInput) return;
+
+  try {
+    const docSnap = await getDoc(doc(db, 'settings', 'shipping'));
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (stdInput) stdInput.value = data.standardFee !== undefined ? data.standardFee : 49;
+      if (threshInput) threshInput.value = data.freeThreshold !== undefined ? data.freeThreshold : 499;
+      if (codInput) codInput.value = data.codFee !== undefined ? data.codFee : 50;
+      if (allFreeInput) allFreeInput.checked = Boolean(data.allFree);
+    }
+  } catch (err) {
+    console.error('loadShippingSettings error:', err);
+  }
+}
+
+export async function saveShippingSettings() {
+  const stdInput = document.getElementById('setting-standard-fee');
+  const threshInput = document.getElementById('setting-free-threshold');
+  const codInput = document.getElementById('setting-cod-fee');
+  const allFreeInput = document.getElementById('setting-all-free');
+  const btn = document.getElementById('btn-save-shipping');
+  const msg = document.getElementById('shipping-save-msg');
+
+  const standardFee = Math.max(0, parseInt(stdInput?.value, 10) || 0);
+  const freeThreshold = Math.max(0, parseInt(threshInput?.value, 10) || 0);
+  const codFee = Math.max(0, parseInt(codInput?.value, 10) || 0);
+  const allFree = Boolean(allFreeInput?.checked);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+  }
+  if (msg) msg.textContent = '';
+
+  try {
+    await callVercelApi('/api/admin/update-settings', {
+      section: 'shipping',
+      data: {
+        standardFee,
+        freeThreshold,
+        codFee,
+        allFree,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    try {
+      localStorage.setItem('kc_shipping_config', JSON.stringify({ standardFee, freeThreshold, codFee, allFree }));
+    } catch (_) {}
+
+    toast('Shipping settings saved successfully!');
+    if (msg) {
+      msg.textContent = '✓ Saved successfully!';
+      setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    }
+  } catch (err) {
+    console.error('saveShippingSettings error:', err);
+    toast('Failed to save shipping settings: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Save Shipping Settings';
+    }
+  }
+}
+
 if (typeof window !== 'undefined') {
   window.renderBranchesTable = renderBranchesTable;
   window.saveSocialSettings = saveSocialSettings;
   window.saveGeneralSettings = saveGeneralSettings;
   window.deleteBranch = deleteBranch;
+  window.loadShippingSettings = loadShippingSettings;
+  window.saveShippingSettings = saveShippingSettings;
 }
+

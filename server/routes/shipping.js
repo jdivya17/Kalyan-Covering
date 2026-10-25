@@ -235,4 +235,31 @@ router.post("/webhook", async (req, res) => {
     }
 });
 
+// GET & POST /api/shipping/config (Public endpoint for store shipping rules)
+const getShippingConfigHandler = async (req, res) => {
+    try {
+        const shippingDoc = await db.collection("settings").doc("shipping").get();
+        const data = shippingDoc.exists ? shippingDoc.data() : {};
+        return res.json({
+            success: true,
+            standardFee: typeof data.standardFee === "number" ? Math.max(0, data.standardFee) : 49,
+            freeThreshold: typeof data.freeThreshold === "number" ? Math.max(0, data.freeThreshold) : 499,
+            codFee: typeof data.codFee === "number" ? Math.max(0, data.codFee) : 50,
+            allFree: Boolean(data.allFree)
+        });
+    } catch (err) {
+        console.warn("[shipping/config] Error reading shipping settings:", err.message);
+        return res.json({
+            success: true,
+            standardFee: 49,
+            freeThreshold: 499,
+            codFee: 50,
+            allFree: false
+        });
+    }
+};
+
+router.get("/config", getShippingConfigHandler);
+router.post("/config", getShippingConfigHandler);
+
 module.exports = router;

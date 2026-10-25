@@ -87,10 +87,29 @@ async function calculateOrderTotals(items, promoCode, isCOD = false, uid = null)
         trustedItems.push({ id: item.id, name: p.productName || p.name || item.id, price, qty: item.qty, sku: p.sku || null });
     }
 
+    // Fetch dynamic shipping rules from Firestore (settings/shipping)
+    let standardFee = 49;
+    let freeThreshold = 499;
+    let codFeeAmount = 50;
+    let allFree = false;
+
+    try {
+        const shippingDoc = await db.collection("settings").doc("shipping").get();
+        if (shippingDoc.exists) {
+            const shipData = shippingDoc.data() || {};
+            if (typeof shipData.standardFee === "number") standardFee = Math.max(0, shipData.standardFee);
+            if (typeof shipData.freeThreshold === "number") freeThreshold = Math.max(0, shipData.freeThreshold);
+            if (typeof shipData.codFee === "number") codFeeAmount = Math.max(0, shipData.codFee);
+            if (typeof shipData.allFree === "boolean") allFree = shipData.allFree;
+        }
+    } catch (e) {
+        console.warn("[calculateOrderTotals] Error reading shipping settings, using defaults:", e.message);
+    }
+
     const { discount, couponId, couponCode } = await resolveCoupon(promoCode, subtotal, uid);
     const gst = Math.round((subtotal - discount) * 0.12);
-    const deliveryCharge = subtotal > 999 ? 0 : 99;
-    const codFee = isCOD ? 50 : 0;
+    const deliveryCharge = allFree ? 0 : (subtotal >= freeThreshold ? 0 : standardFee);
+    const codFee = isCOD ? codFeeAmount : 0;
     const totalAmount = (subtotal - discount) + gst + deliveryCharge + codFee;
     return { trustedItems, subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponId, couponCode };
 }

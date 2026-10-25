@@ -48,11 +48,24 @@
   <script type="module" src="../js/app.js"></script>
   <script type="module" src="../js/utils/shellInit.js"></script>
   <script type="module">
+    import { db, doc, getDoc } from '../js/firebase-config.js';
     import { Cart } from '../js/services/cartService.js';
     import { formatCurrency, escapeHtml } from '../js/utils/helpers.js';
     import { ic } from '../js/utils/icons.js';
 
     let appliedCoupon = '';
+
+    // Fetch latest shipping rules from Firestore
+    async function syncShippingRules() {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'shipping'));
+        if (snap.exists()) {
+          Cart.setShippingConfig(snap.data());
+          renderCartPage();
+        }
+      } catch (_) {}
+    }
+    syncShippingRules();
 
     function renderCartPage() {
       const container = document.getElementById('cart-page-layout');
@@ -60,9 +73,11 @@
 
       const items = Cart.load() || KC.cart || [];
       const subtotal = Cart.subtotal();
-      const freeShippingLimit = 999;
-      const leftForFree = Math.max(0, freeShippingLimit - subtotal);
-      const delivery = subtotal > freeShippingLimit ? 0 : 99;
+      const shipCfg = Cart.getShippingConfig();
+      const freeShippingLimit = shipCfg.freeThreshold || 499;
+      const isAllFree = Boolean(shipCfg.allFree);
+      const delivery = isAllFree ? 0 : (subtotal >= freeShippingLimit ? 0 : (shipCfg.standardFee || 49));
+      const leftForFree = isAllFree ? 0 : Math.max(0, freeShippingLimit - subtotal);
       let couponDiscount = 0;
 
       if (appliedCoupon === 'KALYAN10') {
@@ -87,13 +102,16 @@
           <!-- Free Shipping Progress -->
           <div class="box" style="margin-bottom:1.5rem;">
             <div style="font-size:0.92rem;color:var(--muted);">
-              ${leftForFree > 0
-                ? `Add <b style="color:var(--gold-hi)">${formatCurrency(leftForFree)}</b> more for <b style="color:var(--ok)">FREE Delivery</b>`
-                : `<b style="color:var(--ok)">🎉 You've unlocked FREE Delivery across India!</b>`}
+              ${isAllFree
+                ? `<b style="color:var(--ok)">🎉 Festival Offer: 100% FREE Delivery on all orders!</b>`
+                : (leftForFree > 0
+                  ? `Add <b style="color:var(--gold-hi)">${formatCurrency(leftForFree)}</b> more for <b style="color:var(--ok)">FREE Delivery</b>`
+                  : `<b style="color:var(--ok)">🎉 You've unlocked FREE Delivery across India!</b>`)}
             </div>
+            ${!isAllFree ? `
             <div style="height:4px;background:var(--line2);margin-top:8px;border-radius:2px;overflow:hidden;">
               <div style="height:100%;background:var(--foil);width:${Math.min(100, (subtotal / freeShippingLimit) * 100)}%;transition:width 0.4s ease;"></div>
-            </div>
+            </div>` : ''}
           </div>
 
           <!-- Items List -->

@@ -1834,9 +1834,58 @@
     <div class="vhead">
         <div>
             <h1>Store settings</h1>
-            <p>Admin security and branch management.</p>
+            <p>Admin security, delivery rules, and branch management.</p>
         </div>
     </div>
+
+    <!-- Delivery & Shipping Settings Card -->
+    <div class="card panel" style="margin-bottom:1.5rem;">
+        <div class="panel-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>🚚 Delivery &amp; Shipping Rules (Meesho / Myntra Style)</h2>
+            <span class="badge" id="shipping-status-badge" style="background:var(--line2);color:var(--gold);padding:4px 10px;border-radius:12px;font-size:0.78rem;">Live Settings</span>
+        </div>
+        <p style="color:var(--muted2);font-size:0.85rem;margin-bottom:1.2rem">
+            Control order-level delivery charges, free delivery thresholds, and festival promotions. Changes reflect instantly on Cart &amp; Checkout.
+        </p>
+
+        <div class="frow3" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.2rem;">
+            <div class="f">
+                <label style="font-weight:600;font-size:0.88rem;color:var(--white);">Standard Delivery Fee (₹)</label>
+                <input type="number" id="setting-standard-fee" placeholder="49" min="0" value="49" style="margin-top:6px;">
+                <small style="color:var(--muted2);font-size:0.75rem;display:block;margin-top:4px;">Applied when cart is below free delivery threshold (e.g. ₹49).</small>
+            </div>
+            <div class="f">
+                <label style="font-weight:600;font-size:0.88rem;color:var(--white);">Free Delivery Above (₹)</label>
+                <input type="number" id="setting-free-threshold" placeholder="499" min="0" value="499" style="margin-top:6px;">
+                <small style="color:var(--muted2);font-size:0.75rem;display:block;margin-top:4px;">Orders equal to or above this amount get FREE shipping.</small>
+            </div>
+            <div class="f">
+                <label style="font-weight:600;font-size:0.88rem;color:var(--white);">Cash on Delivery (COD) Fee (₹)</label>
+                <input type="number" id="setting-cod-fee" placeholder="50" min="0" value="50" style="margin-top:6px;">
+                <small style="color:var(--muted2);font-size:0.75rem;display:block;margin-top:4px;">Extra handling fee for COD orders (enter 0 to disable).</small>
+            </div>
+        </div>
+
+        <div style="background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:var(--radius);padding:1rem;margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.8rem;">
+            <div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;color:var(--gold-hi);">
+                    <input type="checkbox" id="setting-all-free" style="width:18px;height:18px;accent-color:var(--gold);">
+                    <span>🎉 Enable FREE Delivery on ALL Orders (Festival / Mega Sale Offer)</span>
+                </label>
+                <div style="font-size:0.78rem;color:var(--muted2);margin-left:28px;margin-top:2px;">
+                    When enabled, delivery is ₹0 for all orders regardless of cart subtotal (like Meesho model).
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <button class="tbtn solid" id="btn-save-shipping" onclick="saveShippingSettings()" style="width:fit-content;">
+                Save Shipping Settings
+            </button>
+            <span id="shipping-save-msg" style="font-size:0.85rem;color:var(--ok);"></span>
+        </div>
+    </div>
+
     <div class="grid2">
         <div class="card panel">
             <div class="panel-h"><h2>Admin Security</h2></div>
@@ -4209,7 +4258,10 @@
             if (id === 'stockalerts') { if (typeof window.loadAdminStockAlerts === 'function') window.loadAdminStockAlerts(); }
             if (id === 'notifications') renderNotifications();
             if (id === 'users') renderUsersTable();
-            if (id === 'settings') renderBranchesTable();
+            if (id === 'settings') {
+                renderBranchesTable();
+                if (typeof window.loadShippingSettings === 'function') window.loadShippingSettings();
+            }
             if (id === 'audit') renderAuditLogs();
             if (target && !target.dataset.initialised) {
                 target.dataset.initialised = 'true';

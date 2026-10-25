@@ -82,6 +82,11 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    match /settings/shipping {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     match /settings/{docId} {
       allow read: if isStaff();
       allow write: if isOwner();

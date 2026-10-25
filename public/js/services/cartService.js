@@ -92,10 +92,45 @@ export const Cart = {
     subtotal() { return KC.cart.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0); },
 
     /**
-     * Delivery charge: free above ₹999
+     * Get active shipping configuration (from cache or defaults)
+     * @returns {{standardFee: number, freeThreshold: number, codFee: number, allFree: boolean}}
+     */
+    getShippingConfig() {
+        try {
+            const cached = localStorage.getItem('kc_shipping_config');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                return {
+                    standardFee: typeof parsed.standardFee === 'number' ? parsed.standardFee : 49,
+                    freeThreshold: typeof parsed.freeThreshold === 'number' ? parsed.freeThreshold : 499,
+                    codFee: typeof parsed.codFee === 'number' ? parsed.codFee : 50,
+                    allFree: Boolean(parsed.allFree)
+                };
+            }
+        } catch (_) {}
+        return { standardFee: 49, freeThreshold: 499, codFee: 50, allFree: false };
+    },
+
+    /**
+     * Update cached shipping config from Firestore or API
+     * @param {Object} cfg
+     */
+    setShippingConfig(cfg) {
+        if (!cfg || typeof cfg !== 'object') return;
+        try {
+            localStorage.setItem('kc_shipping_config', JSON.stringify(cfg));
+        } catch (_) {}
+    },
+
+    /**
+     * Delivery charge calculated using active store rules
      * @returns {number}
      */
-    delivery() { return this.subtotal() > 999 ? 0 : 99; },
+    delivery() {
+        const cfg = this.getShippingConfig();
+        if (cfg.allFree) return 0;
+        return this.subtotal() >= (cfg.freeThreshold || 499) ? 0 : (cfg.standardFee || 49);
+    },
 
     /**
      * Build order summary for checkout display
@@ -108,7 +143,8 @@ export const Cart = {
         const discount = Math.min(couponDiscount, subtotal);
         const gst = Math.round((subtotal - discount) * 0.12);
         const delivery = this.delivery();
-        const codFee = isCOD ? 50 : 0;
+        const cfg = this.getShippingConfig();
+        const codFee = isCOD ? (cfg.codFee || 50) : 0;
         const total = subtotal - discount + gst + delivery + codFee;
         return { subtotal, discount, gst, delivery, codFee, total };
     },
