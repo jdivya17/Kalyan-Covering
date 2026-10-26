@@ -108,6 +108,33 @@ const VERCEL_API_BASE = _isLocalhost
     : (import.meta.env.VITE_API_BASE || "https://kalyan-covering-store.vercel.app");
 
 /**
+ * Wait for Firebase Auth initialization to be ready.
+ */
+async function waitForAuthReady() {
+    if (auth && typeof auth.authStateReady === 'function') {
+        try {
+            await auth.authStateReady();
+            return;
+        } catch (_) {}
+    }
+    await new Promise((resolve) => {
+        let unsubscribe = null;
+        let isResolved = false;
+        const cleanup = () => {
+            if (isResolved) return;
+            isResolved = true;
+            clearTimeout(timeout);
+            if (typeof unsubscribe === 'function') unsubscribe();
+            resolve();
+        };
+        const timeout = setTimeout(cleanup, 5000);
+        unsubscribe = onAuthStateChanged(auth, () => {
+            cleanup();
+        });
+    });
+}
+
+/**
  * Helper to call Vercel API endpoints with Firebase Auth Token.
  * @param {string} endpoint - The API path, e.g., '/api/payments/create-order'
  * @param {object} data - The payload
@@ -117,14 +144,29 @@ async function callVercelApi(endpoint, data = {}, isRetry = false) {
         throw new Error('No internet connection. Please check your network connection and try again.');
     }
 
+    await waitForAuthReady();
+
+    const cleanEndpoint = (endpoint || '').split('?')[0].replace(/\/+$/, '');
+    const isPublicEndpoint = cleanEndpoint === '/api/shipping/pincode-check' ||
+                             cleanEndpoint === '/api/health';
+
+    if (!isPublicEndpoint && !auth.currentUser) {
+        const err = new Error("Please log in again to continue.");
+        err.status = 401;
+        throw err;
+    }
+
     let token = "";
     if (auth.currentUser) {
         try {
-            token = await Promise.race([
-                auth.currentUser.getIdToken(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Token timeout')), 3500))
-            ]);
-        } catch (_) {}
+            token = await auth.currentUser.getIdToken();
+        } catch (e1) {
+            try {
+                token = await auth.currentUser.getIdToken(true);
+            } catch (e2) {
+                console.warn('[callVercelApi] Failed to retrieve auth token:', e2);
+            }
+        }
     }
 
     const timeoutMs = 30000; // 30s timeout
@@ -134,12 +176,16 @@ async function callVercelApi(endpoint, data = {}, isRetry = false) {
     const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     
     try {
+        const headers = {
+            "Content-Type": "application/json"
+        };
+        if (token && typeof token === 'string' && token.trim()) {
+            headers["Authorization"] = `Bearer ${token.trim()}`;
+        }
+
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
+            headers,
             body: JSON.stringify(data),
             signal: controller ? controller.signal : undefined
         });
@@ -190,6 +236,7 @@ export {
     functions,
     httpsCallable,
     callVercelApi,
+    waitForAuthReady,
     // Firestore helpers
     collection,
     doc,

@@ -51,7 +51,7 @@
   <script type="module" src="../js/app.js"></script>
   <script type="module" src="../js/utils/shellInit.js"></script>
   <script type="module">
-    import { db, auth, callVercelApi, getDoc, doc } from '../js/firebase-config.js';
+    import { db, auth, callVercelApi, getDoc, doc, waitForAuthReady } from '../js/firebase-config.js';
     import { Cart } from '../js/services/cartService.js';
     import { getUserProfile, getAddresses, addAddress } from '../js/services/userService.js';
     import { formatCurrency, escapeHtml } from '../js/utils/helpers.js';
@@ -78,6 +78,8 @@
           </div>`;
         return;
       }
+
+      await waitForAuthReady();
 
       // Load User Profile & Saved Addresses
       const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');
@@ -402,6 +404,16 @@
         btn.textContent = 'Processing Order...';
       }
 
+      await waitForAuthReady();
+
+      if (!auth.currentUser) {
+        localStorage.removeItem('kc_user');
+        alert('Session expired. Please log in again.');
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `auth.html?redirect=${returnUrl}`;
+        return;
+      }
+
       const shippingAddress = {
         name: document.getElementById('f-name').value.trim(),
         phone: document.getElementById('f-phone').value.trim(),
@@ -494,6 +506,13 @@
         }
       } catch (err) {
         console.error('Checkout error:', err);
+        if (err.status === 401 || err.message === 'Please log in again to continue.') {
+          localStorage.removeItem('kc_user');
+          alert('Session expired. Please log in again.');
+          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `auth.html?redirect=${returnUrl}`;
+          return;
+        }
         alert(err.message || 'Unable to process checkout. Please try again.');
         if (btn) {
           btn.disabled = false;
