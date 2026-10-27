@@ -289,7 +289,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             statusHistory: admin.firestore.FieldValue.arrayUnion({
                 status: "packed",
-                changedAt: admin.firestore.FieldValue.serverTimestamp(),
+                changedAt: new Date(),
                 changedBy: "system_shiprocket",
                 note: `Shipment created. ID: ${shipmentId}${awbCode ? `, AWB: ${awbCode}` : ""}`
             })

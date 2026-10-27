@@ -115,7 +115,7 @@ router.post("/update-status", authMiddleware, requireAdmin, async (req, res) => 
         const humanLabel = statusLabel(targetStatus);
         const historyEntry = {
             status: targetStatus,
-            changedAt: now,
+            changedAt: new Date(),
             changedBy: req.user.uid,
             note: note || `Status updated to ${humanLabel}`
         };
@@ -226,7 +226,7 @@ router.post("/cancel", authMiddleware, async (req, res) => {
 
             const historyEntry = {
                 status: "cancelled",
-                changedAt: now,
+                changedAt: new Date(),
                 changedBy: req.user.uid,
                 note: reason ? `Cancelled by customer: ${reason}` : "Cancelled by customer"
             };

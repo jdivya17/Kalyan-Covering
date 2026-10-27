@@ -11,14 +11,63 @@ const { rateLimit } = require("../middleware/rateLimit");
 const router = express.Router();
 
 // ── Razorpay client (reads env vars at request time) ──────────────────────────
+let hasLoggedRazorpayMode = false;
+
+function cleanEnvVar(val) {
+    if (typeof val !== "string") return "";
+    let s = val.trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1);
+    }
+    return s.trim();
+}
+
 function getRazorpayClient() {
+    const keyId = cleanEnvVar(process.env.RAZORPAY_KEY_ID);
+    const keySecret = cleanEnvVar(process.env.RAZORPAY_KEY_SECRET);
+
+    if (!keyId || !keySecret) {
+        throw new Error("Razorpay keys are not configured on the server.");
+    }
+
+    if (!hasLoggedRazorpayMode) {
+        hasLoggedRazorpayMode = true;
+        let mode = "unknown (check key id)";
+        if (keyId.startsWith("rzp_live_")) {
+            mode = "live";
+        } else if (keyId.startsWith("rzp_test_")) {
+            mode = "test";
+        }
+        console.log(`[Razorpay] Mode: ${mode}`);
+    }
+
     return new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET,
+        key_id: keyId,
+        key_secret: keySecret,
     });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getErrorInfo(err, fallback = "Internal server error") {
+    if (err && err.error && err.error.description) {
+        console.error("[Razorpay Error]", {
+            statusCode: err.statusCode,
+            code: err.error.code,
+            reason: err.error.reason,
+            description: err.error.description
+        });
+        return {
+            status: 502,
+            message: err.error.description
+        };
+    }
+    const status = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599)
+        ? err.code
+        : 500;
+    const message = (err && err.message) || fallback;
+    return { status, message };
+}
 
 function validateAddress(address) {
     if (!address || typeof address !== "object") throw { code: 400, message: "Shipping address must be an object." };
@@ -148,7 +197,7 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
             updatedAt: now,
             statusHistory: admin.firestore.FieldValue.arrayUnion({
                 status: "cancelled",
-                changedAt: now,
+                changedAt: new Date(),
                 changedBy: "system",
                 note: "Payment received after order was already cancelled. Refund required."
             })
@@ -204,7 +253,7 @@ async function fulfillOrder(orderId, paymentId, paymentAmount, paymentCurrency, 
         "payment.paidAt": now,
         statusHistory: admin.firestore.FieldValue.arrayUnion({
             status: isOversold ? "action_required_oversold" : "pending",
-            changedAt: now, changedBy: "system",
+            changedAt: new Date(), changedBy: "system",
             note: isOversold ? "Payment verified, oversold: " + oversoldNotes : "Payment verified."
         })
     });
@@ -247,7 +296,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
             payment: { razorpay_order_id: order.id, method: paymentMethod || "razorpay", amount: totalAmount, currency: "INR", paidAt: null },
             shippingDetails: { carrier: null, trackingNumber: null, estimatedDelivery: null, shippedAt: null, deliveredAt: null },
             subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: normCouponCode || null, couponId: couponId || null,
-            statusHistory: [{ status: "payment_pending", changedAt: now, changedBy: "system", note: "Order created, pending payment." }],
+            statusHistory: [{ status: "payment_pending", changedAt: new Date(), changedBy: "system", note: "Order created, pending payment." }],
             notes: notes || null, createdAt: now, updatedAt: now
         });
 
@@ -257,12 +306,12 @@ router.post("/create-order", authMiddleware, async (req, res) => {
             razorpayOrderId: order.id,
             currency: order.currency,
             amount: order.amount,
-            key: process.env.RAZORPAY_KEY_ID
+            key: cleanEnvVar(process.env.RAZORPAY_KEY_ID)
         });
     } catch (err) {
         console.error("[payments/create-order]", err);
-        const statusCode = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599) ? err.code : 500;
-        return sendError(res, statusCode, "invalid-argument", err.message || "Unable to create order.");
+        const { status, message } = getErrorInfo(err, "Unable to create order.");
+        return sendError(res, status, "invalid-argument", message);
     }
 });
 
@@ -284,7 +333,7 @@ const handlePaymentVerification = async (req, res) => {
             return sendError(res, 403, "permission-denied", "Access denied: order belongs to another customer.");
         }
 
-        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        const keySecret = cleanEnvVar(process.env.RAZORPAY_KEY_SECRET);
         if (!keySecret) {
             console.error("[payments/verify] Error: RAZORPAY_KEY_SECRET environment variable is missing.");
             return sendError(res, 500, "internal", "Payment gateway configuration error.");
@@ -316,8 +365,8 @@ const handlePaymentVerification = async (req, res) => {
         return res.json({ success: true, orderId: result.orderId || razorpay_order_id, orderNumber: result.orderNumber || orderData.orderNumber });
     } catch (err) {
         console.error("[payments/verify]", err);
-        const statusCode = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599) ? err.code : 500;
-        return sendError(res, statusCode, "internal", err.message || "Payment verification failed.");
+        const { status, message } = getErrorInfo(err, "Payment verification failed.");
+        return sendError(res, status, "internal", message);
     }
 };
 
@@ -374,7 +423,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.status(200).send("OK");
     } catch (err) {
         console.error("[Webhook] Error:", err);
-        return res.status(500).send("Webhook Error");
+        const { status, message } = getErrorInfo(err, "Webhook Error");
+        return res.status(status).send(message);
     }
 });
 
@@ -447,7 +497,7 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
                 payment: { method: "cod", amount: totalAmount, currency: "INR", paidAt: null },
                 shippingDetails: { carrier: null, trackingNumber: null, shippedAt: null, deliveredAt: null },
                 subtotal, discount, gst, deliveryCharge, codFee, totalAmount, couponCode: normCouponCode || null, couponId: couponId || null,
-                statusHistory: [{ status: "pending", changedAt: now, changedBy: "system", note: "COD Order placed." }],
+                statusHistory: [{ status: "pending", changedAt: new Date(), changedBy: "system", note: "COD Order placed." }],
                 notes: notes || null, createdAt: now, updatedAt: now
             };
             transaction.set(codOrderRef, codOrder);
@@ -457,8 +507,8 @@ router.post("/create-cod-order", authMiddleware, async (req, res) => {
         return res.json({ success: true, orderId: docRefId, orderNumber });
     } catch (err) {
         console.error("[payments/create-cod-order]", err);
-        const statusCode = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599) ? err.code : 500;
-        return sendError(res, statusCode, "invalid-argument", err.message || "Unable to place COD order.");
+        const { status, message } = getErrorInfo(err, "Unable to place COD order.");
+        return sendError(res, status, "invalid-argument", message);
     }
 });
 
@@ -536,7 +586,7 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
             updatedAt: now,
             statusHistory: admin.firestore.FieldValue.arrayUnion({
                 status: "refund_processed",
-                changedAt: now,
+                changedAt: new Date(),
                 changedBy: req.user.uid,
                 note: `Refund processed (₹${finalRefundAmount}). Refund ID: ${refundRes.id}`
             })
@@ -557,8 +607,8 @@ router.post("/refund", authMiddleware, requireOwnerOrManager, async (req, res) =
             await db.collection("orders").doc(targetOrderId).update({ refunding: false }).catch(() => {});
         }
         console.error("[payments/refund]", err);
-        const statusCode = (err && err.code && Number.isInteger(err.code) && err.code >= 400 && err.code <= 599) ? err.code : 500;
-        return sendError(res, statusCode, "internal", err.message || "Failed to process refund.");
+        const { status, message } = getErrorInfo(err, "Failed to process refund.");
+        return sendError(res, status, "internal", message);
     }
 });
 

@@ -238,7 +238,7 @@ router.post("/webhook", async (req, res) => {
             updatePayload.orderStatus = targetStatus;
             updatePayload.statusHistory = admin.firestore.FieldValue.arrayUnion({
                 status: targetStatus,
-                changedAt: now,
+                changedAt: new Date(),
                 changedBy: "shiprocket_webhook",
                 note: `Status updated via Shiprocket webhook (${rawStatus})`
             });
