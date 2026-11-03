@@ -64,8 +64,53 @@
     let giftMessage = '';
     let couponCode = '';
 
+    function isBuyNow() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('buyNow') === '1';
+    }
+
+    function getCheckoutItems() {
+      if (isBuyNow()) {
+        const raw = sessionStorage.getItem('kc_buy_now');
+        if (!raw) {
+          window.location.href = 'cart.html';
+          return [];
+        }
+        try {
+          const item = JSON.parse(raw);
+          const qty = parseInt(item?.qty, 10);
+          if (!item || !item.id || isNaN(qty) || qty < 1 || qty > 10) {
+            sessionStorage.removeItem('kc_buy_now');
+            window.location.href = 'cart.html';
+            return [];
+          }
+          return [{
+            ...item,
+            id: String(item.id),
+            qty
+          }];
+        } catch (_) {
+          sessionStorage.removeItem('kc_buy_now');
+          window.location.href = 'cart.html';
+          return [];
+        }
+      } else {
+        sessionStorage.removeItem('kc_buy_now');
+        Cart.load();
+        return Array.isArray(KC.cart) ? KC.cart : [];
+      }
+    }
+
+    function getCheckoutOrderItems() {
+      const items = getCheckoutItems();
+      return items.map(item => ({
+        id: String(item.id),
+        qty: Math.min(10, Math.max(1, parseInt(item.qty, 10) || 1))
+      }));
+    }
+
     async function initCheckoutPage() {
-      const items = Cart.load() || KC.cart || [];
+      const items = getCheckoutItems();
       const layout = document.getElementById('checkout-layout');
       if (!layout) return;
 
@@ -100,8 +145,8 @@
 
     function renderCheckoutForm(user) {
       const layout = document.getElementById('checkout-layout');
-      const items = KC.cart || [];
-      const subtotal = Cart.subtotal();
+      const items = getCheckoutItems();
+      const subtotal = items.reduce((s, i) => s + ((Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
       const shipCfg = Cart.getShippingConfig();
       const freeShippingLimit = shipCfg.freeThreshold || 499;
       const isAllFree = Boolean(shipCfg.allFree);
@@ -348,7 +393,7 @@
         return;
       }
       try {
-        const items = Cart.toOrderItems();
+        const items = getCheckoutOrderItems();
         const res = await callVercelApi('/api/payments/validate-coupon', { items, promoCode: code });
         if (res && res.success) {
           couponCode = res.couponCode || code;
@@ -432,7 +477,12 @@
         } catch (_) {}
       }
 
-      const items = Cart.toOrderItems();
+      const items = getCheckoutOrderItems();
+      if (!items.length) {
+        alert('Your bag is empty.');
+        window.location.href = 'cart.html';
+        return;
+      }
       const payMethod = document.querySelector('input[name="payMethod"]:checked')?.value || 'ONLINE';
 
       try {
@@ -473,7 +523,11 @@
                 });
 
                 if (verifyRes && verifyRes.success) {
-                  Cart.clear();
+                  if (isBuyNow()) {
+                    sessionStorage.removeItem('kc_buy_now');
+                  } else {
+                    Cart.clear();
+                  }
                   window.location.href = `order-success.html?orderId=${orderRes.orderId}`;
                 } else if (verifyRes && verifyRes.cancelled) {
                   alert(verifyRes.message || "Order was cancelled. Your payment will be refunded.");
@@ -498,7 +552,11 @@
           });
 
           if (codRes && codRes.orderId) {
-            Cart.clear();
+            if (isBuyNow()) {
+              sessionStorage.removeItem('kc_buy_now');
+            } else {
+              Cart.clear();
+            }
             window.location.href = `order-success.html?orderId=${codRes.orderId}`;
           } else {
             throw new Error(codRes.error || 'Failed to place COD order.');

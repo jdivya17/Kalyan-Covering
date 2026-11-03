@@ -964,7 +964,10 @@ window.openQuickView = function(id) {
                 <h3 id="qv-title" class="qv-title"></h3>
                 <div id="qv-price" class="qv-price"></div>
                 <p id="qv-desc" class="qv-desc" style="color:var(--white-dim);margin-bottom:1.2rem;"></p>
-                <button id="qv-add-cart" class="btn solid block">Add to Bag</button>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button id="qv-add-cart" class="btn solid" style="flex:1">Add to Bag</button>
+                  <button id="qv-buy-now" class="btn" style="flex:1">Buy Now</button>
+                </div>
               </div>
             </div>
           </div>
@@ -984,12 +987,21 @@ window.openQuickView = function(id) {
     const descEl = document.getElementById('qv-desc');
     if (descEl) descEl.textContent = p.description || 'Experience the elegance of our premium jewellery collection.';
     
+    modal.dataset.id = p.id;
     const addToCartBtn = document.getElementById('qv-add-cart');
     if (addToCartBtn) {
         addToCartBtn.onclick = function() {
             if (typeof Cart !== 'undefined') Cart.add(p);
             if (Math.random() > 0.7 && typeof launchConfetti === 'function') launchConfetti(1000);
             window.closeQuickView();
+        };
+    }
+    const buyNowBtn = document.getElementById('qv-buy-now');
+    if (buyNowBtn) {
+        buyNowBtn.dataset.id = p.id;
+        buyNowBtn.onclick = function() {
+            window.closeQuickView();
+            buyNow(p, 1);
         };
     }
     
@@ -1119,12 +1131,45 @@ function addPdToCart() {
     }
 }
 
-function buyNow() {
-    if (currentProduct) {
-        addPdToCart();
-        window.location = 'checkout.html';
+function buyNow(productIdOrProduct, qty = 1) {
+    let p = null;
+    if (typeof productIdOrProduct === 'object' && productIdOrProduct !== null) {
+        p = productIdOrProduct;
+    } else if (typeof productIdOrProduct === 'string') {
+        p = (KC.products || []).find(x => x.id === productIdOrProduct);
+    } else if (typeof currentProduct !== 'undefined' && currentProduct) {
+        p = currentProduct;
+        const inputQty = parseInt(document.getElementById('qty-input')?.value || document.getElementById('pq')?.textContent, 10);
+        if (!isNaN(inputQty) && inputQty >= 1) qty = inputQty;
     }
+
+    if (!p || !p.id) {
+        console.warn('buyNow called without valid product:', productIdOrProduct);
+        return;
+    }
+
+    const validatedQty = Math.min(10, Math.max(1, parseInt(qty, 10) || 1));
+    const rawImg = p.image || p.primaryImageURL || (p.images && p.images[0]) || (p.imageURLs && p.imageURLs[0]) || '';
+    const buyNowItem = {
+        id: String(p.id),
+        name: p.name || 'Jewellery Item',
+        price: Number(p.price) || 0,
+        image: rawImg,
+        qty: validatedQty
+    };
+
+    try {
+        sessionStorage.setItem('kc_buy_now', JSON.stringify(buyNowItem));
+    } catch (e) {
+        console.error('Failed to store kc_buy_now:', e);
+    }
+
+    const isCustomerFolder = window.location.pathname.includes('/customer/');
+    window.location.href = isCustomerFolder ? 'checkout.html?buyNow=1' : 'customer/checkout.html?buyNow=1';
 }
+
+window.buyNow = buyNow;
+window.handleBuyNow = window.handleBuyNow || buyNow;
 
 function adjustQty(delta) {
     const input = document.getElementById('qty-input');

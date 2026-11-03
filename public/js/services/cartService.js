@@ -154,7 +154,7 @@ export const Cart = {
      * @returns {Array<{id:string, qty:number}>}
      */
     toOrderItems() {
-        return KC.cart.map(i => ({ id: i.id, qty: i.qty || 1 }));
+        return KC.cart.map(i => ({ id: String(i.id), qty: Math.min(10, Math.max(1, parseInt(i.qty, 10) || 1)) }));
     },
 
     // ---- Persistence ----

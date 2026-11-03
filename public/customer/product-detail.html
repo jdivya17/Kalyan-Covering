@@ -766,8 +766,20 @@
     window.handleBuyNow = async function(productId) {
       const product = await getProduct(productId);
       if (!product) return;
-      Cart.add(product, currentQty);
-      window.location.href = 'checkout.html';
+      const qty = Math.min(10, Math.max(1, parseInt(currentQty, 10) || 1));
+      const buyNowItem = {
+        id: String(product.id),
+        name: product.name || 'Jewellery Item',
+        price: Number(product.price) || 0,
+        image: product.image || product.primaryImageURL || product.images?.[0] || '',
+        qty
+      };
+      try {
+        sessionStorage.setItem('kc_buy_now', JSON.stringify(buyNowItem));
+      } catch (err) {
+        console.error('Failed to set kc_buy_now in sessionStorage:', err);
+      }
+      window.location.href = 'checkout.html?buyNow=1';
     };
 
     window.handlePdWishToggle = async function(productId, btn) {

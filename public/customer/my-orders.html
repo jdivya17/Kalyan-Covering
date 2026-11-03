@@ -108,7 +108,7 @@
 
     let orders = [];
     let currentTab = window.location.hash.replace('#', '') || 'orders';
-    let trackOrderId = new URLSearchParams(window.location.search).get('id');
+    let trackOrderId = new URLSearchParams(window.location.search).get('id') || new URLSearchParams(window.location.search).get('orderId');
 
     async function initOrdersPage() {
       const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');

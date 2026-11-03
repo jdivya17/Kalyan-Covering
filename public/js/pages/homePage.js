@@ -121,5 +121,27 @@ window.handleWishToggle = async function(productId, btn) {
 };
 
 // Expose functions for window compatibility
+function handleBuyNow(productId) {
+  if (typeof window.buyNow === 'function') {
+    window.buyNow(productId);
+    return;
+  }
+  const product = (KC.products || []).find(p => p.id === productId);
+  if (!product || !product.id) return;
+  const rawImg = product.image || product.primaryImageURL || (product.images && product.images[0]) || '';
+  const buyNowItem = {
+    id: String(product.id),
+    name: product.name || 'Jewellery Item',
+    price: Number(product.price) || 0,
+    image: rawImg,
+    qty: 1
+  };
+  try {
+    sessionStorage.setItem('kc_buy_now', JSON.stringify(buyNowItem));
+  } catch (_) {}
+  window.location.href = 'checkout.html?buyNow=1';
+}
+
+window.handleBuyNow = window.handleBuyNow || handleBuyNow;
 window.initHomePage = initHomePage;
 window.renderSignaturePieces = renderSignaturePieces;

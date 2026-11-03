@@ -54,7 +54,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
-      const orderId = params.get('orderId') || 'KC-' + Math.floor(100000 + Math.random() * 900000);
+      const orderId = params.get('orderId') || params.get('id') || ('KC-' + Math.floor(100000 + Math.random() * 900000));
       
       const displayEl = document.getElementById('order-id-display');
       const nameEl = document.getElementById('thanks-name');

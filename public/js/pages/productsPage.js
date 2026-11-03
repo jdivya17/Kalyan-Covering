@@ -333,7 +333,7 @@ function renderActiveChips(filters) {
   `;
 }
 
-window.handleFilterChange = function() {
+window.handleFilterChange = function () {
   const form = document.getElementById('filterForm');
   if (!form) return;
 
@@ -359,7 +359,7 @@ window.handleFilterChange = function() {
   renderCatalogPage(KC.products);
 };
 
-window.setPricePreset = function(min, max) {
+window.setPricePreset = function (min, max) {
   const form = document.getElementById('filterForm');
   if (form) {
     form.querySelector('input[name="minPrice"]').value = min || '';
@@ -368,7 +368,7 @@ window.setPricePreset = function(min, max) {
   }
 };
 
-window.removeFilterChip = function(key, value) {
+window.removeFilterChip = function (key, value) {
   const current = parseQueryParams();
   if (key === 'category') current.category = current.category.filter(c => c !== value);
   else if (key === 'stone') current.stone = current.stone.filter(s => s !== value);
@@ -392,14 +392,14 @@ window.removeFilterChip = function(key, value) {
   renderCatalogPage(KC.products);
 };
 
-window.clearAllFilters = function() {
+window.clearAllFilters = function () {
   const url = new URL(window.location);
   url.search = '';
   window.history.pushState({}, '', url);
   renderCatalogPage(KC.products);
 };
 
-window.handleSortChange = function(sortValue) {
+window.handleSortChange = function (sortValue) {
   updateUrlQueryParams({ sort: sortValue });
   renderCatalogPage(KC.products);
 };
@@ -413,14 +413,36 @@ function updateUrlQueryParams(newParams) {
   window.history.pushState({}, '', url);
 }
 
-window.openFilterPanel = function() {
+window.openFilterPanel = function () {
   const panel = document.getElementById('fpanel');
   if (panel) panel.classList.add('open');
 };
 
-window.closeFilterPanel = function() {
+window.closeFilterPanel = function () {
   const panel = document.getElementById('fpanel');
   if (panel) panel.classList.remove('open');
 };
 
+function handleBuyNow(productId) {
+  if (typeof window.buyNow === 'function') {
+    window.buyNow(productId);
+    return;
+  }
+  const product = (KC.products || []).find(p => p.id === productId);
+  if (!product || !product.id) return;
+  const rawImg = product.image || product.primaryImageURL || (product.images && product.images[0]) || '';
+  const buyNowItem = {
+    id: String(product.id),
+    name: product.name || 'Jewellery Item',
+    price: Number(product.price) || 0,
+    image: rawImg,
+    qty: 1
+  };
+  try {
+    sessionStorage.setItem('kc_buy_now', JSON.stringify(buyNowItem));
+  } catch (_) { }
+  window.location.href = 'checkout.html?buyNow=1';
+}
+
+window.handleBuyNow = window.handleBuyNow || handleBuyNow;
 window.initProductsPage = initProductsPage;

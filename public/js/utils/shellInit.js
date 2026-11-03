@@ -55,7 +55,10 @@ export function initGlobalShell() {
             <h3 id="qv-title" class="qv-title"></h3>
             <div id="qv-price" class="qv-price"></div>
             <p id="qv-desc" class="qv-desc" style="color:var(--white-dim);margin-bottom:1.2rem;"></p>
-            <button id="qv-add-cart" class="btn solid block">Add to Bag</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button id="qv-add-cart" class="btn solid" style="flex:1">Add to Bag</button>
+              <button id="qv-buy-now" class="btn" style="flex:1">Buy Now</button>
+            </div>
           </div>
         </div>
       </div>
