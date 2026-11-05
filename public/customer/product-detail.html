@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="../css/theme.css">
   <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/mobile.css">
 
   <style>
     /* Stock & Scarcity Badges */
@@ -58,7 +59,7 @@
     /* Customer Reviews Section */
     .reviews-section {
       padding: 4rem 0;
-      border-top: 1px solid var(--border-color);
+      border-top: 1px solid var(--line);
       margin-top: 3rem;
     }
 
@@ -72,9 +73,9 @@
     }
 
     .reviews-title h2 {
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       font-size: 2.2rem;
-      color: var(--text-color);
+      color: var(--ivory);
       font-weight: 500;
     }
 
@@ -86,7 +87,7 @@
     }
 
     .overall-score {
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       font-size: 2.8rem;
       color: var(--gold);
       line-height: 1;
@@ -108,8 +109,8 @@
     }
 
     .review-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      background: var(--bg2);
+      border: 1px solid var(--line);
       border-radius: var(--radius-md);
       padding: 1.5rem;
       display: flex;
@@ -139,7 +140,7 @@
       height: 38px;
       border-radius: 50%;
       background: rgba(214, 178, 94, 0.15);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--line);
       color: var(--gold);
       display: flex;
       align-items: center;
@@ -150,7 +151,7 @@
 
     .reviewer-name {
       font-weight: 600;
-      color: var(--text-color);
+      color: var(--ivory);
       font-size: 0.92rem;
     }
 
@@ -167,11 +168,11 @@
 
     .review-date {
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: var(--muted);
     }
 
     .review-text {
-      color: var(--text-dim);
+      color: var(--muted);
       font-size: 0.88rem;
       line-height: 1.6;
     }
@@ -189,7 +190,7 @@
       border-radius: var(--radius-sm);
       object-fit: cover;
       cursor: pointer;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--line);
       transition: transform 0.2s, border-color 0.2s;
     }
 
@@ -220,8 +221,8 @@
     }
 
     .review-form-modal {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      background: var(--bg2);
+      border: 1px solid var(--line);
       border-radius: var(--radius-lg);
       padding: 2.2rem;
       width: 100%;
@@ -250,7 +251,7 @@
     }
 
     .photo-upload-box {
-      border: 1.5px dashed var(--border-color);
+      border: 1.5px dashed var(--line);
       border-radius: var(--radius-sm);
       padding: 1.2rem;
       text-align: center;
@@ -277,7 +278,7 @@
       height: 55px;
       border-radius: var(--radius-sm);
       overflow: hidden;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--line);
     }
 
     .photo-preview-item img {
@@ -288,7 +289,7 @@
   </style>
 </head>
 
-<body>
+<body class="kc-pdp kc-no-tabbar">
   <!-- Global Shell Header Container -->
   <div id="global-header"></div>
 
@@ -304,29 +305,34 @@
   <!-- Global Shell Footer Container -->
   <div id="global-footer"></div>
 
-  <!-- Ring Size Guide Modal -->
-  <div class="modal" id="ring-modal">
+    <!-- Ring Size Guide Modal -->
+  <div class="modal" id="ring-modal" onclick="if(event.target===this)closeRingModal()">
     <div class="mbox">
-      <h3>Ring Size Guide</h3>
-      <p class="sub" style="color:var(--muted);margin-bottom:1rem;">Measure an existing ring's inner diameter or wrap a thin strip of paper around your finger.</p>
-      <table>
-        <thead>
-          <tr>
-            <th style="text-align:left;color:var(--gold-hi);">Inner Diameter (mm)</th>
-            <th style="text-align:left;color:var(--gold-hi);">Circumference (mm)</th>
-            <th style="text-align:right;color:var(--gold-hi);">Fit Size</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>15.3</td><td>48.1</td><td style="text-align:right;">Small (US 5)</td></tr>
-          <tr><td>16.5</td><td>51.8</td><td style="text-align:right;">Medium (US 6)</td></tr>
-          <tr><td>17.3</td><td>54.4</td><td style="text-align:right;">Medium (US 7)</td></tr>
-          <tr><td>18.1</td><td>56.9</td><td style="text-align:right;">Large (US 8)</td></tr>
-          <tr><td>18.9</td><td>59.5</td><td style="text-align:right;">Large (US 9)</td></tr>
-        </tbody>
-      </table>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+        <h3 style="font-family:var(--serif); font-size:1.6rem; color:var(--ivory); margin:0;">Ring Size Guide</h3>
+        <button class="ib" onclick="closeRingModal()" aria-label="Close size guide" style="min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--gold);font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+      <p class="sub" style="color:var(--muted);font-size:0.88rem;line-height:1.5;margin-bottom:1rem;">Measure an existing ring's inner diameter or wrap a thin strip of paper around your finger.</p>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="width:100%;min-width:280px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;color:var(--gold);padding:8px 4px;font-size:0.85rem;">Inner Diameter (mm)</th>
+              <th style="text-align:left;color:var(--gold);padding:8px 4px;font-size:0.85rem;">Circumference (mm)</th>
+              <th style="text-align:right;color:var(--gold);padding:8px 4px;font-size:0.85rem;">Fit Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>15.3</td><td>48.1</td><td style="text-align:right;">Small (US 5)</td></tr>
+            <tr><td>16.5</td><td>51.8</td><td style="text-align:right;">Medium (US 6)</td></tr>
+            <tr><td>17.3</td><td>54.4</td><td style="text-align:right;">Medium (US 7)</td></tr>
+            <tr><td>18.1</td><td>56.9</td><td style="text-align:right;">Large (US 8)</td></tr>
+            <tr><td>18.9</td><td>59.5</td><td style="text-align:right;">Large (US 9)</td></tr>
+          </tbody>
+        </table>
+      </div>
       <div class="mact" style="margin-top:1.5rem;text-align:right;">
-        <button class="btn solid sm" onclick="closeRingModal()">Got It</button>
+        <button class="btn btn-gold solid" onclick="closeRingModal()" style="min-height:44px;padding:0.6rem 1.8rem;">Got It</button>
       </div>
     </div>
   </div>
@@ -335,12 +341,12 @@
   <div class="review-form-modal-overlay" id="review-modal" onclick="if(event.target===this)closeReviewModal()">
     <div class="review-form-modal">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:var(--text-color);">Write a Review</h3>
-        <button onclick="closeReviewModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+        <h3 style="font-family:var(--serif); font-size:1.5rem; color:var(--ivory);">Write a Review</h3>
+        <button onclick="closeReviewModal()" aria-label="Close review modal" style="background:var(--surface2); border:1px solid var(--line); color:var(--gold); border-radius:50%; width:44px; height:44px; min-width:44px; min-height:44px; display:grid; place-items:center; font-size:1.2rem; cursor:pointer;">✕</button>
       </div>
       
       <form id="review-form" onsubmit="handleReviewSubmit(event)">
-        <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.2rem;">Overall Rating</label>
+        <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.2rem;">Overall Rating</label>
         <div class="star-picker" id="star-picker">
           <span onclick="setReviewRating(1)" data-val="1">★</span>
           <span onclick="setReviewRating(2)" data-val="2">★</span>
@@ -351,30 +357,30 @@
         <input type="hidden" id="review-rating-val" value="5" />
 
         <div style="margin-bottom:1rem;">
-          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Review Title</label>
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.4rem;">Review Title</label>
           <input type="text" id="review-title" placeholder="e.g. Stunning finish, looks just like real gold!" class="form-input" style="width:100%;" required />
         </div>
 
         <div style="margin-bottom:1rem;">
-          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Your Feedback</label>
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.4rem;">Your Feedback</label>
           <textarea id="review-text" rows="4" placeholder="Tell us about the craftsmanship, shine, and fit..." class="form-input" style="width:100%; resize:vertical;" required></textarea>
         </div>
 
         <div style="margin-bottom:1.2rem;">
-          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Add Photos (Optional)</label>
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.4rem;">Add Photos (Optional)</label>
           <div class="photo-upload-box" onclick="document.getElementById('review-photo-input').click()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.4rem; color:var(--gold);">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
               <circle cx="12" cy="13" r="4"></circle>
             </svg>
-            <div style="font-size:0.8rem; color:var(--text-dim);">Click to attach jewellery photos (auto-compressed)</div>
+            <div style="font-size:0.8rem; color:var(--muted);">Click to attach jewellery photos (auto-compressed)</div>
           </div>
           <input type="file" id="review-photo-input" accept="image/*" multiple style="display:none;" onchange="handlePhotoSelect(event)" />
           <div class="photo-previews" id="photo-previews"></div>
         </div>
 
         <div style="display:flex; gap:0.8rem;">
-          <button type="submit" class="btn btn-gold" id="btn-submit-review" style="flex:1; padding:0.85rem;">
+          <button type="submit" class="btn btn-gold solid" id="btn-submit-review" style="flex:1; padding:0.85rem;">
             SUBMIT REVIEW
           </button>
           <button type="button" class="btn btn-outline" onclick="closeReviewModal()" style="padding:0.85rem 1.2rem;">
@@ -389,25 +395,25 @@
   <div class="review-form-modal-overlay" id="stock-modal" onclick="if(event.target===this)closeStockModal()">
     <div class="review-form-modal">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="font-family:var(--font-serif); font-size:1.5rem; color:var(--gold);">Back in Stock Alert</h3>
-        <button onclick="closeStockModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+        <h3 style="font-family:var(--serif); font-size:1.5rem; color:var(--gold);">Back in Stock Alert</h3>
+        <button onclick="closeStockModal()" aria-label="Close stock alert modal" style="background:var(--surface2); border:1px solid var(--line); color:var(--gold); border-radius:50%; width:44px; height:44px; min-width:44px; min-height:44px; display:grid; place-items:center; font-size:1.2rem; cursor:pointer;">✕</button>
       </div>
-      <p style="color:var(--text-dim); font-size:0.85rem; line-height:1.5; margin-bottom:1.2rem;">
+      <p style="color:var(--muted); font-size:0.85rem; line-height:1.5; margin-bottom:1.2rem;">
         Leave your email or WhatsApp number and we will notify you instantly when this piece is restocked.
       </p>
       <form id="stock-alert-form" onsubmit="handleStockAlertSubmit(event)">
         <div style="margin-bottom:1rem;">
-          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">Email Address</label>
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.4rem;">Email Address</label>
           <input type="email" id="stock-email" placeholder="name@example.com" class="form-input" style="width:100%;" required />
         </div>
         <div style="margin-bottom:1.2rem;">
-          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:0.4rem;">WhatsApp Number (Optional)</label>
+          <label style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:0.4rem;">WhatsApp Number (Optional)</label>
           <input type="tel" id="stock-phone" placeholder="10-digit mobile number" class="form-input" style="width:100%;" />
         </div>
-        <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4; margin-bottom:1.2rem;">
+        <div style="font-size:0.75rem; color:var(--muted); line-height:1.4; margin-bottom:1.2rem;">
           By submitting, you consent to receive a one-time stock alert via Email/WhatsApp for this piece. We do not spam.
         </div>
-        <button type="submit" class="btn btn-gold" id="btn-stock-alert" style="width:100%; padding:0.85rem;">
+        <button type="submit" class="btn btn-gold solid" id="btn-stock-alert" style="width:100%; padding:0.85rem;">
           NOTIFY ME WHEN AVAILABLE
         </button>
       </form>
@@ -417,7 +423,7 @@
   <!-- Photo Lightbox Modal -->
   <div class="review-form-modal-overlay" id="lightbox-modal" onclick="closeLightbox()">
     <div style="max-width:800px; max-height:85vh; display:flex; align-items:center; justify-content:center;">
-      <img id="lightbox-img" src="" alt="Enlarged review photo" style="max-width:100%; max-height:85vh; border-radius:var(--radius-md); border:1px solid var(--border-color); object-fit:contain;" />
+      <img id="lightbox-img" src="" alt="Enlarged review photo" style="max-width:100%; max-height:85vh; border-radius:var(--radius-md); border:1px solid var(--line); object-fit:contain;" />
     </div>
   </div>
 
@@ -557,8 +563,8 @@
 
             <!-- Pincode Delivery Check -->
             <div class="pin">
-              <input type="text" inputmode="numeric" maxlength="6" id="pincode-input" placeholder="Enter pincode" aria-label="Delivery pincode" />
-              <button class="btn sm" onclick="checkDeliveryPincode()">Check Delivery</button>
+              <input type="text" inputmode="numeric" maxlength="6" id="pincode-input" placeholder="Enter pincode" aria-label="Delivery pincode" style="min-height:44px;font-size:16px;" />
+              <button class="btn sm" onclick="checkDeliveryPincode()" style="min-height:44px;padding:0 1.2rem;">Check Delivery</button>
             </div>
             <div class="pinres" id="pinres" aria-live="polite"></div>
 
@@ -602,17 +608,17 @@
                 <div class="overall-score" id="avg-score"></div>
                 <div>
                   <div class="review-stars">★★★★★</div>
-                  <div style="font-size:0.82rem; color:var(--text-dim); margin-top:0.2rem;" id="reviews-count-text">Based on customer feedback</div>
+                  <div style="font-size:0.82rem; color:var(--muted); margin-top:0.2rem;" id="reviews-count-text">Based on customer feedback</div>
                 </div>
               </div>
             </div>
-            <button class="btn btn-gold" id="top-write-review-btn" onclick="openReviewModal()" style="display:none;">
+            <button class="btn btn-gold solid" id="top-write-review-btn" onclick="openReviewModal()" style="display:none;">
               ★ WRITE A REVIEW
             </button>
           </div>
 
           <div id="reviews-list-container">
-            <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">Loading customer reviews...</div>
+            <div style="text-align:center; padding:2rem 0; color:var(--muted);">Loading customer reviews...</div>
           </div>
         </section>
 
@@ -628,6 +634,7 @@
       `;
 
       loadReviewsForProduct(productId);
+      initGallerySwipe();
     }
 
     async function loadReviewsForProduct(productId) {
@@ -640,10 +647,10 @@
         if (summaryEl) summaryEl.style.display = 'none';
         if (topBtn) topBtn.style.display = 'none';
         container.innerHTML = `
-          <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:3rem 1.5rem; text-align:center;">
-            <p style="color:var(--text-color); font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">No reviews yet</p>
-            <p style="color:var(--text-dim); margin-bottom:1.5rem; font-size:0.9rem;">Be the first to share a review with a photo for this jewellery piece!</p>
-            <button class="btn btn-gold" onclick="openReviewModal()">Write the first review</button>
+          <div style="background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius-md); padding:3rem 1.5rem; text-align:center;">
+            <p style="color:var(--ivory); font-size:1.1rem; font-weight:600; margin-bottom:0.5rem;">No reviews yet</p>
+            <p style="color:var(--muted); margin-bottom:1.5rem; font-size:0.9rem;">Be the first to share a review with a photo for this jewellery piece!</p>
+            <button class="btn btn-gold solid" onclick="openReviewModal()">Write the first review</button>
           </div>
         `;
         return;
@@ -683,7 +690,7 @@
                 </div>
 
                 <div style="color:var(--gold); font-size:0.95rem;">${starsStr}</div>
-                ${r.title ? `<strong style="color:var(--text-color); font-size:0.95rem;">${escapeHtml(r.title)}</strong>` : ''}
+                ${r.title ? `<strong style="color:var(--ivory); font-size:0.95rem;">${escapeHtml(r.title)}</strong>` : ''}
                 <p class="review-text">${escapeHtml(r.text || r.reviewText || '')}</p>
 
                 ${photos.length ? `
@@ -901,6 +908,33 @@
     };
 
     // Lightbox
+    
+    function initGallerySwipe() {
+      const gmain = document.getElementById('gmain');
+      if (!gmain) return;
+      let startX = 0;
+      let endX = 0;
+      gmain.addEventListener('touchstart', (e) => {
+        startX = e.changedTouches[0].screenX;
+      }, { passive: true });
+      gmain.addEventListener('touchend', (e) => {
+        endX = e.changedTouches[0].screenX;
+        const diff = endX - startX;
+        if (Math.abs(diff) > 40) {
+          const thumbs = Array.from(document.querySelectorAll('.thumb'));
+          if (thumbs.length <= 1) return;
+          const currentIdx = thumbs.findIndex(t => t.classList.contains('active'));
+          if (diff < 0) {
+            const nextIdx = (currentIdx + 1) % thumbs.length;
+            thumbs[nextIdx].click();
+          } else {
+            const prevIdx = (currentIdx - 1 + thumbs.length) % thumbs.length;
+            thumbs[prevIdx].click();
+          }
+        }
+      }, { passive: true });
+    }
+
     window.openLightbox = function(url) {
       document.getElementById('lightbox-img').src = url;
       document.getElementById('lightbox-modal').classList.add('open');

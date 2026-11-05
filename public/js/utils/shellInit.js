@@ -66,6 +66,68 @@ export function initGlobalShell() {
     document.body.appendChild(qv);
   }
 
+  // Quick View handlers
+  window.openQuickView = async function(productId) {
+    let product = (KC.products || []).find(p => p.id === productId);
+    if (!product) {
+      try {
+        const { getProduct } = await import('../services/productService.js');
+        product = await getProduct(productId);
+      } catch (_) {}
+    }
+    if (!product) return;
+
+    const modal = document.getElementById('quick-view-modal');
+    if (!modal) return;
+
+    const rawImg = product.image || product.primaryImageURL || product.images?.[0] || '/img-fallback.svg';
+    const imgEl = document.getElementById('qv-img');
+    const titleEl = document.getElementById('qv-title');
+    const priceEl = document.getElementById('qv-price');
+    const descEl = document.getElementById('qv-desc');
+    const addBtn = document.getElementById('qv-add-cart');
+    const buyBtn = document.getElementById('qv-buy-now');
+
+    if (imgEl) imgEl.src = rawImg;
+    if (titleEl) titleEl.textContent = product.name || 'Jewellery Piece';
+    if (priceEl) {
+      const price = Number(product.price || 0);
+      const mrp = Number(product.mrp || 0);
+      priceEl.innerHTML = `<strong style="color:var(--gold,#d4af37);font-size:1.4rem;">₹${price.toLocaleString('en-IN')}</strong>` +
+        (mrp > price ? ` <s style="color:var(--text-muted,#888);font-size:0.95rem;margin-left:8px;">₹${mrp.toLocaleString('en-IN')}</s>` : '');
+    }
+    if (descEl) descEl.textContent = product.description || product.shortDescription || 'Authentic gold covering jewellery handcrafted with 100% micro-gold plating for long-lasting sheen.';
+
+    if (addBtn) {
+      addBtn.onclick = () => {
+        Cart.add(product, 1);
+        window.closeQuickView();
+      };
+    }
+    if (buyBtn) {
+      buyBtn.onclick = () => {
+        const buyNowItem = {
+          id: String(product.id),
+          name: product.name || 'Jewellery Item',
+          price: Number(product.price) || 0,
+          image: rawImg,
+          qty: 1
+        };
+        try {
+          sessionStorage.setItem('kc_buy_now', JSON.stringify(buyNowItem));
+        } catch (_) {}
+        window.location.href = 'checkout.html?buyNow=1';
+      };
+    }
+
+    modal.classList.add('open');
+  };
+
+  window.closeQuickView = function() {
+    const modal = document.getElementById('quick-view-modal');
+    if (modal) modal.classList.remove('open');
+  };
+
   // Sync Badges
   Cart.load();
   Wishlist.load();

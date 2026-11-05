@@ -12,11 +12,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="../css/design-system.css">
   <link rel="stylesheet" href="../css/theme.css">
   <link rel="stylesheet" href="../css/mobile.css">
 </head>
 
-<body>
+<body class="kc-no-tabbar">
   <!-- Global Shell Header Container -->
   <div id="global-header"></div>
 
@@ -86,12 +87,19 @@
 
       const total = subtotal - couponDiscount + delivery;
 
-      if (!items.length) {
+            if (!items.length) {
         container.innerHTML = `
-          <div style="grid-column:1/-1;text-align:center;padding:4rem 1rem;" class="empty">
-            <h2>Your Bag is Empty</h2>
-            <p style="color:var(--muted);margin:0.8rem 0 1.6rem;">Explore our beautiful gold-covering jewellery and add something special.</p>
-            <a href="products.html" class="btn solid">Browse Collection</a>
+          <div style="grid-column:1/-1;text-align:center;padding:4.5rem 1.5rem;" class="empty-state cart-empty">
+            <div style="width:72px;height:72px;margin:0 auto 1.4rem;border-radius:50%;background:rgba(214,178,94,0.08);border:1px solid var(--line);display:grid;place-items:center;color:var(--gold);">
+              ${ic('bag', 32)}
+            </div>
+            <h2 style="font-size:1.85rem;margin-bottom:0.6rem;color:var(--ivory);font-family:var(--serif);">Your Bag is Empty</h2>
+            <p style="color:var(--muted);max-width:28rem;margin:0 auto 1.8rem;font-size:0.95rem;line-height:1.6;">
+              Explore our handcrafted micro-gold covering jewellery collection and add timeless elegance to your bag.
+            </p>
+            <a href="products.html" class="btn solid" style="min-height:48px;padding:0.8rem 2.2rem;display:inline-flex;align-items:center;justify-content:center;font-size:0.95rem;">
+              Continue Shopping
+            </a>
           </div>`;
         return;
       }
@@ -123,13 +131,13 @@
                 <div class="li-info">
                   <b>${escapeHtml(item.name)}</b>
                   <small style="color:var(--gold);font-weight:600;">${formatCurrency(item.price)} each</small>
-                  <div style="display:flex;gap:10px;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
-                    <div class="qty" style="height:34px;">
-                      <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) - 1})" aria-label="Decrease quantity">${ic('minus', 14)}</button>
-                      <output style="min-width:26px;">${item.qty || 1}</output>
-                      <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) + 1})" aria-label="Increase quantity">${ic('plus', 14)}</button>
+                                    <div style="display:flex;gap:10px;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
+                    <div class="qty cart-qty" style="height:44px;min-height:44px;">
+                      <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) - 1})" aria-label="Decrease quantity" style="width:36px;height:44px;min-width:36px;min-height:44px;display:grid;place-items:center;">${ic('minus', 14)}</button>
+                      <output style="min-width:28px;text-align:center;font-weight:600;color:var(--gold-hi);">${item.qty || 1}</output>
+                      <button onclick="handleCartQtyChange('${item.id}', ${(item.qty || 1) + 1})" aria-label="Increase quantity" style="width:36px;height:44px;min-width:36px;min-height:44px;display:grid;place-items:center;">${ic('plus', 14)}</button>
                     </div>
-                    <button class="btn ghost sm" onclick="handleCartRemove('${item.id}')" style="color:var(--danger);border-color:transparent;padding:0.3rem 0.6rem;" aria-label="Remove item">Remove</button>
+                    <button class="btn ghost sm cart-remove-btn" onclick="handleCartRemove('${item.id}')" style="color:var(--danger);border-color:transparent;min-height:44px;padding:0.4rem 0.8rem;display:inline-flex;align-items:center;" aria-label="Remove item">Remove</button>
                   </div>
                 </div>
                 <div class="li-price">
@@ -145,10 +153,10 @@
           <div class="box">
             <h2>Order Summary</h2>
             
-            <!-- Coupon Input -->
-            <div class="cpn">
-              <input type="text" id="coupon-input" placeholder="Coupon Code (e.g. KALYAN10)" value="${appliedCoupon}" />
-              <button class="btn sm" onclick="handleApplyCoupon()">Apply</button>
+                        <!-- Coupon Input -->
+            <div class="cpn" style="min-height:44px;">
+              <input type="text" id="coupon-input" placeholder="Coupon Code (e.g. KALYAN10)" value="${appliedCoupon}" style="min-height:44px;height:44px;font-size:16px;" />
+              <button class="btn sm" onclick="handleApplyCoupon()" style="min-height:44px;height:44px;padding:0 1.2rem;">Apply</button>
             </div>
             ${appliedCoupon ? `<div style="color:var(--ok);font-size:0.85rem;margin-top:0.4rem;">✓ Coupon ${appliedCoupon} applied (10% OFF)</div>` : ''}
 
@@ -163,8 +171,8 @@
               </div>
             </div>
 
-            <a href="checkout.html" class="btn solid block" style="margin-top:1.5rem;padding:1rem;">Proceed to Checkout</a>
-            <a href="products.html" class="btn ghost block" style="margin-top:0.6rem;">Continue Shopping</a>
+            <a href="checkout.html" class="btn solid block" style="margin-top:1.5rem;min-height:48px;padding:0.85rem;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:600;">Proceed to Checkout</a>
+            <a href="products.html" class="btn ghost block" style="margin-top:0.6rem;min-height:44px;display:flex;align-items:center;justify-content:center;">Continue Shopping</a>
           </div>
         </div>
       `;

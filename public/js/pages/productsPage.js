@@ -135,10 +135,17 @@ export function renderCatalogPage(products = KC.products) {
 
   if (sorted.length === 0) {
     grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:4rem 1rem;" class="empty">
-        <h2>No Jewellery Found</h2>
-        <p style="color:var(--muted);margin:0.8rem 0 1.6rem;">Try clearing your active filters or searching for another term.</p>
-        <button class="btn solid" onclick="clearAllFilters()">Clear All Filters</button>
+      <div class="empty-state catalog-empty" style="grid-column:1/-1;text-align:center;padding:4rem 1.5rem;">
+        <div style="width:64px;height:64px;margin:0 auto 1.2rem;border-radius:50%;background:rgba(214,178,94,0.08);border:1px solid var(--line);display:grid;place-items:center;color:var(--gold);">
+          ${ic('search', 28)}
+        </div>
+        <h2 style="font-size:1.75rem;margin-bottom:0.5rem;color:var(--ivory);">No Jewellery Found</h2>
+        <p style="color:var(--muted);max-width:28rem;margin:0 auto 1.5rem;font-size:0.95rem;line-height:1.6;">
+          We couldn't find any pieces matching your current filter selections. Try adjusting your price range or clearing active filters.
+        </p>
+        <button class="btn solid" onclick="clearAllFilters()" style="min-height:44px;padding:0.75rem 2rem;">
+          Clear Filters
+        </button>
       </div>`;
     return;
   }
@@ -416,11 +423,13 @@ function updateUrlQueryParams(newParams) {
 window.openFilterPanel = function () {
   const panel = document.getElementById('fpanel');
   if (panel) panel.classList.add('open');
+  document.body.classList.add('filter-drawer-open');
 };
 
 window.closeFilterPanel = function () {
   const panel = document.getElementById('fpanel');
   if (panel) panel.classList.remove('open');
+  document.body.classList.remove('filter-drawer-open');
 };
 
 function handleBuyNow(productId) {

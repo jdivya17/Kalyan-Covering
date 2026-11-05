@@ -945,73 +945,7 @@ function renderProductCard(p, mini = false) {
   `;
 }
 
-window.openQuickView = function(id) {
-    const p = KC.products.find(prod => prod.id == id);
-    if (!p) return;
-    
-    let modal = document.getElementById('quick-view-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.className = 'quick-view-modal';
-        modal.id = 'quick-view-modal';
-        modal.innerHTML = `
-          <div class="qv-overlay" onclick="window.closeQuickView()"></div>
-          <div class="qv-content">
-            <button class="qv-close" onclick="window.closeQuickView()" aria-label="Close">&times;</button>
-            <div class="qv-grid">
-              <img id="qv-img" class="qv-image" src="" alt="Product Preview" />
-              <div>
-                <h3 id="qv-title" class="qv-title"></h3>
-                <div id="qv-price" class="qv-price"></div>
-                <p id="qv-desc" class="qv-desc" style="color:var(--white-dim);margin-bottom:1.2rem;"></p>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                  <button id="qv-add-cart" class="btn solid" style="flex:1">Add to Bag</button>
-                  <button id="qv-buy-now" class="btn" style="flex:1">Buy Now</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    
-    const rawImg = p.primaryImageURL || (p.imageURLs && p.imageURLs[0]) || p.image || '';
-    const imgUrl = typeof getOptimizedUrl === 'function' ? getOptimizedUrl(rawImg, 800) : rawImg;
-    
-    const imgEl = document.getElementById('qv-img');
-    if (imgEl) imgEl.src = imgUrl;
-    const titleEl = document.getElementById('qv-title');
-    if (titleEl) titleEl.textContent = p.name;
-    const priceEl = document.getElementById('qv-price');
-    if (priceEl) priceEl.textContent = `₹${p.price.toLocaleString()}`;
-    const descEl = document.getElementById('qv-desc');
-    if (descEl) descEl.textContent = p.description || 'Experience the elegance of our premium jewellery collection.';
-    
-    modal.dataset.id = p.id;
-    const addToCartBtn = document.getElementById('qv-add-cart');
-    if (addToCartBtn) {
-        addToCartBtn.onclick = function() {
-            if (typeof Cart !== 'undefined') Cart.add(p);
-            if (Math.random() > 0.7 && typeof launchConfetti === 'function') launchConfetti(1000);
-            window.closeQuickView();
-        };
-    }
-    const buyNowBtn = document.getElementById('qv-buy-now');
-    if (buyNowBtn) {
-        buyNowBtn.dataset.id = p.id;
-        buyNowBtn.onclick = function() {
-            window.closeQuickView();
-            buyNow(p, 1);
-        };
-    }
-    
-    modal.classList.add('active', 'open');
-};
 
-window.closeQuickView = function() {
-    const modal = document.getElementById('quick-view-modal');
-    if (modal) modal.classList.remove('active', 'open');
-};
 
 function addToCartFromCard(id) {
     const p = KC.products.find(p => p.id == id);

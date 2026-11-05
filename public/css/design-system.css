@@ -12,6 +12,7 @@
   --gold: #D4AF37;
   --gold-light: #F3E5AB;
   --gold-dark: #AA8C2C;
+  --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F3E5AB 50%, #D4AF37 100%);
   --gold-dim: rgba(212, 175, 55, 0.08);
   --gold-glow: 0 0 15px rgba(212, 175, 55, 0.1);
   --gold-glow-strong: 0 0 25px rgba(212, 175, 55, 0.2);

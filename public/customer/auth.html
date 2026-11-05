@@ -18,12 +18,14 @@
 
     <!-- Early redirect -->
     <script>
-        function safeRedirect(raw, fallback = 'profile.html') {
+        function safeRedirect(raw, fallback = '/customer/index.html') {
             try {
                 if (!raw || typeof raw !== 'string') return fallback;
+                raw = raw.trim();
+                if (!raw) return fallback;
                 if (/[\u0000-\u001f\\]/.test(raw)) return fallback;
-                if (!raw.startsWith('/') || raw.startsWith('//')) return fallback;
-                const u = new URL(raw, window.location.origin);
+                if (raw.startsWith('//')) return fallback;
+                const u = new URL(raw, window.location.href);
                 if (u.origin !== window.location.origin) return fallback;
                 return u.pathname + u.search + u.hash;
             } catch (_) {
@@ -33,14 +35,19 @@
         (function () {
             if (localStorage.getItem('kc_user')) {
                 var params = new URLSearchParams(window.location.search);
-                window.location.replace(safeRedirect(params.get('redirect')));
+                window.location.replace(safeRedirect(params.get('redirect'), '/customer/index.html'));
             }
         })();
     </script>
 
     <style>
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         body {
-            background-color: var(--bg);
+            background-color: var(--bg, #0d0b08);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -54,18 +61,21 @@
             padding: 3rem 1.5rem;
             position: relative;
             background: radial-gradient(ellipse at 50% 30%, rgba(214, 178, 94, 0.06) 0%, transparent 60%);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .auth-card {
             width: 100%;
             max-width: 460px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
+            background: var(--bg-card, #15120c);
+            border: 1px solid var(--border-color, #2e2619);
+            border-radius: var(--radius-lg, 8px);
             padding: 2.5rem 2.2rem;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px var(--gold-glow);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px var(--gold-glow, rgba(212, 175, 55, 0.1));
             position: relative;
             animation: fadeIn 0.4s ease-out;
+            box-sizing: border-box;
         }
 
         @keyframes fadeIn {
@@ -83,7 +93,7 @@
             height: 64px;
             margin: 0 auto 1rem;
             border-radius: 50%;
-            border: 1.5px solid var(--gold);
+            border: 1.5px solid var(--gold, #d6b25e);
             padding: 4px;
             display: flex;
             align-items: center;
@@ -101,14 +111,14 @@
         .auth-header h1 {
             font-family: var(--font-serif);
             font-size: 1.8rem;
-            color: var(--text-color);
+            color: var(--text-color, #f7f3eb);
             font-weight: 500;
             letter-spacing: 0.5px;
             margin-bottom: 0.3rem;
         }
 
         .auth-header p {
-            color: var(--text-dim);
+            color: var(--text-dim, #9e9282);
             font-size: 0.85rem;
             letter-spacing: 0.5px;
         }
@@ -116,7 +126,7 @@
         /* Tabs */
         .auth-tabs {
             display: flex;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color, #2e2619);
             margin-bottom: 1.8rem;
         }
 
@@ -124,7 +134,7 @@
             flex: 1;
             text-align: center;
             padding: 0.8rem 0.5rem;
-            color: var(--text-muted);
+            color: var(--text-muted, #6b6255);
             font-size: 0.78rem;
             font-weight: 600;
             letter-spacing: 1.5px;
@@ -136,11 +146,11 @@
         }
 
         .auth-tab:hover {
-            color: var(--text-color);
+            color: var(--text-color, #f7f3eb);
         }
 
         .auth-tab.active {
-            color: var(--gold);
+            color: var(--gold, #d6b25e);
         }
 
         .auth-tab.active::after {
@@ -150,8 +160,8 @@
             left: 15%;
             right: 15%;
             height: 2px;
-            background: var(--gold);
-            box-shadow: 0 0 8px var(--gold);
+            background: var(--gold, #d6b25e);
+            box-shadow: 0 0 8px var(--gold, #d6b25e);
         }
 
         /* Form Controls */
@@ -164,7 +174,7 @@
             font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: var(--text-dim);
+            color: var(--text-dim, #9e9282);
             margin-bottom: 0.45rem;
             font-weight: 500;
         }
@@ -173,39 +183,65 @@
             position: relative;
             display: flex;
             align-items: center;
+            width: 100%;
         }
 
         .form-input {
             width: 100%;
             background: #090807;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color, #2e2619);
+            border-radius: var(--radius-sm, 4px);
             padding: 0.85rem 1rem;
-            color: var(--text-color);
-            font-family: var(--font-sans);
-            font-size: 0.92rem;
+            color: var(--text-color, #f7f3eb);
+            font-family: var(--font-sans, inherit);
+            font-size: 0.95rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
         }
 
         .form-input:focus {
             outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 2px var(--gold-glow);
+            border-color: var(--gold, #d6b25e);
+            box-shadow: 0 0 0 2px var(--gold-glow, rgba(212, 175, 55, 0.2));
         }
 
         .form-input.error {
             border-color: #dc3545;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
         }
 
         .field-error {
-            font-size: 0.72rem;
+            font-size: 0.78rem;
             color: #ff6b6b;
-            margin-top: 0.35rem;
+            margin-top: 0.4rem;
             display: none;
+            font-weight: 500;
+            line-height: 1.35;
         }
 
         .field-error.show {
             display: block;
+        }
+
+        .auth-error-banner {
+            display: none;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(220, 53, 69, 0.12);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            border-left: 3px solid #ff4d4f;
+            border-radius: var(--radius-sm, 4px);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            color: #ff7875;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            animation: fadeIn 0.2s ease-out;
+            box-sizing: border-box;
+        }
+
+        .auth-error-banner.show {
+            display: flex;
         }
 
         .password-toggle-btn {
@@ -213,60 +249,82 @@
             right: 12px;
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: var(--text-muted, #6b6255);
             cursor: pointer;
             padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: color 0.2s ease;
         }
 
         .password-toggle-btn:hover {
-            color: var(--gold);
+            color: var(--gold, #d6b25e);
         }
 
         /* Buttons */
         .btn-auth {
             width: 100%;
-            background: var(--gold-gradient);
+            min-height: 48px;
+            background: var(--gold, #d6b25e);
+            background: linear-gradient(135deg, var(--gold, #d6b25e) 0%, var(--gold-light, #f5e0a3) 50%, var(--gold, #d6b25e) 100%);
             color: #060503;
-            border: none;
-            border-radius: var(--radius-sm);
-            padding: 0.9rem 1.5rem;
-            font-size: 0.85rem;
-            font-weight: 600;
+            border: 1px solid var(--gold, #d6b25e);
+            border-radius: var(--radius-sm, 4px);
+            padding: 0.85rem 1.5rem;
+            font-size: 0.88rem;
+            font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             cursor: pointer;
-            margin-top: 0.5rem;
-            transition: all 0.25s ease;
-            display: flex;
+            margin-top: 0.75rem;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(214, 178, 94, 0.25);
+            box-sizing: border-box;
+            user-select: none;
+            text-decoration: none;
         }
 
-        .btn-auth:hover {
-            filter: brightness(1.1);
+        .btn-auth:hover:not(:disabled) {
+            background: var(--gold-light, #f5e0a3);
+            background: linear-gradient(135deg, #f5e0a3 0%, #ffffff 50%, #f5e0a3 100%);
+            color: #000000;
             transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(214, 178, 94, 0.4);
+            box-shadow: 0 8px 24px rgba(214, 178, 94, 0.45), 0 0 15px rgba(214, 178, 94, 0.3);
+            border-color: #f5e0a3;
+        }
+
+        .btn-auth:focus-visible {
+            outline: 2px solid var(--gold-light, #f5e0a3);
+            outline-offset: 3px;
+            box-shadow: 0 0 0 4px rgba(214, 178, 94, 0.35);
+        }
+
+        .btn-auth:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(214, 178, 94, 0.3);
         }
 
         .btn-auth:disabled {
-            opacity: 0.6;
+            opacity: 0.65;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
         .auth-switch-text {
             text-align: center;
             margin-top: 1.5rem;
             font-size: 0.82rem;
-            color: var(--text-dim);
+            color: var(--text-dim, #9e9282);
         }
 
         .auth-link {
-            color: var(--gold);
+            color: var(--gold, #d6b25e);
             cursor: pointer;
             background: none;
             border: none;
@@ -286,8 +344,8 @@
             display: block;
             text-align: right;
             font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 0.4rem;
+            color: var(--text-muted, #6b6255);
+            margin-top: 0.5rem;
             background: none;
             border: none;
             cursor: pointer;
@@ -295,7 +353,7 @@
         }
 
         .forgot-link-btn:hover {
-            color: var(--gold);
+            color: var(--gold, #d6b25e);
             text-decoration: underline;
         }
 
@@ -321,25 +379,26 @@
         }
 
         .auth-modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            background: var(--bg-card, #15120c);
+            border: 1px solid var(--border-color, #2e2619);
+            border-radius: var(--radius-md, 6px);
             padding: 2.2rem;
             width: 100%;
             max-width: 400px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            box-sizing: border-box;
         }
 
         .auth-modal h3 {
             font-family: var(--font-serif);
             font-size: 1.4rem;
-            color: var(--gold);
+            color: var(--gold, #d6b25e);
             margin-bottom: 0.4rem;
         }
 
         .auth-modal p {
             font-size: 0.82rem;
-            color: var(--text-dim);
+            color: var(--text-dim, #9e9282);
             line-height: 1.5;
             margin-bottom: 1.2rem;
         }
@@ -355,26 +414,77 @@
         .otp-sent-info {
             text-align: center;
             background: rgba(214, 178, 94, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color, #2e2619);
+            border-radius: var(--radius-sm, 4px);
             padding: 0.8rem;
             margin-bottom: 1.2rem;
             font-size: 0.82rem;
-            color: var(--text-dim);
+            color: var(--text-dim, #9e9282);
         }
 
         .spinner-sm {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-top-color: #000;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0, 0, 0, 0.25);
+            border-top-color: #000000;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Optimization (360px+ responsive) */
+        @media (max-width: 480px) {
+            .auth-wrapper {
+                padding: 1.5rem 1rem;
+                overflow-x: hidden;
+            }
+
+            .auth-card {
+                padding: 1.8rem 1.15rem;
+                max-width: 100%;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            }
+
+            .auth-tabs {
+                margin-bottom: 1.4rem;
+            }
+
+            .auth-tab {
+                font-size: 0.72rem;
+                padding: 0.7rem 0.25rem;
+                letter-spacing: 1px;
+            }
+
+            .form-input {
+                font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+                padding: 0.8rem 0.85rem;
+            }
+
+            .btn-auth {
+                min-height: 48px;
+                font-size: 0.85rem;
+                padding: 0.85rem 1rem;
+            }
+
+            .auth-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .auth-logo-badge {
+                width: 56px;
+                height: 56px;
+                margin-bottom: 0.75rem;
+            }
         }
     </style>
 </head>
 
-<body>
+<body class="kc-no-tabbar">
     <!-- Skip to main content -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -398,37 +508,38 @@
 
             <!-- PANEL 1: PHONE OTP -->
             <div id="panel-phone" class="auth-step active">
+                <div class="auth-error-banner" id="phone-form-err" role="alert"></div>
                 <form id="phone-step-1" onsubmit="requestOTP(); return false;">
                     <div class="form-group">
                         <label class="form-label" for="phone-number">Mobile Number</label>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <span style="background:#090807; border:1px solid var(--border-color); padding:0.85rem 0.9rem; border-radius:var(--radius-sm); color:var(--gold); font-weight:600; font-size:0.9rem;">+91</span>
-                            <input type="tel" id="phone-number" class="form-input" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" required style="flex:1;">
+                            <span style="background:#090807; border:1px solid var(--border-color, #2e2619); padding:0.85rem 0.9rem; border-radius:var(--radius-sm, 4px); color:var(--gold, #d6b25e); font-weight:600; font-size:0.9rem;">+91</span>
+                            <input type="tel" id="phone-number" class="form-input" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" autocomplete="tel" required style="flex:1;">
                         </div>
                         <div class="field-error" id="phone-number-err">Please enter a valid 10-digit mobile number.</div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="phone-name">Your Full Name (Optional)</label>
-                        <input type="text" id="phone-name" class="form-input" placeholder="e.g. Priya Sundar">
+                        <input type="text" id="phone-name" class="form-input" placeholder="e.g. Priya Sundar" autocomplete="name">
                     </div>
 
                     <div id="recaptcha-container"></div>
 
                     <button type="submit" class="btn-auth" id="btn-send-otp">
-                        <span class="btn-text">SEND VERIFICATION CODE</span>
+                        <span class="btn-text">SEND OTP</span>
                     </button>
                 </form>
 
                 <form id="phone-step-2" onsubmit="confirmOTPCode(); return false;" style="display:none;">
                     <div class="otp-sent-info">
-                        <div>Code sent to <strong id="sent-phone-display" style="color:var(--gold);"></strong></div>
+                        <div>Code sent to <strong id="sent-phone-display" style="color:var(--gold, #d6b25e);"></strong></div>
                         <button type="button" class="auth-link" onclick="resetOTPForm()" style="font-size:0.75rem; margin-top:0.3rem;">Change Number</button>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="otp-code">Enter 6-Digit OTP</label>
-                        <input type="text" id="otp-code" class="form-input" placeholder="••••••" maxlength="6" inputmode="numeric" style="letter-spacing:8px; font-size:1.3rem; text-align:center;" required>
+                        <input type="text" id="otp-code" class="form-input" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="letter-spacing:8px; font-size:1.3rem; text-align:center;" required>
                         <div class="field-error" id="otp-code-err">Please enter the valid 6-digit OTP.</div>
                     </div>
 
@@ -444,6 +555,7 @@
 
             <!-- PANEL 2: EMAIL LOGIN -->
             <div id="panel-login" class="auth-step">
+                <div class="auth-error-banner" id="login-form-err" role="alert"></div>
                 <form id="login-form" onsubmit="performLogin(); return false;">
                     <div class="form-group">
                         <label class="form-label" for="login-email">Email Address</label>
@@ -455,7 +567,7 @@
                         <label class="form-label" for="login-password">Password</label>
                         <div class="form-input-wrap">
                             <input type="password" id="login-password" class="form-input" placeholder="Enter your password" autocomplete="current-password" required>
-                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password')">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password')" aria-label="Toggle password visibility">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -478,6 +590,7 @@
 
             <!-- PANEL 3: REGISTER -->
             <div id="panel-reg" class="auth-step">
+                <div class="auth-error-banner" id="reg-form-err" role="alert"></div>
                 <form id="reg-form" onsubmit="performRegister(); return false;">
                     <div class="form-group">
                         <label class="form-label" for="reg-name">Full Name</label>
@@ -493,7 +606,7 @@
 
                     <div class="form-group">
                         <label class="form-label" for="reg-phone">Phone Number</label>
-                        <input type="tel" id="reg-phone" class="form-input" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" required>
+                        <input type="tel" id="reg-phone" class="form-input" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" autocomplete="tel" required>
                         <div class="field-error" id="reg-phone-err">Enter 10-digit mobile number.</div>
                     </div>
 
@@ -501,7 +614,7 @@
                         <label class="form-label" for="reg-password">Password (min 8 chars)</label>
                         <div class="form-input-wrap">
                             <input type="password" id="reg-password" class="form-input" placeholder="Create password" autocomplete="new-password" required>
-                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reg-password')">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reg-password')" aria-label="Toggle password visibility">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -509,6 +622,20 @@
                             </button>
                         </div>
                         <div class="field-error" id="reg-password-err">Password must be at least 8 characters.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="reg-confirm-password">Confirm Password</label>
+                        <div class="form-input-wrap">
+                            <input type="password" id="reg-confirm-password" class="form-input" placeholder="Re-enter password" autocomplete="new-password" required>
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reg-confirm-password')" aria-label="Toggle confirm password visibility">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="field-error" id="reg-confirm-password-err">Passwords do not match.</div>
                     </div>
 
                     <button type="submit" class="btn-auth" id="btn-reg-send">
@@ -586,6 +713,7 @@
         // Toggle password
         window.togglePasswordVisibility = function (id) {
             const el = document.getElementById(id);
+            if (!el) return;
             if (el.type === 'password') el.type = 'text';
             else el.type = 'password';
         };
@@ -598,7 +726,7 @@
             const phoneVal = phoneInput.value.trim();
 
             if (!phoneVal || !/^\d{10}$/.test(phoneVal)) {
-                setError('phone-number', 'phone-number-err', true);
+                setError('phone-number', 'phone-number-err', true, 'Please enter a valid 10-digit mobile number.');
                 return;
             }
 
@@ -607,7 +735,7 @@
 
             const res = await sendPhoneOTP(phoneVal, 'recaptcha-container');
             btn.disabled = false;
-            btn.innerHTML = `<span class="btn-text">SEND VERIFICATION CODE</span>`;
+            btn.innerHTML = `<span class="btn-text">SEND OTP</span>`;
 
             if (res.success) {
                 phoneConfirmationResult = res.confirmationResult;
@@ -617,7 +745,9 @@
                 document.getElementById('otp-code').focus();
                 if (window.Toast) Toast.success('OTP Sent', `Verification code sent to +91 ${phoneVal}`);
             } else {
-                if (window.Toast) Toast.error('OTP Error', res.error || 'Failed to send OTP code.');
+                const errMsg = res.error || 'Failed to send OTP code.';
+                showAuthBanner('phone-form-err', errMsg);
+                if (window.Toast) Toast.error('OTP Error', errMsg);
             }
         };
 
@@ -630,7 +760,7 @@
             const otpVal = otpInput.value.trim();
 
             if (!otpVal || otpVal.length !== 6) {
-                setError('otp-code', 'otp-code-err', true);
+                setError('otp-code', 'otp-code-err', true, 'Please enter the valid 6-digit OTP.');
                 return;
             }
 
@@ -644,10 +774,12 @@
             if (res.success) {
                 if (window.Toast) Toast.success('Welcome!', 'Login successful');
                 setTimeout(() => {
-                    window.location.href = safeRedirect(urlParams.get('redirect'));
+                    window.location.href = safeRedirect(urlParams.get('redirect'), '/customer/index.html');
                 }, 800);
             } else {
-                if (window.Toast) Toast.error('Verification Failed', res.error || 'Invalid code');
+                const errMsg = res.error || 'Invalid verification code.';
+                showAuthBanner('phone-form-err', errMsg);
+                if (window.Toast) Toast.error('Verification Failed', errMsg);
             }
         };
 
@@ -662,16 +794,20 @@
         // Email Login
         window.performLogin = async function () {
             clearErrors();
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
             const btn = document.getElementById('btn-login-send');
 
             let valid = true;
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                valid = setError('login-email', 'login-email-err', true) && false;
+                setError('login-email', 'login-email-err', true, 'Please enter a valid email address.');
+                valid = false;
             }
             if (!password) {
-                valid = setError('login-password', 'login-password-err', true) && false;
+                setError('login-password', 'login-password-err', true, 'Password is required.');
+                valid = false;
             }
             if (!valid) return;
 
@@ -685,7 +821,9 @@
                     await signOut(auth);
                     btn.disabled = false;
                     btn.innerHTML = `<span class="btn-text">LOGIN</span>`;
-                    if (window.Toast) Toast.show('Email Not Verified', 'Please check your email inbox to verify your account before logging in.', '⚠️', 6000);
+                    const verifyMsg = 'Please check your email inbox to verify your account before logging in.';
+                    showAuthBanner('login-form-err', verifyMsg);
+                    if (window.Toast) Toast.show('Email Not Verified', verifyMsg, '⚠️', 6000);
                     return;
                 }
 
@@ -707,7 +845,7 @@
 
                 if (window.Toast) Toast.success('Welcome Back!', `Logged in as ${userName}`);
                 setTimeout(() => {
-                    window.location.href = safeRedirect(urlParams.get('redirect'));
+                    window.location.href = safeRedirect(urlParams.get('redirect'), '/customer/index.html');
                 }, 800);
             } catch (error) {
                 btn.disabled = false;
@@ -715,11 +853,20 @@
                 const msgs = {
                     'auth/user-not-found': 'No account found with this email.',
                     'auth/wrong-password': 'Incorrect password. Please try again.',
-                    'auth/invalid-email': 'Please enter a valid email.',
-                    'auth/too-many-requests': 'Too many attempts. Try again later.',
-                    'auth/invalid-credential': 'Invalid email or password.'
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+                    'auth/invalid-credential': 'Invalid email or password. Please try again.'
                 };
-                if (window.Toast) Toast.error('Login Failed', msgs[error.code] || error.message);
+                const displayMsg = msgs[error.code] || error.message || 'Login failed. Please check your credentials.';
+                showAuthBanner('login-form-err', displayMsg);
+
+                if (error.code === 'auth/user-not-found') {
+                    setError('login-email', 'login-email-err', true, displayMsg);
+                } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    setError('login-password', 'login-password-err', true, displayMsg);
+                }
+
+                if (window.Toast) Toast.error('Login Failed', displayMsg);
             }
         };
 
@@ -730,13 +877,33 @@
             const email = document.getElementById('reg-email').value.trim();
             const phone = document.getElementById('reg-phone').value.trim();
             const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
             const btn = document.getElementById('btn-reg-send');
 
             let valid = true;
-            if (!name) valid = setError('reg-name', 'reg-name-err', true) && false;
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) valid = setError('reg-email', 'reg-email-err', true) && false;
-            if (!phone || !/^\d{10}$/.test(phone)) valid = setError('reg-phone', 'reg-phone-err', true) && false;
-            if (!password || password.length < 8) valid = setError('reg-password', 'reg-password-err', true) && false;
+            if (!name || name.length < 2) {
+                setError('reg-name', 'reg-name-err', true, 'Please enter your full name (at least 2 characters).');
+                valid = false;
+            }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                setError('reg-email', 'reg-email-err', true, 'Please enter a valid email address.');
+                valid = false;
+            }
+            if (!phone || !/^\d{10}$/.test(phone)) {
+                setError('reg-phone', 'reg-phone-err', true, 'Please enter a valid 10-digit mobile number.');
+                valid = false;
+            }
+            if (!password || password.length < 8) {
+                setError('reg-password', 'reg-password-err', true, 'Password must be at least 8 characters.');
+                valid = false;
+            }
+            if (!confirmPassword) {
+                setError('reg-confirm-password', 'reg-confirm-password-err', true, 'Please confirm your password.');
+                valid = false;
+            } else if (password && password !== confirmPassword) {
+                setError('reg-confirm-password', 'reg-confirm-password-err', true, 'Passwords do not match.');
+                valid = false;
+            }
             if (!valid) return;
 
             btn.disabled = true;
@@ -758,12 +925,12 @@
 
                 document.querySelector('.auth-card').innerHTML = `
                     <div style="text-align:center; padding: 2rem 0;">
-                        <div style="width:60px;height:60px;border-radius:50%;background:rgba(214,178,94,0.1);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;color:var(--gold);font-size:1.6rem;">
+                        <div style="width:60px;height:60px;border-radius:50%;background:rgba(214,178,94,0.1);border:1px solid var(--gold, #d6b25e);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;color:var(--gold, #d6b25e);font-size:1.6rem;">
                             ✓
                         </div>
-                        <h2 style="font-family:var(--font-serif); color:var(--text-color); font-size:1.8rem; margin-bottom:0.8rem;">Verify Your Email</h2>
-                        <p style="color:var(--text-dim); font-size:0.88rem; line-height:1.6; margin-bottom:1.5rem;">
-                            A verification link has been sent to <strong style="color:var(--gold);">${user.email}</strong>. Please check your inbox and confirm your email before logging in.
+                        <h2 style="font-family:var(--font-serif); color:var(--text-color, #f7f3eb); font-size:1.8rem; margin-bottom:0.8rem;">Verify Your Email</h2>
+                        <p style="color:var(--text-dim, #9e9282); font-size:0.88rem; line-height:1.6; margin-bottom:1.5rem;">
+                            A verification link has been sent to <strong style="color:var(--gold, #d6b25e);">${user.email}</strong>. Please check your inbox and confirm your email before logging in.
                         </p>
                         <a href="auth.html?tab=login" class="btn btn-gold" style="display:inline-block; padding:0.85rem 2rem; text-decoration:none;">
                             GO TO LOGIN
@@ -774,10 +941,20 @@
                 btn.disabled = false;
                 btn.innerHTML = `<span class="btn-text">CREATE ACCOUNT</span>`;
                 const msgs = {
-                    'auth/email-already-in-use': 'This email is already registered.',
-                    'auth/weak-password': 'Password is too weak. Use at least 8 characters.'
+                    'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+                    'auth/weak-password': 'Password is too weak. Use at least 8 characters.',
+                    'auth/invalid-email': 'Please enter a valid email address.'
                 };
-                if (window.Toast) Toast.error('Registration Failed', msgs[error.code] || error.message);
+                const displayMsg = msgs[error.code] || error.message || 'Registration failed.';
+                showAuthBanner('reg-form-err', displayMsg);
+
+                if (error.code === 'auth/email-already-in-use') {
+                    setError('reg-email', 'reg-email-err', true, displayMsg);
+                } else if (error.code === 'auth/weak-password') {
+                    setError('reg-password', 'reg-password-err', true, displayMsg);
+                }
+
+                if (window.Toast) Toast.error('Registration Failed', displayMsg);
             }
         };
 
@@ -794,7 +971,7 @@
             const email = emailEl.value.trim();
 
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                setError('forgot-email', 'forgot-email-err', true);
+                setError('forgot-email', 'forgot-email-err', true, 'Please enter a valid email.');
                 return;
             }
 
@@ -810,18 +987,93 @@
             }
         };
 
-        function setError(inputId, errId, show) {
+        // Inline Error & Banner Helpers
+        function showAuthBanner(id, msg) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>${msg}</span>
+            `;
+            el.classList.add('show');
+            el.style.display = 'flex';
+        }
+
+        function setError(inputId, errId, show, customMsg) {
             const inp = document.getElementById(inputId);
             const err = document.getElementById(errId);
             if (inp) inp.classList.toggle('error', show);
-            if (err) err.classList.toggle('show', show);
+            if (err) {
+                if (customMsg) err.textContent = customMsg;
+                err.classList.toggle('show', show);
+            }
             return !show;
         }
 
         function clearErrors() {
-            document.querySelectorAll('.field-error').forEach(e => e.classList.remove('show'));
-            document.querySelectorAll('.form-input').forEach(e => e.classList.remove('error'));
+            document.querySelectorAll('.field-error').forEach(e => {
+                e.classList.remove('show');
+            });
+            document.querySelectorAll('.form-input').forEach(e => {
+                e.classList.remove('error');
+            });
+            document.querySelectorAll('.auth-error-banner').forEach(e => {
+                e.classList.remove('show');
+                e.style.display = 'none';
+                e.innerHTML = '';
+            });
         }
+
+        // Real-time error dismissal on input
+        document.querySelectorAll('.form-input').forEach(inp => {
+            inp.addEventListener('input', () => {
+                inp.classList.remove('error');
+                const fieldErr = document.getElementById(`${inp.id}-err`);
+                if (fieldErr) fieldErr.classList.remove('show');
+            });
+        });
+
+        // Enter key listeners to submit forms
+        document.getElementById('login-password')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.performLogin();
+            }
+        });
+        document.getElementById('login-email')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('login-password')?.focus();
+            }
+        });
+        document.getElementById('reg-password')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('reg-confirm-password')?.focus();
+            }
+        });
+        document.getElementById('reg-confirm-password')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.performRegister();
+            }
+        });
+        document.getElementById('phone-number')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.requestOTP();
+            }
+        });
+        document.getElementById('otp-code')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.confirmOTPCode();
+            }
+        });
     </script>
 </body>
 

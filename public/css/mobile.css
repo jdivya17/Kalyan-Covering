@@ -4,37 +4,85 @@
 .profile-tabs, .active-filters { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
 .profile-tabs::-webkit-scrollbar, .active-filters::-webkit-scrollbar { display: none; }
 
-/* modals -> bottom sheets (real classes: .modal + .mbox) */
-.modal.open, .modal.on { align-items: flex-end !important; padding: 0 !important; }
-.mbox { width: 100% !important; max-width: 100% !important; max-height: 88vh; border-radius: 16px 16px 0 0 !important;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+/* modals -> bottom sheets on mobile only (desktop remains centered) */
+@media (max-width: 768px) {
+  .modal.open, .modal.on { align-items: flex-end !important; padding: 0 !important; }
+  .mbox { width: 100% !important; max-width: 100% !important; max-height: 88vh; border-radius: 16px 16px 0 0 !important;
+          padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+}
 
-/* M4 + M5: sticky Add to Bag bar on product detail & hide tab bar */
+/* M4 + M5: sticky Add to Bag & Buy Now action bar on product detail & hide tab bar */
 @media (max-width: 768px) {
   /* hide mobile bottom tabbar on PDP */
   body.kc-pdp .tabbar, html.kc-pdp-page .tabbar { display: none !important; }
 
-  /* only the product-detail buy row (it lives inside a page with #main-product-img) */
+  /* PDP sticky bottom action bar with quantity selector */
   body.kc-pdp .buy {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 96; margin: 0;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-    background: var(--bg2, #0d0a06); border-top: 1px solid var(--line, rgba(214,178,94,0.3));
-    box-shadow: 0 -4px 20px rgba(0,0,0,.7); flex-wrap: nowrap; gap: 8px;
-    display: flex; align-items: center; justify-content: center;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 96 !important;
+    margin: 0 !important;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--bg2, #0d0a06) !important;
+    border-top: 1px solid var(--line, rgba(214,178,94,0.3)) !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.85) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
-  body.kc-pdp .buy .qty { display: none; }          /* qty stays on the page, not in the bar */
+  /* Keep .qty fully visible and usable in sticky bar */
+  body.kc-pdp .buy .qty {
+    display: inline-flex !important;
+    align-items: center !important;
+    border: 1px solid var(--line, rgba(214,178,94,0.3)) !important;
+    border-radius: 4px !important;
+    background: var(--surface2, #18140e) !important;
+    height: 48px !important;
+    flex-shrink: 0 !important;
+  }
+  body.kc-pdp .buy .qty button {
+    width: 36px !important;
+    height: 48px !important;
+    display: grid !important;
+    place-items: center !important;
+    background: none !important;
+    border: 0 !important;
+    color: var(--ivory, #fffaf0) !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+  }
+  body.kc-pdp .buy .qty button:active {
+    color: var(--gold-hi, #f3e5ab) !important;
+  }
+  body.kc-pdp .buy .qty output {
+    min-width: 24px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    color: var(--gold-hi, #f3e5ab) !important;
+  }
   body.kc-pdp .buy .btn {
-    min-width: 0;
-    flex: 1;
+    min-width: 0 !important;
+    flex: 1 !important;
+    height: 48px !important;
+    min-height: 48px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
     white-space: nowrap !important;
-    padding: 0.75rem 0.4rem !important;
+    padding: 0 8px !important;
     font-size: clamp(0.75rem, 3.2vw, 0.88rem) !important;
+    font-weight: 600 !important;
   }
-  body.kc-pdp { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  body.kc-pdp {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
 /* M7: admin tables to cards on phones */
@@ -52,4 +100,667 @@
 @media (max-width: 768px) {
   .kc-msearch { display: block; padding: 8px 12px; background: var(--bg, #fff); position: sticky; top: 56px; z-index: 89; }
   .kc-msearch input { width: 100%; height: 40px; border-radius: 8px; border: 1px solid var(--line, #ddd); padding: 0 12px; background: var(--bg2, #f5f5f5); color: var(--text, #fff); }
+}
+
+
+/* ============================================================
+   Kalyan Covering - Mobile Refinements (Home & Shared)
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* Header adjustments for phones */
+  .hbar {
+    height: 64px;
+    gap: 8px;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .brand svg {
+    width: 36px;
+    height: 36px;
+  }
+  .brand b {
+    font-size: 1.22rem;
+  }
+  .brand small {
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+  }
+
+  /* Full-width CTA buttons on phones */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .cta .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  /* Category card labels readability */
+  .cat .lab {
+    padding: 1.5rem 0.75rem 0.75rem;
+  }
+  .cat h3 {
+    font-size: 1.15rem;
+  }
+
+  /* Product card title 2-line clamp & alignment */
+  .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-b {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 0.8rem 0.8rem 1rem;
+  }
+  .card h3 {
+    font-size: 1.05rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 2.4em;
+    word-break: break-word;
+  }
+  .card .pr {
+    min-height: 2.2em;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0.25rem 0 0.6rem;
+  }
+  .card .btn {
+    margin-top: auto;
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+  }
+  .heart {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Footer stack on phones */
+  .fgrid {
+    gap: 2rem 1.5rem !important;
+  }
+  .fcol ul {
+    gap: 0.75rem;
+  }
+  .fcol a {
+    display: inline-block;
+    padding: 3px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .fgrid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+}
+
+/* Hide mobile bottom tabbar and reset body padding on checkout, cart, and auth pages */
+body.kc-no-tabbar .tabbar,
+body:has(#checkout-layout) .tabbar,
+body:has(.checkout-grid) .tabbar,
+body:has(#cart-layout) .tabbar,
+body:has(#cart-page-layout) .tabbar,
+body:has(.auth-wrapper) .tabbar {
+  display: none !important;
+}
+
+body.kc-no-tabbar,
+body:has(#checkout-layout),
+body:has(.checkout-grid),
+body:has(#cart-layout),
+body:has(#cart-page-layout),
+body:has(.auth-wrapper) {
+  padding-bottom: 0 !important;
+}
+
+
+/* ============================================================
+   Kalyan Covering - Products Catalog Mobile Refinements
+   ============================================================ */
+
+/* Active filter chips: wrap and full touch accessibility */
+.active-filters {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  overflow-x: visible !important;
+  gap: 8px !important;
+  align-items: center !important;
+  padding-bottom: 14px !important;
+}
+.active-filters .fchip {
+  margin: 0 !important;
+}
+.active-filters .btn.ghost.sm {
+  margin-left: 0 !important;
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-color: var(--line) !important;
+  color: var(--gold-hi) !important;
+}
+
+/* Hide floating WhatsApp button while filter drawer is open */
+body.filter-drawer-open .wa {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* Body scroll lock when filter drawer is open */
+body.filter-drawer-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+/* Dark backdrop scrim behind filter drawer */
+.filter-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1004;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+body.filter-drawer-open .filter-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Desktop: hide mobile filter scrim and mobile close button */
+@media (min-width: 901px) {
+  .filter-scrim {
+    display: none !important;
+  }
+  .fpanel .fh .ib {
+    display: none !important;
+  }
+}
+
+/* Tablets & Phones (<=900px): Bottom Sheet Filter Drawer */
+@media (max-width: 900px) {
+  .shop-body {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding-top: 14px !important;
+    padding-bottom: 48px !important;
+  }
+  .fbtn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  .fpanel {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 85vh !important;
+    max-height: 85vh !important;
+    z-index: 1005 !important; /* sits above tabbar (90) and WhatsApp (99) */
+    background: var(--bg2) !important;
+    border-radius: 16px 16px 0 0 !important;
+    border: 1px solid var(--gold) !important;
+    border-bottom: 0 !important;
+    box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.9) !important;
+    transform: translateY(105%) !important;
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: hidden;
+  }
+  .fpanel.open {
+    transform: translateY(0) !important;
+    visibility: visible !important;
+  }
+  .fpanel .fh {
+    padding: 14px 20px !important;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--line2) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  /* Visible min 44px Close (X) button in drawer header */
+  .fpanel .fh .ib {
+    display: grid !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+    border: 1px solid var(--line) !important;
+    background: var(--surface2) !important;
+    color: var(--gold-hi) !important;
+    cursor: pointer !important;
+  }
+  .fpanel .fbody {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    padding: 0 20px 20px !important;
+  }
+  /* Sticky "Show X pieces" button at the bottom with safe-area padding */
+  .fpanel .ff {
+    display: block !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 5 !important;
+    padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    border-top: 1px solid var(--line2) !important;
+    background: var(--bg2) !important;
+    flex-shrink: 0;
+  }
+  .fpanel .ff .btn {
+    min-height: 48px;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  .fbody details {
+    padding: 0.85rem 0 !important;
+  }
+  .fbody summary {
+    font-size: 1.15rem !important;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .price2 input {
+    height: 44px !important;
+    font-size: 16px !important; /* prevent iOS auto-zoom */
+  }
+  .pre {
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+  .pre button {
+    min-height: 38px !important;
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.82rem !important;
+  }
+  .ck {
+    min-height: 42px !important;
+    padding: 0.45rem 0 !important;
+    font-size: 0.96rem !important;
+  }
+  .ck input {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* Mobile catalog grid & filters (<=768px) */
+@media (max-width: 768px) {
+  .shop-top {
+    padding: 14px 0 10px;
+    gap: 10px;
+  }
+  .shop-top .l {
+    gap: 10px;
+  }
+  .sel {
+    min-height: 44px;
+    font-size: 16px !important; /* prevent iOS auto-zoom */
+    padding: 0.6rem 1rem;
+  }
+
+  /* Catalog Product Grid on mobile: exactly 2 columns for 341px and above */
+  .results .grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Active filter chips touch friendly */
+  .fchip {
+    padding: 0.4rem 0.6rem 0.4rem 1rem !important;
+    font-size: 0.86rem !important;
+    min-height: 36px !important;
+  }
+  .fchip button {
+    padding: 6px !important;
+    margin-left: 2px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+/* Small phone: 1 column at <= 340px */
+@media (max-width: 340px) {
+  .results .grid {
+    grid-template-columns: 1fr !important;
+  }
+  .shop-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .shop-top .l {
+    justify-content: space-between;
+  }
+  .shop-top .sel {
+    width: 100%;
+  }
+}
+
+
+/* ============================================================
+   Product Detail & Cart Mobile Polish (<=768px & <=480px)
+   ============================================================ */
+
+/* Gallery thumbnails horizontal scroll with snap */
+.thumbs {
+  display: flex !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x mandatory !important;
+  scrollbar-width: none !important;
+  padding-bottom: 4px !important;
+}
+.thumbs::-webkit-scrollbar {
+  display: none !important;
+}
+.thumb {
+  scroll-snap-align: start !important;
+  flex-shrink: 0 !important;
+}
+
+/* Modals as luxury bottom sheets on mobile */
+@media (max-width: 768px) {
+  .modal.open,
+  .modal.on,
+  .review-form-modal-overlay.open {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .mbox,
+  .review-form-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 85vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 1.5rem 1.25rem calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    border-bottom: 0 !important;
+    box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.9) !important;
+  }
+  .form-input,
+  .review-form-modal input,
+  .review-form-modal textarea,
+  .pin input,
+  .cpn input {
+    font-size: 16px !important; /* prevent iOS auto-zoom */
+  }
+  .pin,
+  .pin .btn,
+  .cpn,
+  .cpn .btn {
+    min-height: 44px !important;
+  }
+  .review-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Cart item row layout on phones (<=480px) */
+@media (max-width: 480px) {
+  .li {
+    display: grid !important;
+    grid-template-columns: 60px 1fr !important;
+    grid-template-areas:
+      "img info"
+      "img price" !important;
+    gap: 10px 14px !important;
+    align-items: start !important;
+    padding: 1rem 0 !important;
+    border-bottom: 1px solid var(--line2) !important;
+  }
+  .li img {
+    grid-area: img !important;
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 4px !important;
+  }
+  .li-info {
+    grid-area: info !important;
+    min-width: 0 !important;
+  }
+  .li-price {
+    grid-area: price !important;
+    text-align: left !important;
+    font-size: 1.15rem !important;
+    margin-top: -2px !important;
+  }
+  .cart-qty,
+  .li .qty {
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+  .cart-qty button,
+  .li .qty button {
+    width: 36px !important;
+    height: 44px !important;
+  }
+  .cart-remove-btn,
+  .li .btn.ghost.sm {
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0.5rem 0.8rem !important;
+  }
+}
+
+
+/* ============================================================
+   Floating WhatsApp Button Positioning
+   ============================================================ */
+@media (max-width: 768px) {
+  body.kc-pdp .wa {
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 97 !important;
+  }
+}
+body.kc-no-tabbar:not(.kc-pdp) .wa,
+body:has(#cart-page-layout):not(.kc-pdp) .wa {
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 97 !important;
+}
+
+/* ============================================================
+   Related Products Grid on Product Detail Page (PDP)
+   ============================================================ */
+@media (max-width: 768px) {
+  body.kc-pdp .grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+}
+@media (max-width: 340px) {
+  body.kc-pdp .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================================
+   Quick View Modal (#quick-view-modal) - Shared Luxury Dark+Gold
+   ============================================================ */
+.quick-view-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  padding: 1.5rem;
+}
+
+.quick-view-modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.quick-view-modal .qv-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1;
+}
+
+.quick-view-modal .qv-content {
+  position: relative;
+  z-index: 2;
+  background: var(--bg2, #0f0c08);
+  border: 1px solid var(--gold, #d4af37);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9), 0 0 24px rgba(214, 178, 94, 0.15);
+  max-width: 680px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2rem;
+  color: var(--ivory, #fffaf0);
+}
+
+.quick-view-modal .qv-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: var(--surface2, #18140e);
+  border: 1px solid var(--line, rgba(214, 178, 94, 0.3));
+  color: var(--gold, #d4af37);
+  font-size: 1.4rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  z-index: 3;
+}
+
+.quick-view-modal .qv-close:hover {
+  transform: scale(1.08);
+  border-color: var(--gold, #d4af37);
+}
+
+.quick-view-modal .qv-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.quick-view-modal .qv-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--line, rgba(214, 178, 94, 0.25));
+  background: #000;
+}
+
+.quick-view-modal .qv-title {
+  font-family: var(--serif, "Cormorant Garamond", serif);
+  font-size: 1.6rem;
+  color: var(--ivory, #fffaf0);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.25;
+  padding-right: 36px;
+}
+
+.quick-view-modal .qv-price {
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.quick-view-modal .btn {
+  min-height: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .quick-view-modal {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .quick-view-modal .qv-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 85vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    border-bottom: 0 !important;
+    padding: 1.5rem 1.25rem calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .quick-view-modal .qv-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .quick-view-modal .qv-image {
+    max-height: 220px;
+    width: 100%;
+    object-fit: contain;
+    background: #050505;
+  }
+  .quick-view-modal .btn {
+    min-height: 48px;
+    height: 48px;
+  }
 }
