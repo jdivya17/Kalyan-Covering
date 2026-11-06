@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Invoices | Kalyan Covering</title>
     <meta name="description" content="View and download your tax invoices from Kalyan Covering. Get GST-compliant PDF invoices for all your jewellery orders.">
+    <meta property="og:title" content="My Invoices | Kalyan Covering">
+    <meta property="og:description" content="View and download your tax invoices from Kalyan Covering. Get GST-compliant PDF invoices for all your jewellery orders.">
+    <meta property="og:image" content="../assets/kalyan_logo.png">
     <script>
         if (!localStorage.getItem('kc_user')) {
             window.location.replace('auth.html');
@@ -22,6 +25,7 @@
     <link rel="stylesheet" href="../css/design-system.css">
     <link rel="stylesheet" href="../css/components.css">
     <link rel="stylesheet" href="../css/customer.css">
+    <link rel="stylesheet" href="../css/mobile.css">
     <style>
         :root {
             --inv-gold: #D4AF37;
@@ -135,7 +139,8 @@
             background: var(--inv-card);
             border: 1px solid var(--inv-border);
             border-radius: 16px;
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .inv-table {
             width: 100%;
@@ -497,92 +502,64 @@
         }
 
         @media (max-width: 768px) {
-            .inv-stats { grid-template-columns: 1fr; }
-            .inv-preview-meta { grid-template-columns: 1fr; }
-            .inv-table th:nth-child(3),
-            .inv-table td:nth-child(3),
-            .inv-table th:nth-child(5),
-            .inv-table td:nth-child(5) { display: none; }
+            .inv-hero { padding: 90px 1rem 30px; }
+            .inv-container { padding: 0 1rem 4rem; }
+            .inv-stats { grid-template-columns: 1fr; gap: 0.75rem; }
+            .inv-stat-card { padding: 1rem 1.25rem; }
+            .inv-preview-meta { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
             .inv-modal-actions { flex-direction: column; }
+            .inv-modal { max-height: 94vh; margin: 0.5rem; }
+            .inv-modal-header { padding: 1.2rem 1rem; }
+            .inv-modal-body { padding: 1rem; }
+            .inv-preview-header { padding: 1rem; flex-direction: column; gap: 0.75rem; }
+            .inv-table { min-width: 580px; }
+            .inv-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 1rem;
+                gap: 0.6rem;
+            }
+            .inv-filter-bar label {
+                margin-top: 0.25rem;
+                font-weight: 500;
+            }
+            .inv-filter-bar input[type="text"],
+            .inv-filter-bar select {
+                width: 100%;
+                min-height: 44px;
+                font-size: 16px !important;
+            }
+            .inv-btn-lg {
+                min-height: 48px;
+                width: 100%;
+                justify-content: center;
+            }
+            .inv-toast-wrap {
+                left: 1rem;
+                right: 1rem;
+                bottom: calc(var(--tabbar-height, 60px) + 1rem);
+            }
+            .inv-toast {
+                min-width: unset;
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 
 <body>
-    <!-- ===== NAV ===== -->
-    <nav class="nav" id="main-nav" aria-label="Main navigation">
-        <div class="nav-inner">
-            <a href="index.html" class="nav-logo">
-                <div class="nav-logo-img-wrap">
-                  <img src="../assets/kalyan_logo.png" alt="Kalyan Covering" class="nav-logo-img" onerror="this.style.display='none'">
-                </div>
-                Kalyan Covering
-            </a>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="products.html">Products</a></li>
-                <li><a href="wishlist.html">Wishlist</a></li>
-                <li><a href="cart.html">Cart</a></li>
-                <li><a href="my-orders.html">Orders</a></li>
-                <li><a href="invoice.html" class="active">Invoices</a></li>
-            </ul>
-            <div class="nav-actions">
-                <button class="nav-icon-btn keep-mobile" onclick="toggleSearch()" aria-label="Search">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </button>
-                <div id="nav-auth-btns" style="display:flex;gap:0.5rem">
-                    <a href="auth.html" class="btn btn-outline btn-sm">Login</a>
-                </div>
-                <button id="nav-user-btn" class="nav-icon-btn" style="display:none" aria-label="User Profile"></button>
-                <button class="nav-icon-btn keep-mobile" onclick="window.location='wishlist.html'" aria-label="Wishlist">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                    <span class="badge" id="wishlist-count" style="display:none">0</span>
-                </button>
-                <button class="nav-icon-btn keep-mobile" onclick="window.location='cart.html'" aria-label="Shopping cart">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                    <span class="badge cart-count">0</span>
-                </button>
-                <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu" aria-expanded="false" aria-controls="mobile-drawer">
-                    <span></span><span></span><span></span>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Mobile drawer overlay -->
-    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
-    <div class="mobile-drawer" id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
-        <div class="drawer-header">
-            <div class="nav-logo" style="font-size:1.2rem;">
-                <img src="../assets/kalyan_logo.png" alt="Logo" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--gold);">
-                Kalyan Covering
-            </div>
-            <button class="drawer-close-btn" onclick="toggleMobileMenu()" aria-label="Close menu">×</button>
-        </div>
-        <ul class="drawer-nav">
-            <li><a href="index.html">🏠 Home</a></li>
-            <li><a href="products.html">💎 Products</a></li>
-            <li><a href="wishlist.html">♥ Wishlist</a></li>
-            <li><a href="cart.html">🛒 Cart</a></li>
-            <li><a href="my-orders.html">📦 My Orders</a></li>
-            <li><a href="profile.html">👤 Profile</a></li>
-        </ul>
-    </div>
-
-    <!-- Search modal -->
-    <div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label="Product search" aria-hidden="true">
-        <div class="search-inner">
-            <div class="search-input-wrap">
-                <input type="text" id="smart-search-input" placeholder="Search jewellery..." autocomplete="off" aria-label="Search products">
-                <button class="search-close-btn" onclick="toggleSearch()" aria-label="Close search">×</button>
-            </div>
-            <div id="smart-search-results"></div>
-        </div>
-    </div>
+    <!-- Global Shell Header Container -->
+    <div id="global-header"></div>
 
     <div id="toast-container" class="toast-container"></div>
-
-    <!-- Toast Container -->
     <div class="inv-toast-wrap" id="inv-toasts"></div>
 
     <!-- Hero -->
@@ -1032,7 +1009,13 @@
         }
 
         window.showToast = function(msg, type = '') {
+            if (window.Toast) {
+                if (type === 'success') { window.Toast.success(msg); return; }
+                if (type === 'error') { window.Toast.error(msg); return; }
+                window.Toast.info(msg); return;
+            }
             const wrap = document.getElementById('inv-toasts');
+            if (!wrap) return;
             const toast = document.createElement('div');
             toast.className = `inv-toast ${type}`;
             toast.textContent = msg;
@@ -1041,47 +1024,8 @@
         };
     </script>
 
-    <!-- ===== FOOTER ===== -->
-    <footer class="footer" style="background:var(--black-card);padding:4rem 0 2rem;border-top:1px solid var(--black-border);margin-top:auto">
-        <div class="container">
-            <div class="footer-main">
-                <div>
-                    <img src="../assets/kalyan_logo.png" class="footer-brand-img" alt="Kalyan Covering" onerror="this.style.display='none'">
-                    <h3 style="color:var(--gold);font-family:var(--font-serif);font-size:1.4rem;margin-bottom:0.75rem">Kalyan Covering</h3>
-                    <p style="color:var(--white-dim);font-size:0.85rem;line-height:1.8;max-width:260px">Since 2000, crafting premium gold-covering jewellery for every special occasion.</p>
-                </div>
-                <div>
-                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Quick Links</h4>
-                    <ul class="footer-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="products.html">Products</a></li>
-                        <li><a href="wishlist.html">Wishlist</a></li>
-                        <li><a href="my-orders.html">My Orders</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Customer Care</h4>
-                    <ul class="footer-links">
-                        <li><a href="auth.html">My Account</a></li>
-                        <li><a href="my-orders.html">Track Orders</a></li>
-                        <li><a href="/Terms%20of%20Use.pdf" target="_blank">Terms of Use</a></li>
-                        <li><a href="/Privacy%20Policy.pdf" target="_blank">Privacy Policy</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="color:var(--gold);margin-bottom:1.2rem;font-size:0.82rem;letter-spacing:2px;text-transform:uppercase">Contact</h4>
-                    <ul class="footer-links" style="line-height:2">
-                        <li style="color:var(--white-dim);font-size:0.85rem">📍 Erode, Tamil Nadu</li>
-                        <li><a href="tel:+919876543210">📞 +91 98765 43210</a></li>
-                        <li><a href="mailto:info@kalyancovering.com">✉️ info@kalyancovering.com</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div style="border-top:1px solid #222;padding-top:1.5rem;margin-top:2.5rem;text-align:center">
-                <p style="color:#666;font-size:0.8rem">© 2026 Kalyan Covering. All Rights Reserved. | Made with 💛 in Tamil Nadu</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Global Shell Footer Container -->
+    <div id="global-footer"></div>
 
     <script type="module" src="../js/app.js"></script>
     <script type="module" src="../js/utils/shellInit.js"></script>
