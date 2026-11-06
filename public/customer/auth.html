@@ -7,6 +7,9 @@
     <title>Account Login & Register | Kalyan Covering</title>
     <meta name="description" content="Access your Kalyan Covering account or sign up to experience exquisite South Indian gold-covering jewellery.">
     <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
+    <meta property="og:title" content="Account Login &amp; Register | Kalyan Covering">
+    <meta property="og:description" content="Access your Kalyan Covering account or sign up to experience exquisite South Indian gold-covering jewellery.">
+    <meta property="og:image" content="../assets/kalyan_logo.png">
 
     <!-- Preconnect & Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +18,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="../css/theme.css">
     <link rel="stylesheet" href="../css/design-system.css">
+    <link rel="stylesheet" href="../css/mobile.css">
 
     <!-- Early redirect -->
     <script>
@@ -40,14 +44,19 @@
         })();
     </script>
 
-    <style>
+        <style>
+        /* ── Root cause fix: all colors hard-coded, no undefined CSS var dependency ── */
+        /* theme.css defines --gold:#d6b25e, --gold-hi:#f5e0a3; design-system.css    */
+        /* overrides --gold:#D4AF37 and adds --gold-light:#F3E5AB.                   */
+        /* We use hex values directly to prevent any cascade surprise.               */
+
         html, body {
             overflow-x: hidden;
             width: 100%;
         }
 
         body {
-            background-color: var(--bg, #0d0b08);
+            background-color: #0d0b08;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -68,19 +77,19 @@
         .auth-card {
             width: 100%;
             max-width: 460px;
-            background: var(--bg-card, #15120c);
-            border: 1px solid var(--border-color, #2e2619);
-            border-radius: var(--radius-lg, 8px);
+            background: #15120c;
+            border: 1px solid #2e2619;
+            border-radius: 8px;
             padding: 2.5rem 2.2rem;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px var(--gold-glow, rgba(212, 175, 55, 0.1));
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(214, 178, 94, 0.1);
             position: relative;
-            animation: fadeIn 0.4s ease-out;
+            animation: authFadeIn 0.4s ease-out;
             box-sizing: border-box;
         }
 
-        @keyframes fadeIn {
+        @keyframes authFadeIn {
             from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .auth-header {
@@ -93,7 +102,7 @@
             height: 64px;
             margin: 0 auto 1rem;
             border-radius: 50%;
-            border: 1.5px solid var(--gold, #d6b25e);
+            border: 1.5px solid #d6b25e;
             padding: 4px;
             display: flex;
             align-items: center;
@@ -109,16 +118,16 @@
         }
 
         .auth-header h1 {
-            font-family: var(--font-serif);
+            font-family: 'Cormorant Garamond', serif;
             font-size: 1.8rem;
-            color: var(--text-color, #f7f3eb);
+            color: #f7f3eb;
             font-weight: 500;
             letter-spacing: 0.5px;
             margin-bottom: 0.3rem;
         }
 
         .auth-header p {
-            color: var(--text-dim, #9e9282);
+            color: #9e9282;
             font-size: 0.85rem;
             letter-spacing: 0.5px;
         }
@@ -126,7 +135,7 @@
         /* Tabs */
         .auth-tabs {
             display: flex;
-            border-bottom: 1px solid var(--border-color, #2e2619);
+            border-bottom: 1px solid #2e2619;
             margin-bottom: 1.8rem;
         }
 
@@ -134,24 +143,20 @@
             flex: 1;
             text-align: center;
             padding: 0.8rem 0.5rem;
-            color: var(--text-muted, #6b6255);
+            color: #6b6255;
             font-size: 0.78rem;
             font-weight: 600;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             cursor: pointer;
             position: relative;
-            transition: all 0.25s ease;
+            transition: color 0.25s ease;
             user-select: none;
         }
 
-        .auth-tab:hover {
-            color: var(--text-color, #f7f3eb);
-        }
+        .auth-tab:hover { color: #f7f3eb; }
 
-        .auth-tab.active {
-            color: var(--gold, #d6b25e);
-        }
+        .auth-tab.active { color: #d6b25e; }
 
         .auth-tab.active::after {
             content: '';
@@ -160,21 +165,19 @@
             left: 15%;
             right: 15%;
             height: 2px;
-            background: var(--gold, #d6b25e);
-            box-shadow: 0 0 8px var(--gold, #d6b25e);
+            background: #d6b25e;
+            box-shadow: 0 0 8px #d6b25e;
         }
 
         /* Form Controls */
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
+        .form-group { margin-bottom: 1.25rem; }
 
         .form-label {
             display: block;
             font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: var(--text-dim, #9e9282);
+            color: #9e9282;
             margin-bottom: 0.45rem;
             font-weight: 500;
         }
@@ -186,23 +189,29 @@
             width: 100%;
         }
 
+        /* FIX: 16px everywhere — prevents iOS auto-zoom at all viewport widths */
         .form-input {
             width: 100%;
             background: #090807;
-            border: 1px solid var(--border-color, #2e2619);
-            border-radius: var(--radius-sm, 4px);
+            border: 1px solid #2e2619;
+            border-radius: 4px;
             padding: 0.85rem 1rem;
-            color: var(--text-color, #f7f3eb);
-            font-family: var(--font-sans, inherit);
-            font-size: 0.95rem;
+            color: #f7f3eb;
+            font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 1rem; /* 16px — no zoom on iOS */
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
             box-sizing: border-box;
         }
 
+        /* FIX: padding-right so text never goes under the eye toggle */
+        .form-input-wrap .form-input {
+            padding-right: 48px;
+        }
+
         .form-input:focus {
             outline: none;
-            border-color: var(--gold, #d6b25e);
-            box-shadow: 0 0 0 2px var(--gold-glow, rgba(212, 175, 55, 0.2));
+            border-color: #d6b25e;
+            box-shadow: 0 0 0 2px rgba(214, 178, 94, 0.2);
         }
 
         .form-input.error {
@@ -219,9 +228,7 @@
             line-height: 1.35;
         }
 
-        .field-error.show {
-            display: block;
-        }
+        .field-error.show { display: block; }
 
         .auth-error-banner {
             display: none;
@@ -230,101 +237,115 @@
             background: rgba(220, 53, 69, 0.12);
             border: 1px solid rgba(220, 53, 69, 0.4);
             border-left: 3px solid #ff4d4f;
-            border-radius: var(--radius-sm, 4px);
+            border-radius: 4px;
             padding: 0.75rem 1rem;
             margin-bottom: 1.25rem;
             color: #ff7875;
             font-size: 0.85rem;
             line-height: 1.4;
-            animation: fadeIn 0.2s ease-out;
             box-sizing: border-box;
         }
 
         .auth-error-banner.show {
             display: flex;
+            animation: authFadeIn 0.2s ease-out;
         }
 
         .password-toggle-btn {
             position: absolute;
-            right: 12px;
+            right: 10px;
             background: none;
             border: none;
-            color: var(--text-muted, #6b6255);
+            color: #6b6255;
             cursor: pointer;
             padding: 4px;
+            min-width: 36px;
+            min-height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: color 0.2s ease;
+            flex-shrink: 0;
         }
 
-        .password-toggle-btn:hover {
-            color: var(--gold, #d6b25e);
-        }
+        .password-toggle-btn:hover { color: #d6b25e; }
 
-        /* Buttons */
+        /* ══════════════════════════════════════════════════════
+           ACTION BUTTONS — hard-coded gold, always visible
+           ROOT CAUSE FIX: removed all undefined CSS var()
+           references; used explicit hex values on every property
+           that controls visibility (background, color).
+           design-system.css * reset cannot override class selectors.
+           ══════════════════════════════════════════════════════ */
         .btn-auth {
+            /* Layout — !important guards against any external .btn reset */
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             width: 100%;
             min-height: 48px;
-            background: var(--gold, #d6b25e);
-            background: linear-gradient(135deg, var(--gold, #d6b25e) 0%, var(--gold-light, #f5e0a3) 50%, var(--gold, #d6b25e) 100%);
-            color: #060503;
-            border: 1px solid var(--gold, #d6b25e);
-            border-radius: var(--radius-sm, 4px);
-            padding: 0.85rem 1.5rem;
+            /* Solid fallback first, then gradient — both hard-coded hex */
+            background: #d6b25e;
+            background: linear-gradient(135deg, #d6b25e 0%, #f5e0a3 50%, #d6b25e 100%);
+            color: #0a0805;
+            border: 1px solid #c9a44e;
+            border-radius: 4px;
+            padding: 0.9rem 1.5rem;
             font-size: 0.88rem;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             cursor: pointer;
             margin-top: 0.75rem;
-            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 15px rgba(214, 178, 94, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            box-shadow: 0 4px 16px rgba(214, 178, 94, 0.35);
             box-sizing: border-box;
             user-select: none;
             text-decoration: none;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-auth:hover:not(:disabled) {
-            background: var(--gold-light, #f5e0a3);
+            background: #f5e0a3;
             background: linear-gradient(135deg, #f5e0a3 0%, #ffffff 50%, #f5e0a3 100%);
             color: #000000;
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(214, 178, 94, 0.45), 0 0 15px rgba(214, 178, 94, 0.3);
+            box-shadow: 0 8px 24px rgba(214, 178, 94, 0.5);
             border-color: #f5e0a3;
         }
 
         .btn-auth:focus-visible {
-            outline: 2px solid var(--gold-light, #f5e0a3);
+            outline: 2px solid #f5e0a3;
             outline-offset: 3px;
-            box-shadow: 0 0 0 4px rgba(214, 178, 94, 0.35);
+            box-shadow: 0 0 0 4px rgba(214, 178, 94, 0.4);
         }
 
         .btn-auth:active:not(:disabled) {
-            transform: translateY(0);
+            transform: translateY(0) scale(0.98);
             box-shadow: 0 2px 8px rgba(214, 178, 94, 0.3);
         }
 
+        /* Disabled: still gold, still readable — opacity 0.6 minimum */
         .btn-auth:disabled {
-            opacity: 0.65;
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+            background: #d6b25e;
+            color: #0a0805;
         }
 
         .auth-switch-text {
             text-align: center;
             margin-top: 1.5rem;
             font-size: 0.82rem;
-            color: var(--text-dim, #9e9282);
+            color: #9e9282;
         }
 
         .auth-link {
-            color: var(--gold, #d6b25e);
+            color: #d6b25e;
             cursor: pointer;
             background: none;
             border: none;
@@ -336,24 +357,24 @@
             text-underline-offset: 3px;
         }
 
-        .auth-link:hover {
-            color: #fff;
-        }
+        .auth-link:hover { color: #ffffff; }
 
         .forgot-link-btn {
             display: block;
             text-align: right;
             font-size: 0.75rem;
-            color: var(--text-muted, #6b6255);
+            color: #6b6255;
             margin-top: 0.5rem;
             background: none;
             border: none;
             cursor: pointer;
             padding: 0;
+            min-height: 36px;
+            line-height: 36px;
         }
 
         .forgot-link-btn:hover {
-            color: var(--gold, #d6b25e);
+            color: #d6b25e;
             text-decoration: underline;
         }
 
@@ -379,9 +400,9 @@
         }
 
         .auth-modal {
-            background: var(--bg-card, #15120c);
-            border: 1px solid var(--border-color, #2e2619);
-            border-radius: var(--radius-md, 6px);
+            background: #15120c;
+            border: 1px solid #2e2619;
+            border-radius: 6px;
             padding: 2.2rem;
             width: 100%;
             max-width: 400px;
@@ -390,36 +411,56 @@
         }
 
         .auth-modal h3 {
-            font-family: var(--font-serif);
+            font-family: 'Cormorant Garamond', serif;
             font-size: 1.4rem;
-            color: var(--gold, #d6b25e);
+            color: #d6b25e;
             margin-bottom: 0.4rem;
         }
 
         .auth-modal p {
             font-size: 0.82rem;
-            color: var(--text-dim, #9e9282);
+            color: #9e9282;
             line-height: 1.5;
             margin-bottom: 1.2rem;
         }
 
-        .auth-step {
-            display: none;
+        /* FIX: CANCEL button — explicit gold border+text; no .btn dependency */
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid #d6b25e;
+            color: #d6b25e;
+            padding: 0.75rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: background 0.2s ease, color 0.2s ease;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .auth-step.active {
-            display: block;
+        .btn-cancel:hover {
+            background: rgba(214, 178, 94, 0.1);
+            color: #f5e0a3;
+            border-color: #f5e0a3;
         }
+
+        .auth-step { display: none; }
+        .auth-step.active { display: block; }
 
         .otp-sent-info {
             text-align: center;
             background: rgba(214, 178, 94, 0.05);
-            border: 1px solid var(--border-color, #2e2619);
-            border-radius: var(--radius-sm, 4px);
+            border: 1px solid #2e2619;
+            border-radius: 4px;
             padding: 0.8rem;
             margin-bottom: 1.2rem;
             font-size: 0.82rem;
-            color: var(--text-dim, #9e9282);
+            color: #9e9282;
         }
 
         .spinner-sm {
@@ -428,16 +469,17 @@
             border: 2px solid rgba(0, 0, 0, 0.25);
             border-top-color: #000000;
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
+            animation: authSpin 0.7s linear infinite;
             display: inline-block;
             vertical-align: middle;
+            flex-shrink: 0;
         }
 
-        @keyframes spin {
+        @keyframes authSpin {
             to { transform: rotate(360deg); }
         }
 
-        /* Mobile Optimization (360px+ responsive) */
+        /* Mobile tweaks */
         @media (max-width: 480px) {
             .auth-wrapper {
                 padding: 1.5rem 1rem;
@@ -450,9 +492,7 @@
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
             }
 
-            .auth-tabs {
-                margin-bottom: 1.4rem;
-            }
+            .auth-tabs { margin-bottom: 1.4rem; }
 
             .auth-tab {
                 font-size: 0.72rem;
@@ -460,25 +500,42 @@
                 letter-spacing: 1px;
             }
 
-            .form-input {
-                font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
-                padding: 0.8rem 0.85rem;
-            }
-
-            .btn-auth {
-                min-height: 48px;
-                font-size: 0.85rem;
-                padding: 0.85rem 1rem;
-            }
-
-            .auth-header h1 {
-                font-size: 1.5rem;
-            }
+            .auth-header h1 { font-size: 1.5rem; }
 
             .auth-logo-badge {
                 width: 56px;
                 height: 56px;
                 margin-bottom: 0.75rem;
+            }
+
+            /* Forgot modal: bottom-sheet on mobile */
+            .auth-modal-overlay {
+                align-items: flex-end;
+                padding: 0;
+            }
+
+            .auth-modal {
+                border-radius: 16px 16px 0 0;
+                border-bottom: 0;
+                padding: 1.8rem 1.25rem calc(20px + env(safe-area-inset-bottom, 0px));
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* Respect prefers-reduced-motion */
+        @media (prefers-reduced-motion: reduce) {
+            .auth-card    { animation: none; }
+            .auth-error-banner { animation: none; }
+            .btn-auth     { transition: none; }
+            .btn-auth:hover:not(:disabled) { transform: none; }
+            .btn-auth:active:not(:disabled) { transform: none; }
+            .auth-modal-overlay { transition: none; }
+            /* Freeze spinner — still visible, just not spinning */
+            .spinner-sm   {
+                animation: none;
+                border: 2px solid rgba(0, 0, 0, 0.5);
+                border-top-color: #000000;
             }
         }
     </style>
@@ -665,7 +722,7 @@
                     <button type="submit" class="btn-auth" id="btn-forgot-send" style="flex:1; margin-top:0;">
                         SEND LINK
                     </button>
-                    <button type="button" class="btn btn-outline" onclick="closeForgotPassword()" style="padding:0.7rem 1.2rem;">
+                    <button type="button" class="btn-cancel" onclick="closeForgotPassword()" style="padding:0.7rem 1.2rem;">
                         CANCEL
                     </button>
                 </div>
