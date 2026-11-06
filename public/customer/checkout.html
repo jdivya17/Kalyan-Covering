@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout | Kalyan Covering Jewellery</title>
   <meta name="description" content="Complete your jewellery purchase securely at Kalyan Covering. Fast shipping across India.">
+  <meta property="og:title" content="Secure Checkout | Kalyan Covering Jewellery">
+  <meta property="og:description" content="Complete your gold-covering jewellery purchase securely at Kalyan Covering. Fast shipping across India.">
+  <meta property="og:image" content="../assets/kalyan_logo.png">
   <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
 
   <!-- Fonts & Stylesheets -->
@@ -13,6 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/mobile.css">
   
   <!-- Razorpay Checkout SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -397,11 +401,11 @@
         const res = await callVercelApi('/api/payments/validate-coupon', { items, promoCode: code });
         if (res && res.success) {
           couponCode = res.couponCode || code;
-          alert(`✓ Coupon ${couponCode} applied (Discount: ₹${res.discount})`);
+          window.Toast ? window.Toast.success('Coupon Applied', `${couponCode} applied — ₹${res.discount} discount`) : console.log('Coupon applied');
         }
       } catch (err) {
         couponCode = '';
-        alert(err.message || 'Could not validate coupon.');
+        window.Toast ? window.Toast.error('Coupon Error', err.message || 'Could not validate coupon.') : console.error(err);
       }
       const user = auth.currentUser || JSON.parse(localStorage.getItem('kc_user') || 'null');
       renderCheckoutForm(user);
@@ -453,7 +457,7 @@
 
       if (!auth.currentUser) {
         localStorage.removeItem('kc_user');
-        alert('Session expired. Please log in again.');
+        window.Toast ? window.Toast.error('Session Expired', 'Please log in again.') : console.warn('Session expired');
         const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         window.location.href = `auth.html?redirect=${returnUrl}`;
         return;
@@ -479,7 +483,7 @@
 
       const items = getCheckoutOrderItems();
       if (!items.length) {
-        alert('Your bag is empty.');
+        window.Toast ? window.Toast.error('Empty Bag', 'Your bag is empty. Redirecting to cart…') : console.warn('Empty bag');
         window.location.href = 'cart.html';
         return;
       }
@@ -530,12 +534,12 @@
                   }
                   window.location.href = `order-success.html?orderId=${orderRes.orderId}`;
                 } else if (verifyRes && verifyRes.cancelled) {
-                  alert(verifyRes.message || "Order was cancelled. Your payment will be refunded.");
+                  window.Toast ? window.Toast.error("Payment Cancelled", verifyRes.message || "Order was cancelled. Your payment will be refunded.") : console.warn("Cancelled");
                 } else {
-                  alert(verifyRes?.message || 'Payment verification failed. Please contact support.');
+                  window.Toast ? window.Toast.error('Payment Failed', verifyRes?.message || 'Payment verification failed. Please contact support.') : console.error('Payment failed');
                 }
               } catch (err) {
-                alert('Payment verification error: ' + err.message);
+                window.Toast ? window.Toast.error('Payment Error', 'Payment verification error: ' + err.message) : console.error(err);
               }
             }
           };
@@ -566,12 +570,12 @@
         console.error('Checkout error:', err);
         if (err.status === 401 || err.message === 'Please log in again to continue.') {
           localStorage.removeItem('kc_user');
-          alert('Session expired. Please log in again.');
+          window.Toast ? window.Toast.error('Session Expired', 'Please log in again.') : console.warn('Session expired');
           const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
           window.location.href = `auth.html?redirect=${returnUrl}`;
           return;
         }
-        alert(err.message || 'Unable to process checkout. Please try again.');
+        window.Toast ? window.Toast.error('Checkout Error', err.message || 'Unable to process checkout. Please try again.') : console.error(err);
         if (btn) {
           btn.disabled = false;
           btn.textContent = 'Place Order Securely';
