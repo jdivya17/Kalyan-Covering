@@ -975,6 +975,54 @@
             }
         }
 
+        @media(max-width:768px) {
+            .modal {
+                padding: 1.25rem 1rem;
+                max-height: 92vh;
+                margin: 0.5rem;
+                border-radius: 14px;
+            }
+            .modal-close {
+                width: 44px;
+                height: 44px;
+                display: grid;
+                place-items: center;
+                top: 0.5rem;
+                right: 0.5rem;
+                font-size: 1.6rem;
+            }
+            .modal-actions-sticky {
+                position: sticky;
+                bottom: -1rem;
+                padding: 0.75rem 0;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .modal-actions-sticky button {
+                width: 100%;
+                min-height: 48px;
+                justify-content: center;
+            }
+            .preview-item .remove-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+            .multi-preview-scroll {
+                -webkit-overflow-scrolling: touch;
+            }
+            .stat-card {
+                padding: 1.1rem 0.9rem;
+            }
+            .stat-value {
+                font-size: 1.45rem;
+            }
+            .stat-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0.4rem;
+            }
+        }
+
         @media(max-width:600px) {
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
@@ -996,25 +1044,40 @@
         @media(max-width:480px) {
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
             }
 
             .analytics-grid {
                 grid-template-columns: 1fr 1fr;
-            }
-
-            .admin-topbar {
-                padding: .6rem 1rem;
-            }
-
-            .topbar-title {
-                font-size: 1.05rem;
+                gap: 0.75rem;
             }
 
             .admin-content {
-                padding: 1rem .75rem;
+                padding: 1rem 0.65rem;
             }
 
-            /* Admin table responsive rules are in public/css/admin.css @media (max-width: 768px) */
+            .modal {
+                padding: 1rem 0.75rem;
+            }
+
+            .modal-actions-sticky {
+                bottom: -0.75rem;
+            }
+        }
+
+        @media(max-width:375px) {
+            .stats-grid,
+            .analytics-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
 
         /* Bug 3 fix: admin.css .toast is a fixed, opacity:0 single-toast element.

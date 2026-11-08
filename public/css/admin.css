@@ -522,6 +522,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .topbar { padding: 10px 14px; gap: 10px; justify-content: space-between; }
   .tactions { gap: 8px; align-items: center; }
   .ticon { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  input, select, textarea, .select, .searchbox input { font-size: 16px !important; min-height: 44px; }
+  .twrap, .admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-table, .twrap > table { min-width: 580px; }
+  .vhead { flex-wrap: wrap; gap: 10px; }
+  .vhead h1 { font-size: clamp(1.3rem, 5vw, 1.6rem); }
 }
 
 @media (max-width: 640px) {
@@ -543,8 +548,8 @@ tbody tr:last-child td { border-bottom: 0; }
   #mobile-recent-orders-list { display: block !important; }
 }
 
-@media (max-width: 359px) {
-  .stats, .stats-grid { grid-template-columns: 1fr !important; }
+@media (max-width: 375px) {
+  .stats, .stats-grid, .analytics-grid { grid-template-columns: 1fr !important; }
 }
 
 @media (min-width: 641px) {
