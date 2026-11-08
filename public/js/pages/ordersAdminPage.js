@@ -36,6 +36,7 @@ export function renderOrdersTable(orders) {
     const rawStatus = String(o.orderStatus || o.status || 'placed').toLowerCase();
     const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
     const isSrCancelPending = !!(o.shippingDetails?.shiprocketCancelPending);
+    const total = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
 
     return `
       <tr>

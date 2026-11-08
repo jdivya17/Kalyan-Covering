@@ -1641,8 +1641,8 @@
     </div>
 
     <!-- Toolbar Filters & Status Tabs -->
-    <div class="toolbar">
-        <div class="seg" id="order-status-tabs">
+    <div class="toolbar kc-orders-toolbar">
+        <div class="seg desktop-only-seg" id="order-status-tabs">
             <button class="active" aria-current="true" onclick="filterOrdersByTab('all', this)">All</button>
             <button onclick="filterOrdersByTab('payment_pending', this)">Awaiting Payment</button>
             <button onclick="filterOrdersByTab('pending', this)">Pending</button>
@@ -1651,9 +1651,16 @@
             <button onclick="filterOrdersByTab('delivered', this)">Delivered</button>
             <button onclick="filterOrdersByTab('cancelled', this)">Cancelled</button>
         </div>
-        <div class="searchbox" style="margin-left:auto">
-            <span class="nav-ic" data-ic="search"></span>
-            <input type="text" placeholder="Search order id or customer..." id="order-search-input" oninput="filterOrdersUI()">
+        <div class="kc-mobile-filter-bar">
+            <div class="searchbox kc-orders-search">
+                <span class="nav-ic" data-ic="search"></span>
+                <input type="text" placeholder="Search order or customer..." id="order-search-input" oninput="filterOrdersUI()">
+            </div>
+            <button class="kc-filter-btn" id="order-filter-sheet-btn" onclick="openOrderFilterSheet()" aria-label="Open filter sheet">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filter</span>
+                <span class="kc-filter-pill-badge" id="order-filter-badge" style="display:none">1</span>
+            </button>
         </div>
     </div>
 
@@ -3934,6 +3941,460 @@
         };
 
         // ---- Admin Modal Utilities ----
+
+        // ---- Mobile Order Details & Filter Sheet Logic ----
+        let currentViewingOrderId = null;
+
+        function middleTruncate(str, maxLen = 14) {
+            if (!str || typeof str !== 'string') return '';
+            if (str.length <= maxLen) return str;
+            const side = Math.floor((maxLen - 3) / 2);
+            return str.substring(0, side) + '...' + str.substring(str.length - side);
+        }
+
+        window.copyToClipboard = function(text, successMsg = 'Copied to clipboard!') {
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (window.Toast) Toast.success(successMsg);
+                }).catch(() => fallbackCopy(text, successMsg));
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        };
+
+        function fallbackCopy(text, successMsg) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.style.position = 'fixed';
+            el.style.opacity = '0';
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                if (window.Toast) Toast.success(successMsg);
+            } catch(e) {}
+            document.body.removeChild(el);
+        }
+
+        window.copyCurrentOrderId = function() {
+            if (currentViewingOrderId) {
+                window.copyToClipboard(currentViewingOrderId, 'Order ID copied: #' + currentViewingOrderId.substring(0, 10).toUpperCase());
+            }
+        };
+
+        window.openOrderFilterSheet = function() {
+            const overlay = document.getElementById('order-filter-sheet-overlay');
+            if (!overlay) return;
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => overlay.classList.add('active'));
+            document.body.classList.add('overflow-hidden');
+            if (window.pushUI) window.pushUI('filterSheet');
+        };
+
+        window.closeOrderFilterSheet = function(fromPop = false) {
+            const overlay = document.getElementById('order-filter-sheet-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (!document.querySelector('.kc-order-sheet-backdrop.active') && !document.querySelector('.modal-overlay.active')) {
+                    document.body.classList.remove('overflow-hidden');
+                }
+            }, 200);
+            if (!fromPop && window.popUI) window.popUI('filterSheet', false);
+        };
+
+        window.selectOrderFilter = function(status, btn) {
+            document.querySelectorAll('#order-filter-sheet-options .kc-fs-opt').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            else {
+                const opt = document.querySelector(`#order-filter-sheet-options [data-tab="${status}"]`);
+                if (opt) opt.classList.add('active');
+            }
+
+            // Sync with desktop seg tabs if present
+            const deskBtn = document.querySelector(`#order-status-tabs button[onclick*="'${status}'"]`);
+            if (deskBtn) {
+                document.querySelectorAll('#order-status-tabs button').forEach(b => {
+                    b.classList.remove('active');
+                    b.removeAttribute('aria-current');
+                });
+                deskBtn.classList.add('active');
+                deskBtn.setAttribute('aria-current', 'true');
+            }
+
+            // Update badge on filter button
+            const badge = document.getElementById('order-filter-badge');
+            if (badge) {
+                if (status === 'all') {
+                    badge.style.display = 'none';
+                } else {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = status.charAt(0).toUpperCase();
+                }
+            }
+
+            closeOrderFilterSheet();
+
+            // Run existing filter logic
+            if (typeof filterOrders === 'function') filterOrders(status);
+            else if (typeof window.filterOrdersByTab === 'function') window.filterOrdersByTab(status, deskBtn);
+        };
+
+        window.toggleOrderAccordion = function(headerEl) {
+            const parent = headerEl.closest('.kc-accordion');
+            if (parent) parent.classList.toggle('open');
+        };
+
+        window.openMobileOrderDetailSheet = function(orderId) {
+            const o = (window.ordersData || (window.adminData && window.adminData.orders) || []).find(x => x.id === orderId);
+            if (!o) {
+                if (window.Toast) Toast.error('Order not found');
+                return;
+            }
+            currentViewingOrderId = orderId;
+
+            const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
+            const rawStatus = String(o.orderStatus || o.status || 'pending').toLowerCase();
+            const displayStatus = _statusLabel(rawStatus);
+            const statusClass = _getOrderStatusClass(rawStatus);
+            const customerName = String(o.customerName || o.customer?.name || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            const customerPhone = String(o.customerPhone || o.customer?.phone || (o.shippingAddress && (o.shippingAddress.phone || o.shippingAddress.mobile)) || '').trim();
+            const cleanPhone = customerPhone.replace(/\D/g, '');
+            const total = Number(o.totalAmount || o.payment?.total || o.total || 0);
+            const orderDate = _fmtOrderDate(o.createdAt || o.date);
+            const items = Array.isArray(o.items) ? o.items : (Array.isArray(o.products) ? o.products : []);
+            const itemCount = items.length || 1;
+            const payMethod = String(o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
+            const isCOD = payMethod.includes('COD');
+            const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
+            const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
+            const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+            const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'danger' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+
+            // Address format
+            let addrText = 'No delivery address recorded.';
+            if (o.shippingAddress) {
+                if (typeof o.shippingAddress === 'string') addrText = o.shippingAddress;
+                else {
+                    const sa = o.shippingAddress;
+                    addrText = [sa.fullName || sa.name, sa.addressLine1 || sa.address, sa.addressLine2, sa.landmark, sa.city, sa.state, sa.pincode || sa.pin].filter(Boolean).join(', ');
+                }
+            }
+            const escapedAddr = addrText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            // Payment ID
+            const payId = o.paymentDetails?.razorpayPaymentId || o.razorpayPaymentId || o.paymentId || (o.payment && o.payment.id) || '';
+            const truncPayId = middleTruncate(payId, 16);
+
+            // Shipping Info
+            const sd = o.shippingDetails || {};
+            const carrier = sd.courierName || sd.carrier || o.carrier || 'Not assigned';
+            const awb = sd.awbCode || sd.trackingNumber || o.trackingNumber || '';
+            const truncAwb = middleTruncate(awb, 14);
+            const trackingUrl = sd.trackingUrl || '';
+
+            // Status History Timeline
+            const history = Array.isArray(o.statusHistory) ? o.statusHistory : [];
+            const sortedHistory = [...history].sort((a, b) => {
+                const da = parseOrderDate(a.changedAt || a.timestamp || a.date);
+                const db = parseOrderDate(b.changedAt || b.timestamp || b.date);
+                if (!da || !db) return 0;
+                return db - da;
+            });
+
+            // Set Header
+            document.getElementById('kc-os-title').textContent = '#' + shortId;
+            document.getElementById('kc-os-status-badge').innerHTML = `
+                <span class="kc-status-badge ${statusClass}">
+                    <span class="kc-status-dot"></span>
+                    <span>${displayStatus}</span>
+                </span>
+            `;
+
+            // Build Scrollable Body
+            const scrollEl = document.getElementById('kc-os-scroll-content');
+            scrollEl.innerHTML = `
+                <!-- Summary Strip -->
+                <div class="kc-os-summary-strip">
+                    <div>
+                        <div class="kc-os-summary-total">₹${total.toLocaleString('en-IN')}</div>
+                        <div style="font-size:0.75rem;color:#777;margin-top:2px">${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+                    </div>
+                    <div class="kc-os-summary-right">
+                        <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
+                        <span class="kc-os-summary-date">${orderDate}</span>
+                    </div>
+                </div>
+
+                ${isRefundDue ? `
+                    <div class="kc-refund-banner">
+                        <span>⚠️</span>
+                        <div><b>Refund Required:</b> Cancellation was requested. Verify refund amount before closing.</div>
+                    </div>
+                ` : ''}
+
+                <!-- Accordion 1: Items (Open by default) -->
+                <div class="kc-accordion open">
+                    <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
+                        <div class="kc-acc-title-wrap">
+                            <span class="kc-acc-icon">🛍️</span>
+                            <span>Items (${itemCount})</span>
+                        </div>
+                        <span class="kc-acc-chevron">▼</span>
+                    </div>
+                    <div class="kc-acc-body">
+                        ${items.length > 0 ? items.map(it => {
+                            const iname = String(it.name || it.title || 'Jewellery Item').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                            const iimg = it.image || it.imageURL || it.primaryImageURL || '../assets/kalyan_logo.png';
+                            const iqty = it.quantity || it.qty || 1;
+                            const iprice = Number(it.price || 0);
+                            return `
+                                <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                                    <img src="${iimg}" onerror="this.src='../assets/kalyan_logo.png'" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:1px solid #222" alt="">
+                                    <div style="flex:1;min-width:0">
+                                        <div style="font-size:0.88rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${iname}</div>
+                                        <div style="font-size:0.78rem;color:#888">${iqty} × ₹${iprice.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <div style="font-size:0.9rem;font-weight:700;color:var(--gold)">₹${(iqty * iprice).toLocaleString('en-IN')}</div>
+                                </div>
+                            `;
+                        }).join('') : '<div style="color:#777;font-size:0.85rem">Item details not available.</div>'}
+                    </div>
+                </div>
+
+                <!-- Accordion 2: Customer & Delivery Address -->
+                <div class="kc-accordion">
+                    <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
+                        <div class="kc-acc-title-wrap">
+                            <span class="kc-acc-icon">👤</span>
+                            <span>Customer & Address</span>
+                        </div>
+                        <span class="kc-acc-chevron">▼</span>
+                    </div>
+                    <div class="kc-acc-body">
+                        <div style="font-weight:700;font-size:0.95rem;color:#fff;margin-bottom:4px">${customerName}</div>
+                        <div style="font-size:0.85rem;color:#aaa;line-height:1.5">${addrText}</div>
+                        <div class="kc-contact-actions">
+                            ${customerPhone ? `
+                                <a href="tel:${customerPhone}" class="kc-contact-btn" aria-label="Call customer">
+                                    <span>📞 Call</span>
+                                </a>
+                                <a href="https://wa.me/91${cleanPhone}?text=Hello%20${encodeURIComponent(customerName)},%20regarding%20your%20Kalyan%20Covering%20order%20#${shortId}" target="_blank" rel="noopener" class="kc-contact-btn kc-wa" aria-label="WhatsApp customer">
+                                    <span>💬 WhatsApp</span>
+                                </a>
+                            ` : '<span style="color:#666;font-size:0.8rem">No phone number on file</span>'}
+                            <button type="button" class="kc-contact-btn" onclick="copyToClipboard('${escapedAddr}', 'Delivery address copied!')" aria-label="Copy address">
+                                <span>📋 Copy Address</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 3: Payment Details -->
+                <div class="kc-accordion">
+                    <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
+                        <div class="kc-acc-title-wrap">
+                            <span class="kc-acc-icon">💳</span>
+                            <span>Payment & Billing</span>
+                        </div>
+                        <span class="kc-acc-chevron">▼</span>
+                    </div>
+                    <div class="kc-acc-body">
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
+                            <span style="color:#777">Payment Method</span>
+                            <span style="font-weight:600;color:#fff">${payMethod}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
+                            <span style="color:#777">Payment Status</span>
+                            <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
+                        </div>
+                        ${payId ? `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem">
+                                <span style="color:#777">Razorpay ID</span>
+                                <div style="display:flex;align-items:center;gap:6px">
+                                    <span style="font-family:monospace;color:#ccc">${truncPayId}</span>
+                                    <button class="kc-copy-icon-btn" style="width:28px;height:28px" onclick="copyToClipboard('${payId}', 'Payment ID copied!')" aria-label="Copy payment ID">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
+                            <span style="color:#777">Total Invoiced</span>
+                            <span style="font-weight:700;color:var(--gold)">₹${total.toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 4: Shipping & Fulfilment -->
+                <div class="kc-accordion">
+                    <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
+                        <div class="kc-acc-title-wrap">
+                            <span class="kc-acc-icon">🚚</span>
+                            <span>Shipping & Fulfilment</span>
+                        </div>
+                        <span class="kc-acc-chevron">▼</span>
+                    </div>
+                    <div class="kc-acc-body">
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
+                            <span style="color:#777">Courier</span>
+                            <span style="font-weight:600;color:#fff">${carrier}</span>
+                        </div>
+                        ${awb ? `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem">
+                                <span style="color:#777">AWB Tracking #</span>
+                                <div style="display:flex;align-items:center;gap:6px">
+                                    <span style="font-family:monospace;color:#ccc">${truncAwb}</span>
+                                    <button class="kc-copy-icon-btn" style="width:28px;height:28px" onclick="copyToClipboard('${awb}', 'AWB copied!')" aria-label="Copy AWB">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ` : '<div style="color:#666;font-size:0.8rem;padding:4px 0">No tracking code generated yet.</div>'}
+                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+                            ${trackingUrl ? `<a href="${trackingUrl}" target="_blank" rel="noopener" class="tbtn ghost sm" style="flex:1;text-align:center">Track Package ↗</a>` : ''}
+                            <button type="button" class="tbtn ghost sm" style="flex:1" onclick="if(typeof window.drawerCheckCouriers==='function') window.drawerCheckCouriers('${o.id}')">Check Couriers</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 5: Timeline -->
+                <div class="kc-accordion">
+                    <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
+                        <div class="kc-acc-title-wrap">
+                            <span class="kc-acc-icon">⏱️</span>
+                            <span>Status History Timeline</span>
+                        </div>
+                        <span class="kc-acc-chevron">▼</span>
+                    </div>
+                    <div class="kc-acc-body">
+                        ${sortedHistory.length > 0 ? `
+                            <div class="kc-timeline">
+                                ${sortedHistory.map(h => {
+                                    const hd = parseOrderDate(h.changedAt || h.timestamp || h.date);
+                                    const hdateStr = hd ? hd.toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+                                    const hstatus = h.status || 'Updated';
+                                    const hnote = h.note || 'Status updated';
+                                    const hby = h.updatedBy || h.user || 'system';
+                                    return `
+                                        <div class="kc-tl-item">
+                                            <div class="kc-tl-dot"></div>
+                                            <div class="kc-tl-time">${hdateStr} • by ${hby}</div>
+                                            <div class="kc-tl-title">${hstatus.toUpperCase()}</div>
+                                            <div class="kc-tl-note">${hnote}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        ` : '<div style="color:#777;font-size:0.82rem">Order placed on ' + orderDate + '</div>'}
+                    </div>
+                </div>
+            `;
+
+            // Build Sticky Bottom Action Bar
+            const bottomBarEl = document.getElementById('kc-os-bottom-bar');
+            bottomBarEl.innerHTML = `
+                <button type="button" class="kc-os-btn-primary" onclick="openAdminOrderModal('${o.id}')">
+                    <span>🚚 Update Status</span>
+                </button>
+                <button type="button" class="kc-os-icon-action" onclick="window.downloadAdminInvoice('${o.id}')" aria-label="Download invoice" title="Download Invoice">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <button type="button" class="kc-os-icon-action danger" onclick="confirmCancelOrderMobile('${o.id}')" aria-label="Cancel order" title="Cancel Order">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </button>
+                ${isRefundDue ? `
+                    <button type="button" class="kc-os-icon-action refund" onclick="confirmRefundOrderMobile('${o.id}')" aria-label="Refund order" title="Refund Order">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                ` : ''}
+            `;
+
+            // Display Sheet
+            const sheet = document.getElementById('mobile-order-detail-sheet');
+            sheet.style.display = 'flex';
+            requestAnimationFrame(() => sheet.classList.add('active'));
+            document.body.classList.add('overflow-hidden');
+            if (window.pushUI) window.pushUI('orderSheet');
+        };
+
+        window.closeMobileOrderDetailSheet = function(fromPop = false) {
+            const sheet = document.getElementById('mobile-order-detail-sheet');
+            if (!sheet) return;
+            sheet.classList.remove('active');
+            setTimeout(() => {
+                sheet.style.display = 'none';
+                currentViewingOrderId = null;
+                if (!document.querySelector('.kc-filter-sheet-overlay.active') && !document.querySelector('.modal-overlay.active')) {
+                    document.body.classList.remove('overflow-hidden');
+                }
+            }, 250);
+            if (!fromPop && window.popUI) window.popUI('orderSheet', false);
+        };
+
+        // Connect openMobileDetailModal('order', id) to openMobileOrderDetailSheet
+        const origOpenMobileDetailModal = window.openMobileDetailModal;
+        window.openMobileDetailModal = function(type, itemId) {
+            if (type === 'order') {
+                window.openMobileOrderDetailSheet(itemId);
+                return;
+            }
+            if (typeof origOpenMobileDetailModal === 'function') {
+                origOpenMobileDetailModal(type, itemId);
+            }
+        };
+
+        window.confirmCancelOrderMobile = function(orderId) {
+            if (typeof confirmModal === 'function') {
+                confirmModal(
+                    'Cancel this order?',
+                    'The customer will be notified and a refund initiated if prepaid.',
+                    'Cancel Order',
+                    async () => {
+                        try {
+                            if (typeof callVercelApi === 'function') {
+                                await callVercelApi('/api/orders/cancel', { orderId, reason: 'Cancelled by admin' });
+                            }
+                            if (window.Toast) Toast.success('Order cancelled successfully');
+                            closeMobileOrderDetailSheet();
+                            if (typeof window.loadAdminData === 'function') window.loadAdminData();
+                        } catch (err) {
+                            if (window.Toast) Toast.error('Error: ' + err.message);
+                        }
+                    }
+                );
+            } else {
+                if (window.Toast) Toast.info('Opening status modal to cancel');
+                openAdminOrderModal(orderId);
+            }
+        };
+
+        window.confirmRefundOrderMobile = function(orderId) {
+            if (typeof confirmModal === 'function') {
+                confirmModal(
+                    'Process Refund?',
+                    'Confirm refunding this order to the original payment method.',
+                    'Process Refund',
+                    async () => {
+                        try {
+                            if (typeof callVercelApi === 'function') {
+                                await callVercelApi('/api/orders/refund', { orderId });
+                            }
+                            if (window.Toast) Toast.success('Refund requested successfully');
+                            closeMobileOrderDetailSheet();
+                            if (typeof window.loadAdminData === 'function') window.loadAdminData();
+                        } catch (err) {
+                            if (window.Toast) Toast.error('Refund request failed: ' + err.message);
+                        }
+                    }
+                );
+            } else {
+                openAdminOrderModal(orderId);
+            }
+        };
+
         window.openModal = function (id) {
             const m = document.getElementById(id);
             if (m) m.classList.add('active');
@@ -4336,6 +4797,41 @@
             }
         }
         window.showPanel = showPanel;
+
+        // Universal null-safe order date parser (Firestore Timestamp, {seconds}, {_seconds}, Date, ISO string, number)
+        window.parseOrderDate = function parseOrderDate(val) {
+            if (!val) return null;
+            try {
+                if (val instanceof Date) {
+                    return isNaN(val.getTime()) ? null : val;
+                }
+                if (typeof val.toDate === 'function') {
+                    const d = val.toDate();
+                    return (d instanceof Date && !isNaN(d.getTime())) ? d : null;
+                }
+                if (typeof val.seconds === 'number') {
+                    const d = new Date(val.seconds * 1000);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                if (typeof val._seconds === 'number') {
+                    const d = new Date(val._seconds * 1000);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                if (typeof val === 'number') {
+                    const d = new Date(val);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                if (typeof val === 'string') {
+                    const d = new Date(val);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            } catch (e) {
+                return null;
+            }
+        };
+        const parseOrderDate = window.parseOrderDate;
 
         // ---- Dashboard ----
         function updateDashboardStats() {
@@ -5954,11 +6450,9 @@
         }
 
         function _fmtOrderDate(ts) {
-            if (!ts) return '—';
-            try {
-                let d = ts.seconds ? new Date(ts.seconds * 1000) : (ts.toDate ? ts.toDate() : new Date(ts));
-                return isNaN(d) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-            } catch (e) { return '—'; }
+            const d = parseOrderDate(ts);
+            if (!d) return '—';
+            return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
         }
 
         function renderOrdersTable(orders) {
@@ -6007,28 +6501,48 @@
 
             if (mobileList) {
                 if (orders.length === 0) {
-                    mobileList.innerHTML = '<div style="text-align:center;padding:2rem;color:#666">No orders found.</div>';
+                    mobileList.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#666"><div style="font-size:2rem;margin-bottom:0.5rem">📦</div><div style="font-size:0.95rem;color:#aaa">No orders found</div><div style="font-size:0.8rem;color:#666;margin-top:4px">Try changing your search or filter</div></div>';
                 } else {
                     mobileList.innerHTML = orders.map(o => {
                         const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
                         const rawStatus = o.orderStatus || o.status || 'pending';
                         const displayStatus = _statusLabel(rawStatus);
-                        const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
+                        const statusClass = _getOrderStatusClass(rawStatus);
+                        const customerName = String(o.customerName || o.customer?.name || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
                         const total = o.totalAmount || o.payment?.total || o.total || 0;
                         const orderDate = _fmtOrderDate(o.createdAt || o.date);
+                        const itemsArr = o.items || o.products || [];
+                        const itemCount = Array.isArray(itemsArr) ? itemsArr.length : (typeof o.items === 'number' ? o.items : 1);
+                        const payMethod = (o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
+                        const isCOD = payMethod.includes('COD');
+                        const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
+                        const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
+                        const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+                        const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'danger' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+
                         return `
-                            <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order', '${o.id}')">
-                                <div class="mobile-card-left">
-                                    <div style="min-width:0">
-                                        <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
-                                            <span class="mobile-card-title" style="color:var(--gold);font-family:monospace">#${shortId}</span>
-                                            <span class="order-status ${_getOrderStatusClass(rawStatus)}" style="font-size:0.65rem;padding:1px 6px">${displayStatus}</span>
-                                        </div>
-                                        <div class="mobile-card-subtitle">${customerName} • ${orderDate}</div>
-                                        <div class="mobile-card-price">₹${Number(total).toLocaleString()}</div>
+                            <div class="kc-order-card" onclick="openMobileOrderDetailSheet('${o.id}')" role="button" tabindex="0" aria-label="Order #${shortId}">
+                                <div class="kc-oc-top">
+                                    <span class="kc-oc-id">#${shortId}</span>
+                                    <span class="kc-status-badge ${statusClass}">
+                                        <span class="kc-status-dot"></span>
+                                        <span class="kc-status-text">${displayStatus}</span>
+                                    </span>
+                                </div>
+                                <div class="kc-oc-mid">
+                                    <span class="kc-oc-cust">${customerName}</span>
+                                    <span class="kc-oc-meta-dot">•</span>
+                                    <span class="kc-oc-date">${orderDate}</span>
+                                    <span class="kc-oc-meta-dot">•</span>
+                                    <span class="kc-oc-items">${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div class="kc-oc-bot">
+                                    <div class="kc-oc-total">₹${Number(total).toLocaleString('en-IN')}</div>
+                                    <div class="kc-oc-chips">
+                                        ${isRefundDue ? `<span class="kc-chip danger">Refund Due</span>` : ''}
+                                        <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
                                     </div>
                                 </div>
-                                <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order', '${o.id}')">View Details</button>
                             </div>
                         `;
                     }).join('');
@@ -6040,21 +6554,42 @@
                     const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
                     const rawStatus = o.orderStatus || o.status || 'pending';
                     const displayStatus = _statusLabel(rawStatus);
-                    const customerName = o.customerName || o.customer?.name || o.customer || 'Customer';
+                    const statusClass = _getOrderStatusClass(rawStatus);
+                    const customerName = String(o.customerName || o.customer?.name || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
                     const total = o.totalAmount || o.payment?.total || o.total || 0;
+                    const orderDate = _fmtOrderDate(o.createdAt || o.date);
+                    const itemsArr = o.items || o.products || [];
+                    const itemCount = Array.isArray(itemsArr) ? itemsArr.length : (typeof o.items === 'number' ? o.items : 1);
+                    const payMethod = (o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
+                    const isCOD = payMethod.includes('COD');
+                    const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
+                    const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
+                    const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+                    const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'danger' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+
                     return `
-                        <div class="mobile-card-item" style="cursor:pointer" onclick="openMobileDetailModal('order', '${o.id}')">
-                            <div class="mobile-card-left">
-                                <div style="min-width:0">
-                                    <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem">
-                                        <span class="mobile-card-title" style="color:var(--gold);font-family:monospace">#${shortId}</span>
-                                        <span class="order-status ${_getOrderStatusClass(rawStatus)}" style="font-size:0.65rem;padding:1px 6px">${displayStatus}</span>
-                                    </div>
-                                    <div class="mobile-card-subtitle">${customerName}</div>
-                                    <div class="mobile-card-price">₹${Number(total).toLocaleString()}</div>
+                        <div class="kc-order-card" onclick="openMobileOrderDetailSheet('${o.id}')" role="button" tabindex="0" aria-label="Order #${shortId}">
+                            <div class="kc-oc-top">
+                                <span class="kc-oc-id">#${shortId}</span>
+                                <span class="kc-status-badge ${statusClass}">
+                                    <span class="kc-status-dot"></span>
+                                    <span class="kc-status-text">${displayStatus}</span>
+                                </span>
+                            </div>
+                            <div class="kc-oc-mid">
+                                <span class="kc-oc-cust">${customerName}</span>
+                                <span class="kc-oc-meta-dot">•</span>
+                                <span class="kc-oc-date">${orderDate}</span>
+                                <span class="kc-oc-meta-dot">•</span>
+                                <span class="kc-oc-items">${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="kc-oc-bot">
+                                <div class="kc-oc-total">₹${Number(total).toLocaleString('en-IN')}</div>
+                                <div class="kc-oc-chips">
+                                    ${isRefundDue ? `<span class="kc-chip danger">Refund Due</span>` : ''}
+                                    <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
                                 </div>
                             </div>
-                            <button class="mobile-view-btn" onclick="event.stopPropagation(); openMobileDetailModal('order', '${o.id}')">View Details</button>
                         </div>
                     `;
                 }).join('');
@@ -7708,6 +8243,67 @@
             if (!fromPop && window.popUI) window.popUI('modal', false);
         };
     </script>
+
+
+    <!-- Mobile Order Filter Bottom Sheet -->
+    <div class="kc-filter-sheet-overlay" id="order-filter-sheet-overlay" onclick="closeOrderFilterSheet()">
+        <div class="kc-filter-sheet" onclick="event.stopPropagation()">
+            <div class="kc-fs-header">
+                <h3>Filter Orders</h3>
+                <button class="kc-fs-close" onclick="closeOrderFilterSheet()" aria-label="Close filters">✕</button>
+            </div>
+            <div class="kc-fs-body">
+                <div class="kc-fs-options" id="order-filter-sheet-options">
+                    <button class="kc-fs-opt active" data-tab="all" onclick="selectOrderFilter('all', this)">
+                        <span>All Orders</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="payment_pending" onclick="selectOrderFilter('payment_pending', this)">
+                        <span>Awaiting Payment</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="pending" onclick="selectOrderFilter('pending', this)">
+                        <span>Pending</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="packed" onclick="selectOrderFilter('packed', this)">
+                        <span>Packed</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="shipped" onclick="selectOrderFilter('shipped', this)">
+                        <span>Shipped</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="delivered" onclick="selectOrderFilter('delivered', this)">
+                        <span>Delivered</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                    <button class="kc-fs-opt" data-tab="cancelled" onclick="selectOrderFilter('cancelled', this)">
+                        <span>Cancelled</span>
+                        <span class="kc-opt-check">✓</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Full-Screen Order Detail Sheet -->
+    <div class="kc-order-sheet-backdrop" id="mobile-order-detail-sheet" role="dialog" aria-modal="true" aria-label="Order Details">
+        <div class="kc-os-header">
+            <div class="kc-os-header-left">
+                <button class="kc-os-back-btn" onclick="closeMobileOrderDetailSheet()" aria-label="Go back">←</button>
+                <span class="kc-os-title" id="kc-os-title">#ORD</span>
+            </div>
+            <div class="kc-os-header-right">
+                <span id="kc-os-status-badge"></span>
+                <button class="kc-copy-icon-btn" id="kc-os-copy-id-btn" onclick="copyCurrentOrderId()" aria-label="Copy order ID" title="Copy Order ID">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="kc-os-scroll" id="kc-os-scroll-content"></div>
+        <div class="kc-os-bottom-bar" id="kc-os-bottom-bar"></div>
+    </div>
 
     <!-- Global Mobile Item Detail Modal Container -->
     <div class="mobile-detail-backdrop" id="mobile-item-detail-modal" onclick="if(event.target===this)closeMobileDetailModal()">
