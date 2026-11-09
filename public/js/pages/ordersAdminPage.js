@@ -59,29 +59,48 @@ export function renderOrdersTable(orders) {
   }).join('');
 
   if (mobileList) {
-    mobileList.innerHTML = list.map(o => {
-      const id = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
-      const cust = String(o.customerName || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      const total = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
-      const rawStatus = String(o.orderStatus || o.status || 'placed').toLowerCase();
-      const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
-      const isSrCancelPending = !!(o.shippingDetails?.shiprocketCancelPending);
-      return `
-        <div class="mobile-card-item" style="cursor:pointer;padding:12px;border-bottom:1px solid var(--line2)" onclick="openOrderDrawer('${o.id}')">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><b style="color:var(--gold-hi)">#${id}</b> • ${cust}</div>
-            <div>
-              ${statusPill(rawStatus)}
-              ${isRefundDue ? `<span class="pill danger" style="margin-left:4px;font-size:0.72rem;background:#ff4d4f;color:#fff;padding:2px 6px;border-radius:4px;">Refund due</span>` : ''}
-              ${isSrCancelPending ? `<span class="pill danger" style="margin-left:4px;font-size:0.72rem;background:#fa8c16;color:#fff;padding:2px 6px;border-radius:4px;">SR Cancel pending</span>` : ''}
+    if (list.length === 0) {
+      mobileList.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--kc-muted)">No orders found.</div>`;
+    } else {
+      mobileList.innerHTML = list.map(o => {
+        const rawLast5 = (String(o.id || o.orderId || '94A2B').replace(/[^a-zA-Z0-9]/g, '')).slice(-5).toUpperCase();
+        const shortId = `#ORD-${rawLast5}`;
+        const cust = String(o.customerName || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer')).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const d = (window.parseOrderDate ? window.parseOrderDate(o.createdAt || o.date) : null) || new Date();
+        const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        const itemsArr = Array.isArray(o.items) ? o.items : (Array.isArray(o.products) ? o.products : []);
+        const itemsCount = itemsArr.length || (typeof o.items === 'number' ? o.items : 1);
+        const total = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
+        const rawStatus = String(o.orderStatus || o.status || 'pending').toLowerCase();
+        const payMethod = String(o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
+        const isCOD = payMethod.includes('COD');
+        const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
+        const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
+        const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+        const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'refund-due' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+        const statusClass = rawStatus === 'delivered' ? 'delivered' : (rawStatus === 'shipped' || rawStatus === 'packed' ? 'shipped' : (rawStatus === 'cancelled' ? 'cancelled' : (rawStatus === 'paid' || rawStatus === 'confirmed' ? 'paid' : 'pending')));
+
+        return `
+          <div class="kc-order-card" onclick="if(window.openMobileOrderDetailSheet) window.openMobileOrderDetailSheet('${o.id}'); else if(window.openOrderDrawer) window.openOrderDrawer('${o.id}')" role="button" tabindex="0" aria-label="Order ${shortId}">
+            <div class="kc-oc-row1">
+              <span class="kc-oc-id">${shortId}</span>
+              <span class="kc-status-badge ${statusClass}">
+                <span class="kc-status-dot"></span>
+                <span>${rawStatus}</span>
+              </span>
+            </div>
+            <div class="kc-oc-row2">${cust} · ${dateStr} · ${itemsCount} item${itemsCount !== 1 ? 's' : ''}</div>
+            <div class="kc-oc-row3">
+              <div class="kc-oc-total">₹${Math.round(total).toLocaleString('en-IN')}</div>
+              <span class="kc-pay-chip ${payChipClass}">
+                ${isRefundDue ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` : ''}
+                <span>${payChipLabel}</span>
+              </span>
             </div>
           </div>
-          <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;font-size:0.84rem;color:var(--muted)">
-            <span>Total: ₹${Math.round(total).toLocaleString('en-IN')}</span>
-            <button class="tbtn ghost sm" onclick="event.stopPropagation(); openOrderDrawer('${o.id}')">View</button>
-          </div>
-        </div>`;
-    }).join('');
+        `;
+      }).join('');
+    }
   }
 }
 

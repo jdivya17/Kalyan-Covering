@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1641,6 +1641,17 @@
     </div>
 
     <!-- Toolbar Filters & Status Tabs -->
+    <!-- Mobile Top Bar (<=768px) -->
+    <div class="kc-mobile-topbar">
+        <button class="kc-topbar-btn" onclick="openSide()" aria-label="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="kc-topbar-title">Orders</span>
+        <button class="kc-topbar-btn" onclick="if(window.openOrderExportDrawer) openOrderExportDrawer()" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+    </div>
+
     <div class="toolbar kc-orders-toolbar">
         <div class="seg desktop-only-seg" id="order-status-tabs">
             <button class="active" aria-current="true" onclick="filterOrdersByTab('all', this)">All</button>
@@ -1652,9 +1663,9 @@
             <button onclick="filterOrdersByTab('cancelled', this)">Cancelled</button>
         </div>
         <div class="kc-mobile-filter-bar">
-            <div class="searchbox kc-orders-search">
-                <span class="nav-ic" data-ic="search"></span>
-                <input type="text" placeholder="Search order or customer..." id="order-search-input" oninput="filterOrdersUI()">
+            <div class="kc-orders-search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Search order or customer" id="order-search-input" oninput="filterOrdersUI()" aria-label="Search order or customer">
             </div>
             <button class="kc-filter-btn" id="order-filter-sheet-btn" onclick="openOrderFilterSheet()" aria-label="Open filter sheet">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -3979,7 +3990,7 @@
 
         window.copyCurrentOrderId = function() {
             if (currentViewingOrderId) {
-                window.copyToClipboard(currentViewingOrderId, 'Order ID copied: #' + currentViewingOrderId.substring(0, 10).toUpperCase());
+                window.copyToClipboard(currentViewingOrderId, 'Order ID copied');
             }
         };
 
@@ -4031,7 +4042,10 @@
                     badge.style.display = 'none';
                 } else {
                     badge.style.display = 'inline-block';
-                    badge.textContent = status.charAt(0).toUpperCase();
+                    const list = window.ordersData || (window.adminData && window.adminData.orders) || [];
+                    const count = list.filter(o => String(o.orderStatus || o.status || '').toLowerCase() === status).length;
+                    badge.style.display = 'inline-flex';
+                    badge.textContent = count > 0 ? count : '1';
                 }
             }
 
@@ -4055,23 +4069,31 @@
             }
             currentViewingOrderId = orderId;
 
-            const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
+            const rawClean = String(o.id || o.orderId || '94A2B').replace(/[^a-zA-Z0-9]/g, '');
+            const shortId = '#ORD-' + (rawClean.slice(-5) || '94A2B').toUpperCase();
+
             const rawStatus = String(o.orderStatus || o.status || 'pending').toLowerCase();
-            const displayStatus = _statusLabel(rawStatus);
-            const statusClass = _getOrderStatusClass(rawStatus);
-            const customerName = String(o.customerName || o.customer?.name || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            const displayStatus = typeof _statusLabel === 'function' ? _statusLabel(rawStatus) : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
+            const statusClass = rawStatus === 'delivered' ? 'delivered' : (rawStatus === 'shipped' || rawStatus === 'packed' ? 'shipped' : (rawStatus === 'cancelled' ? 'cancelled' : (rawStatus === 'paid' || rawStatus === 'confirmed' ? 'paid' : 'pending')));
+
+            const customerName = String(o.customerName || o.customer?.name || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer')).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             const customerPhone = String(o.customerPhone || o.customer?.phone || (o.shippingAddress && (o.shippingAddress.phone || o.shippingAddress.mobile)) || '').trim();
-            const cleanPhone = customerPhone.replace(/\D/g, '');
+            const cleanDigits = customerPhone.replace(/\D/g, '');
+            const clean10Phone = cleanDigits.slice(-10);
+
             const total = Number(o.totalAmount || o.payment?.total || o.total || 0);
-            const orderDate = _fmtOrderDate(o.createdAt || o.date);
+            const d = (typeof parseOrderDate === 'function' ? parseOrderDate(o.createdAt || o.date) : null) || new Date();
+            const orderDateFull = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
             const items = Array.isArray(o.items) ? o.items : (Array.isArray(o.products) ? o.products : []);
-            const itemCount = items.length || 1;
+            const itemCount = items.length || (typeof o.items === 'number' ? o.items : 1);
+
             const payMethod = String(o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
             const isCOD = payMethod.includes('COD');
             const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
             const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
-            const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
-            const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'danger' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+            const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+            const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'refund-due' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
 
             // Address format
             let addrText = 'No delivery address recorded.';
@@ -4086,11 +4108,11 @@
 
             // Payment ID
             const payId = o.paymentDetails?.razorpayPaymentId || o.razorpayPaymentId || o.paymentId || (o.payment && o.payment.id) || '';
-            const truncPayId = middleTruncate(payId, 16);
+            const truncPayId = middleTruncate(payId, 14);
 
             // Shipping Info
             const sd = o.shippingDetails || {};
-            const carrier = sd.courierName || sd.carrier || o.carrier || 'Not assigned';
+            const carrier = sd.courierName || sd.carrier || o.carrier || 'Standard Courier';
             const awb = sd.awbCode || sd.trackingNumber || o.trackingNumber || '';
             const truncAwb = middleTruncate(awb, 14);
             const trackingUrl = sd.trackingUrl || '';
@@ -4098,51 +4120,47 @@
             // Status History Timeline
             const history = Array.isArray(o.statusHistory) ? o.statusHistory : [];
             const sortedHistory = [...history].sort((a, b) => {
-                const da = parseOrderDate(a.changedAt || a.timestamp || a.date);
-                const db = parseOrderDate(b.changedAt || b.timestamp || b.date);
+                const da = typeof parseOrderDate === 'function' ? parseOrderDate(a.changedAt || a.timestamp || a.date) : null;
+                const db = typeof parseOrderDate === 'function' ? parseOrderDate(b.changedAt || b.timestamp || b.date) : null;
                 if (!da || !db) return 0;
                 return db - da;
             });
 
-            // Set Header
-            document.getElementById('kc-os-title').textContent = '#' + shortId;
-            document.getElementById('kc-os-status-badge').innerHTML = `
-                <span class="kc-status-badge ${statusClass}">
-                    <span class="kc-status-dot"></span>
-                    <span>${displayStatus}</span>
-                </span>
-            `;
+            // Set Sticky Header: center order number and status text below
+            const titleEl = document.getElementById('kc-os-title');
+            const subTitleEl = document.getElementById('kc-os-subtitle');
+            if (titleEl) titleEl.textContent = shortId;
+            if (subTitleEl) subTitleEl.textContent = displayStatus;
+
+            // SVGs
+            const SVG_PACKAGE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
+            const SVG_USER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+            const SVG_RUPEE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="8" x2="18" y2="8"/><path d="M6 13h4a4 4 0 0 0 0-8"/><path d="M6 13l7 8"/></svg>';
+            const SVG_TRUCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+            const SVG_CLOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            const SVG_CHEVRON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+            const SVG_PHONE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+            const SVG_WHATSAPP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.59.21-1.09.14-1.19-.06-.1-.22-.16-.47-.28z"/></svg>';
+            const SVG_COPY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 
             // Build Scrollable Body
             const scrollEl = document.getElementById('kc-os-scroll-content');
             scrollEl.innerHTML = `
-                <!-- Summary Strip -->
+                <!-- 2. Summary strip (centered, padding 12px, bottom border) -->
                 <div class="kc-os-summary-strip">
-                    <div>
-                        <div class="kc-os-summary-total">₹${total.toLocaleString('en-IN')}</div>
-                        <div style="font-size:0.75rem;color:#777;margin-top:2px">${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
-                    </div>
-                    <div class="kc-os-summary-right">
-                        <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
-                        <span class="kc-os-summary-date">${orderDate}</span>
-                    </div>
+                    <div class="kc-os-summary-total">₹${total.toLocaleString('en-IN')}</div>
+                    <div class="kc-os-summary-meta">${itemCount} item${itemCount !== 1 ? 's' : ''} · ${payChipLabel} · ${orderDateFull}</div>
                 </div>
 
-                ${isRefundDue ? `
-                    <div class="kc-refund-banner">
-                        <span>⚠️</span>
-                        <div><b>Refund Required:</b> Cancellation was requested. Verify refund amount before closing.</div>
-                    </div>
-                ` : ''}
-
+                <!-- 3. Five accordion sections, each a card -->
                 <!-- Accordion 1: Items (Open by default) -->
                 <div class="kc-accordion open">
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
-                            <span class="kc-acc-icon">🛍️</span>
+                            <span class="kc-acc-icon">${SVG_PACKAGE}</span>
                             <span>Items (${itemCount})</span>
                         </div>
-                        <span class="kc-acc-chevron">▼</span>
+                        <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
                     <div class="kc-acc-body">
                         ${items.length > 0 ? items.map(it => {
@@ -4151,112 +4169,117 @@
                             const iqty = it.quantity || it.qty || 1;
                             const iprice = Number(it.price || 0);
                             return `
-                                <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                                    <img src="${iimg}" onerror="this.src='../assets/kalyan_logo.png'" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:1px solid #222" alt="">
-                                    <div style="flex:1;min-width:0">
-                                        <div style="font-size:0.88rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${iname}</div>
-                                        <div style="font-size:0.78rem;color:#888">${iqty} × ₹${iprice.toLocaleString('en-IN')}</div>
+                                <div class="kc-order-item-row">
+                                    <img src="${iimg}" onerror="this.src='../assets/kalyan_logo.png'" class="kc-item-thumb" alt="${iname}">
+                                    <div class="kc-item-info">
+                                        <div class="kc-item-name">${iname}</div>
+                                        <div class="kc-item-meta">Qty ${iqty} × ₹${iprice.toLocaleString('en-IN')}</div>
                                     </div>
-                                    <div style="font-size:0.9rem;font-weight:700;color:var(--gold)">₹${(iqty * iprice).toLocaleString('en-IN')}</div>
+                                    <div class="kc-item-total">₹${(iqty * iprice).toLocaleString('en-IN')}</div>
                                 </div>
                             `;
-                        }).join('') : '<div style="color:#777;font-size:0.85rem">Item details not available.</div>'}
+                        }).join('') : '<div style="color:var(--kc-muted);font-size:12px">No item details available.</div>'}
                     </div>
                 </div>
 
-                <!-- Accordion 2: Customer & Delivery Address -->
+                <!-- Accordion 2: Customer and address -->
                 <div class="kc-accordion">
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
-                            <span class="kc-acc-icon">👤</span>
+                            <span class="kc-acc-icon">${SVG_USER}</span>
                             <span>Customer & Address</span>
                         </div>
-                        <span class="kc-acc-chevron">▼</span>
+                        <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
                     <div class="kc-acc-body">
-                        <div style="font-weight:700;font-size:0.95rem;color:#fff;margin-bottom:4px">${customerName}</div>
-                        <div style="font-size:0.85rem;color:#aaa;line-height:1.5">${addrText}</div>
+                        <div style="font-weight:500;font-size:13px;color:var(--kc-text);margin-bottom:4px">${customerName}</div>
+                        <div style="font-size:12px;color:var(--kc-muted);line-height:1.4">${addrText}</div>
                         <div class="kc-contact-actions">
                             ${customerPhone ? `
-                                <a href="tel:${customerPhone}" class="kc-contact-btn" aria-label="Call customer">
-                                    <span>📞 Call</span>
+                                <a href="tel:${cleanDigits}" class="kc-contact-btn" aria-label="Call customer">
+                                    ${SVG_PHONE}
+                                    <span>Call</span>
                                 </a>
-                                <a href="https://wa.me/91${cleanPhone}?text=Hello%20${encodeURIComponent(customerName)},%20regarding%20your%20Kalyan%20Covering%20order%20#${shortId}" target="_blank" rel="noopener" class="kc-contact-btn kc-wa" aria-label="WhatsApp customer">
-                                    <span>💬 WhatsApp</span>
+                                <a href="https://wa.me/91${clean10Phone}" target="_blank" rel="noopener" class="kc-contact-btn kc-wa" aria-label="WhatsApp customer">
+                                    ${SVG_WHATSAPP}
+                                    <span>WhatsApp</span>
                                 </a>
-                            ` : '<span style="color:#666;font-size:0.8rem">No phone number on file</span>'}
-                            <button type="button" class="kc-contact-btn" onclick="copyToClipboard('${escapedAddr}', 'Delivery address copied!')" aria-label="Copy address">
-                                <span>📋 Copy Address</span>
-                            </button>
+                            ` : '<span style="color:var(--kc-muted);font-size:12px">No phone number</span>'}
+                            <button type="button" class="kc-contact-btn" onclick="copyToClipboard('${escapedAddr}', 'Address copied')" aria-label="Copy address">
+                                ${SVG_COPY}
+                                <span>Copy</span>
+                            </button
                         </div>
                     </div>
                 </div>
 
-                <!-- Accordion 3: Payment Details -->
+                <!-- Accordion 3: Payment -->
                 <div class="kc-accordion">
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
-                            <span class="kc-acc-icon">💳</span>
+                            <span class="kc-acc-icon">${SVG_RUPEE}</span>
                             <span>Payment & Billing</span>
                         </div>
-                        <span class="kc-acc-chevron">▼</span>
+                        <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
                     <div class="kc-acc-body">
-                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
-                            <span style="color:#777">Payment Method</span>
-                            <span style="font-weight:600;color:#fff">${payMethod}</span>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">Payment Method</span>
+                            <span class="kc-info-value">${payMethod}</span>
                         </div>
-                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
-                            <span style="color:#777">Payment Status</span>
-                            <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">Payment Status</span>
+                            <span class="kc-pay-chip ${payChipClass}">${payChipLabel}</span>
                         </div>
-                        ${payId ? `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem">
-                                <span style="color:#777">Razorpay ID</span>
-                                <div style="display:flex;align-items:center;gap:6px">
-                                    <span style="font-family:monospace;color:#ccc">${truncPayId}</span>
-                                    <button class="kc-copy-icon-btn" style="width:28px;height:28px" onclick="copyToClipboard('${payId}', 'Payment ID copied!')" aria-label="Copy payment ID">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                    </button>
-                                </div>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">Payment ID</span>
+                            <span class="kc-info-value" style="display:inline-flex;align-items:center;gap:6px">
+                                <span style="font-family:monospace">${payId ? ('pay_...' + payId.slice(-4)) : '—'}</span>
+                                ${payId ? `<button type="button" class="kc-mini-copy-btn" onclick="copyToClipboard('${payId}', 'Payment ID copied')" aria-label="Copy payment ID">${SVG_COPY}</button>` : ''}
+                            </span>
+                        </div>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">Refund Status</span>
+                            <span class="kc-info-value">${isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Required' : 'None')}</span>
+                        </div>
+                        ${isRefundDue ? `
+                            <div style="margin-top:10px;background:#2e1414;color:#f08a8a;border:1px solid rgba(240,138,138,0.3);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;">
+                                <span>⚠️</span>
+                                <div><b>Refund required:</b> Order cancellation pending refund.</div>
                             </div>
                         ` : ''}
-                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
-                            <span style="color:#777">Total Invoiced</span>
-                            <span style="font-weight:700;color:var(--gold)">₹${total.toLocaleString('en-IN')}</span>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Accordion 4: Shipping & Fulfilment -->
+                <!-- Accordion 4: Shipping -->
                 <div class="kc-accordion">
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
-                            <span class="kc-acc-icon">🚚</span>
+                            <span class="kc-acc-icon">${SVG_TRUCK}</span>
                             <span>Shipping & Fulfilment</span>
                         </div>
-                        <span class="kc-acc-chevron">▼</span>
+                        <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
                     <div class="kc-acc-body">
-                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
-                            <span style="color:#777">Courier</span>
-                            <span style="font-weight:600;color:#fff">${carrier}</span>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">Courier</span>
+                            <span class="kc-info-value">${carrier}</span>
                         </div>
-                        ${awb ? `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem">
-                                <span style="color:#777">AWB Tracking #</span>
-                                <div style="display:flex;align-items:center;gap:6px">
-                                    <span style="font-family:monospace;color:#ccc">${truncAwb}</span>
-                                    <button class="kc-copy-icon-btn" style="width:28px;height:28px" onclick="copyToClipboard('${awb}', 'AWB copied!')" aria-label="Copy AWB">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                    </button>
-                                </div>
+                        <div class="kc-info-row">
+                            <span class="kc-info-label">AWB Tracking #</span>
+                            <span class="kc-info-value" style="display:inline-flex;align-items:center;gap:6px">
+                                <span style="font-family:monospace">${truncAwb || 'Not generated'}</span>
+                                ${awb ? `<button type="button" class="kc-mini-copy-btn" onclick="copyToClipboard('${awb}', 'AWB copied')" aria-label="Copy AWB">${SVG_COPY}</button>` : ''}
+                            </span>
+                        </div>
+                        ${trackingUrl || awb ? `
+                            <div style="margin-top:10px">
+                                <a href="${trackingUrl || '#'}" target="_blank" rel="noopener" class="kc-contact-btn" style="width:100%;color:var(--kc-gold);border-color:var(--kc-gold)">
+                                    ${SVG_TRUCK}
+                                    <span>Track</span>
+                                </a>
                             </div>
-                        ` : '<div style="color:#666;font-size:0.8rem;padding:4px 0">No tracking code generated yet.</div>'}
-                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-                            ${trackingUrl ? `<a href="${trackingUrl}" target="_blank" rel="noopener" class="tbtn ghost sm" style="flex:1;text-align:center">Track Package ↗</a>` : ''}
-                            <button type="button" class="tbtn ghost sm" style="flex:1" onclick="if(typeof window.drawerCheckCouriers==='function') window.drawerCheckCouriers('${o.id}')">Check Couriers</button>
-                        </div>
+                        ` : ''}
                     </div>
                 </div>
 
@@ -4264,52 +4287,48 @@
                 <div class="kc-accordion">
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
-                            <span class="kc-acc-icon">⏱️</span>
+                            <span class="kc-acc-icon">${SVG_CLOCK}</span>
                             <span>Status History Timeline</span>
                         </div>
-                        <span class="kc-acc-chevron">▼</span>
+                        <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
                     <div class="kc-acc-body">
                         ${sortedHistory.length > 0 ? `
                             <div class="kc-timeline">
                                 ${sortedHistory.map(h => {
-                                    const hd = parseOrderDate(h.changedAt || h.timestamp || h.date);
+                                    const hd = typeof parseOrderDate === 'function' ? parseOrderDate(h.changedAt || h.timestamp || h.date) : null;
                                     const hdateStr = hd ? hd.toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
                                     const hstatus = h.status || 'Updated';
-                                    const hnote = h.note || 'Status updated';
-                                    const hby = h.updatedBy || h.user || 'system';
                                     return `
                                         <div class="kc-tl-item">
                                             <div class="kc-tl-dot"></div>
-                                            <div class="kc-tl-time">${hdateStr} • by ${hby}</div>
                                             <div class="kc-tl-title">${hstatus.toUpperCase()}</div>
-                                            <div class="kc-tl-note">${hnote}</div>
+                                            <div class="kc-tl-time">${hdateStr}</div>
                                         </div>
                                     `;
                                 }).join('')}
                             </div>
-                        ` : '<div style="color:#777;font-size:0.82rem">Order placed on ' + orderDate + '</div>'}
+                        ` : '<div class="kc-timeline"><div class="kc-tl-item"><div class="kc-tl-dot"></div><div class="kc-tl-title">ORDER PLACED</div><div class="kc-tl-time">' + orderDateFull + '</div></div></div>'}
                     </div>
                 </div>
             `;
 
-            // Build Sticky Bottom Action Bar
+            // 4. Sticky bottom action bar
             const bottomBarEl = document.getElementById('kc-os-bottom-bar');
             bottomBarEl.innerHTML = `
-                <button type="button" class="kc-os-btn-primary" onclick="openAdminOrderModal('${o.id}')">
-                    <span>🚚 Update Status</span>
+                <button type="button" class="kc-os-btn-primary" onclick="openAdminOrderModal('${o.id}')" aria-label="Update status">
+                    ${SVG_TRUCK}
+                    <span>Update status</span>
                 </button>
-                <button type="button" class="kc-os-icon-action" onclick="window.downloadAdminInvoice('${o.id}')" aria-label="Download invoice" title="Download Invoice">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <button type="button" class="kc-os-icon-action" onclick="window.downloadAdminInvoice('${o.id}')" aria-label="Invoice" title="Invoice">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
                 </button>
-                <button type="button" class="kc-os-icon-action danger" onclick="confirmCancelOrderMobile('${o.id}')" aria-label="Cancel order" title="Cancel Order">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <button type="button" class="kc-os-icon-action" onclick="confirmCancelOrderMobile('${o.id}')" aria-label="Cancel" title="Cancel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
-                ${isRefundDue ? `
-                    <button type="button" class="kc-os-icon-action refund" onclick="confirmRefundOrderMobile('${o.id}')" aria-label="Refund order" title="Refund Order">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    </button>
-                ` : ''}
+                <button type="button" class="kc-os-icon-action" onclick="confirmRefundOrderMobile('${o.id}')" aria-label="Refund" title="Refund">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
             `;
 
             // Display Sheet
@@ -4319,7 +4338,6 @@
             document.body.classList.add('overflow-hidden');
             if (window.pushUI) window.pushUI('orderSheet');
         };
-
         window.closeMobileOrderDetailSheet = function(fromPop = false) {
             const sheet = document.getElementById('mobile-order-detail-sheet');
             if (!sheet) return;
@@ -6501,47 +6519,43 @@
 
             if (mobileList) {
                 if (orders.length === 0) {
-                    mobileList.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#666"><div style="font-size:2rem;margin-bottom:0.5rem">📦</div><div style="font-size:0.95rem;color:#aaa">No orders found</div><div style="font-size:0.8rem;color:#666;margin-top:4px">Try changing your search or filter</div></div>';
+                    mobileList.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--kc-muted)"><div style="font-size:2rem;margin-bottom:0.5rem">📦</div><div style="font-size:0.95rem;color:var(--kc-text)">No orders found</div><div style="font-size:0.8rem;color:var(--kc-muted);margin-top:4px">Try changing your search or filter</div></div>';
                 } else {
                     mobileList.innerHTML = orders.map(o => {
-                        const shortId = o.id ? o.id.substring(0, 10).toUpperCase() : '—';
-                        const rawStatus = o.orderStatus || o.status || 'pending';
-                        const displayStatus = _statusLabel(rawStatus);
-                        const statusClass = _getOrderStatusClass(rawStatus);
-                        const customerName = String(o.customerName || o.customer?.name || o.customer || 'Customer').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-                        const total = o.totalAmount || o.payment?.total || o.total || 0;
-                        const orderDate = _fmtOrderDate(o.createdAt || o.date);
-                        const itemsArr = o.items || o.products || [];
-                        const itemCount = Array.isArray(itemsArr) ? itemsArr.length : (typeof o.items === 'number' ? o.items : 1);
-                        const payMethod = (o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
+                        const rawClean = String(o.id || o.orderId || '94A2B').replace(/[^a-zA-Z0-9]/g, '');
+                        const shortId = '#ORD-' + (rawClean.slice(-5) || '94A2B').toUpperCase();
+                        const rawStatus = String(o.orderStatus || o.status || 'pending').toLowerCase();
+                        const displayStatus = typeof _statusLabel === 'function' ? _statusLabel(rawStatus) : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
+                        const statusClass = rawStatus === 'delivered' ? 'delivered' : (rawStatus === 'shipped' || rawStatus === 'packed' ? 'shipped' : (rawStatus === 'cancelled' ? 'cancelled' : (rawStatus === 'paid' || rawStatus === 'confirmed' ? 'paid' : 'pending')));
+                        const customerName = String(o.customerName || o.customer?.name || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer')).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                        const total = typeof o.totalAmount === 'number' ? o.totalAmount : (typeof o.total === 'number' ? o.total : 0);
+                        const d = (typeof parseOrderDate === 'function' ? parseOrderDate(o.createdAt || o.date) : null) || new Date();
+                        const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                        const itemsArr = Array.isArray(o.items) ? o.items : (Array.isArray(o.products) ? o.products : []);
+                        const itemCount = itemsArr.length || (typeof o.items === 'number' ? o.items : 1);
+                        const payMethod = String(o.paymentMethod || o.payment?.method || o.payment || 'ONLINE').toUpperCase();
                         const isCOD = payMethod.includes('COD');
                         const isRefundDue = !!(o.cancellation?.refundRequired || o.refundRequired);
                         const isRefunded = rawStatus === 'refunded' || o.refundStatus === 'refunded';
-                        const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund Due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
-                        const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'danger' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
+                        const payChipLabel = isRefunded ? 'Refunded' : (isRefundDue ? 'Refund due' : (isCOD ? 'COD' : (rawStatus === 'confirmed' || rawStatus === 'delivered' || rawStatus === 'shipped' || o.paymentStatus === 'paid' ? 'Paid' : 'Pending')));
+                        const payChipClass = isRefunded ? 'refunded' : (isRefundDue ? 'refund-due' : (isCOD ? 'cod' : (payChipLabel === 'Paid' ? 'paid' : 'pending')));
 
                         return `
-                            <div class="kc-order-card" onclick="openMobileOrderDetailSheet('${o.id}')" role="button" tabindex="0" aria-label="Order #${shortId}">
-                                <div class="kc-oc-top">
-                                    <span class="kc-oc-id">#${shortId}</span>
+                            <div class="kc-order-card" onclick="openMobileOrderDetailSheet('${o.id}')" role="button" tabindex="0" aria-label="Order ${shortId}">
+                                <div class="kc-oc-row1">
+                                    <span class="kc-oc-id">${shortId}</span>
                                     <span class="kc-status-badge ${statusClass}">
                                         <span class="kc-status-dot"></span>
-                                        <span class="kc-status-text">${displayStatus}</span>
+                                        <span>${displayStatus}</span>
                                     </span>
                                 </div>
-                                <div class="kc-oc-mid">
-                                    <span class="kc-oc-cust">${customerName}</span>
-                                    <span class="kc-oc-meta-dot">•</span>
-                                    <span class="kc-oc-date">${orderDate}</span>
-                                    <span class="kc-oc-meta-dot">•</span>
-                                    <span class="kc-oc-items">${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
-                                </div>
-                                <div class="kc-oc-bot">
-                                    <div class="kc-oc-total">₹${Number(total).toLocaleString('en-IN')}</div>
-                                    <div class="kc-oc-chips">
-                                        ${isRefundDue ? `<span class="kc-chip danger">Refund Due</span>` : ''}
-                                        <span class="kc-chip ${payChipClass}">${payChipLabel}</span>
-                                    </div>
+                                <div class="kc-oc-row2">${customerName} · ${dateStr} · ${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+                                <div class="kc-oc-row3">
+                                    <div class="kc-oc-total">₹${Math.round(total).toLocaleString('en-IN')}</div>
+                                    <span class="kc-pay-chip ${payChipClass}">
+                                        ${isRefundDue ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` : ''}
+                                        <span>${payChipLabel}</span>
+                                    </span>
                                 </div>
                             </div>
                         `;
@@ -8290,16 +8304,16 @@
     <!-- Mobile Full-Screen Order Detail Sheet -->
     <div class="kc-order-sheet-backdrop" id="mobile-order-detail-sheet" role="dialog" aria-modal="true" aria-label="Order Details">
         <div class="kc-os-header">
-            <div class="kc-os-header-left">
-                <button class="kc-os-back-btn" onclick="closeMobileOrderDetailSheet()" aria-label="Go back">←</button>
-                <span class="kc-os-title" id="kc-os-title">#ORD</span>
+            <button class="kc-os-back-btn" onclick="closeMobileOrderDetailSheet()" aria-label="Go back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="kc-os-header-center">
+                <span class="kc-os-title" id="kc-os-title">#ORD-94A2B</span>
+                <span class="kc-os-subtitle" id="kc-os-subtitle">Pending</span>
             </div>
-            <div class="kc-os-header-right">
-                <span id="kc-os-status-badge"></span>
-                <button class="kc-copy-icon-btn" id="kc-os-copy-id-btn" onclick="copyCurrentOrderId()" aria-label="Copy order ID" title="Copy Order ID">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-            </div>
+            <button class="kc-copy-icon-btn" id="kc-os-copy-id-btn" onclick="copyCurrentOrderId()" aria-label="Copy order ID" title="Copy Order ID">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
         </div>
         <div class="kc-os-scroll" id="kc-os-scroll-content"></div>
         <div class="kc-os-bottom-bar" id="kc-os-bottom-bar"></div>
@@ -8342,6 +8356,30 @@
       run();
     })();
     </script>
+    <!-- Mobile Bottom Navigation (<=768px) -->
+    <nav class="kc-bottom-nav" aria-label="Mobile Navigation">
+        <button class="kc-bn-item" onclick="showPanel('dashboard', this); return false;" data-v="dashboard" aria-label="Home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Home</span>
+        </button>
+        <button class="kc-bn-item active" onclick="showPanel('orders', this); return false;" data-v="orders" aria-label="Orders">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span>Orders</span>
+        </button>
+        <button class="kc-bn-item" onclick="showPanel('products', this); return false;" data-v="products" aria-label="Products">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span>Products</span>
+        </button>
+        <button class="kc-bn-item" onclick="showPanel('users', this); return false;" data-v="users" aria-label="Customers">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Customers</span>
+        </button>
+        <button class="kc-bn-item" onclick="openSide(); return false;" aria-label="More">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+        </button>
+    </nav>
+
 </body>
 
 </html>
