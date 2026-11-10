@@ -1512,6 +1512,29 @@
 
                 <!-- ===== PRODUCTS ===== -->
                 <div class="admin-panel" id="panel-products">
+
+                    <!-- Mobile Topbar & Search/Filter (<=768px) -->
+                    <div class="kc-prod-mobile-topbar">
+                        <button class="kc-topbar-btn" onclick="openSidebar()" aria-label="menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                        <span class="kc-topbar-title">Products</span>
+                        <button class="kc-prod-add-btn" onclick="openAddProductModal()" aria-label="plus">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-label="plus"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
+                    <div class="kc-prod-mobile-filterbar">
+                        <div class="kc-prod-search-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input id="kc-prod-mobile-search" placeholder="Search products" aria-label="search" oninput="handleMobileProductSearch(this.value)">
+                        </div>
+                        <button class="kc-prod-filter-btn" id="kc-prod-filter-trigger-btn" onclick="openProductFilterSheet()" aria-label="filter">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="filter"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            <span>Filter</span>
+                            <span class="kc-filter-badge" id="kc-prod-filter-badge" style="display:none">0</span>
+                        </button>
+                    </div>
+
                     <!-- Top Header -->
                     <div class="top">
                         <div>
@@ -1595,6 +1618,19 @@
                         <div id="products-mobile-output" class="list"></div>
                     </div>
 
+                    <!-- Mobile Pagination (<=768px) -->
+                    <div class="kc-prod-mobile-pagination" id="kc-prod-mobile-pagination">
+                        <button class="kc-pg-btn" id="kc-prod-pg-prev" onclick="changeProductPage(-1)" aria-label="chevron">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <span>Previous</span>
+                        </button>
+                        <span class="kc-pg-text" id="kc-prod-pg-text">Page 1 of 1</span>
+                        <button class="kc-pg-btn" id="kc-prod-pg-next" onclick="changeProductPage(1)" aria-label="chevron">
+                            <span>Next</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+
                     <!-- Pagination Controls -->
                     <div class="pg" id="products-pager-controls" style="margin-top:12px">
                         <button class="ib" aria-label="Previous page" onclick="changeProductPage(-1)">
@@ -1624,6 +1660,102 @@
                     <div class="acts">
                         <button class="btn" onclick="closeDeleteConfirmDialog()">Cancel</button>
                         <button class="btn" style="color:var(--red,#e5534b);border-color:var(--red,#e5534b)" onclick="executeProductDeletion()">Delete</button>
+                    </div>
+                </div>
+
+
+                <!-- Product Filter Bottom Sheet (<=768px) -->
+                <div class="kc-filter-sheet-overlay" id="kc-prod-filter-sheet" onclick="if(event.target===this) closeProductFilterSheet()">
+                    <div class="kc-filter-sheet">
+                        <div class="kc-fs-header">
+                            <h3>Filter Products</h3>
+                            <button class="kc-fs-close" onclick="closeProductFilterSheet()" aria-label="x">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <div class="kc-fs-body">
+                            <div class="kc-fs-group">
+                                <label>Category</label>
+                                <select id="kc-prod-fs-cat" class="kc-fs-select" onchange="updateProductFilterCount()">
+                                    <option value="all">All categories</option>
+                                    <option value="Necklaces">Necklaces</option>
+                                    <option value="Rings">Rings</option>
+                                    <option value="Earrings">Earrings</option>
+                                    <option value="Bangles">Bangles</option>
+                                    <option value="Bracelets">Bracelets</option>
+                                    <option value="Anklets">Anklets</option>
+                                    <option value="Mangalsutra">Mangalsutra</option>
+                                    <option value="Nose Pins">Nose Pins</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                            <div class="kc-fs-group">
+                                <label>Status</label>
+                                <select id="kc-prod-fs-status" class="kc-fs-select" onchange="updateProductFilterCount()">
+                                    <option value="all">All status</option>
+                                    <option value="active">Active</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div class="kc-fs-group">
+                                <label>Stock</label>
+                                <select id="kc-prod-fs-stock" class="kc-fs-select" onchange="updateProductFilterCount()">
+                                    <option value="all">All stock</option>
+                                    <option value="in">In stock</option>
+                                    <option value="low">Low stock</option>
+                                    <option value="out">Out of stock</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="kc-fs-actions">
+                            <button class="kc-fs-btn-clear" onclick="clearProductFilters()">Clear</button>
+                            <button class="kc-fs-btn-apply" id="kc-prod-fs-apply-btn" onclick="applyProductFilters()">Show products</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Kebab Action Bottom Sheet (<=768px) -->
+                <div class="kc-filter-sheet-overlay" id="kc-prod-kebab-sheet" onclick="if(event.target===this) closeProductKebabSheet()">
+                    <div class="kc-filter-sheet kc-kebab-sheet">
+                        <div class="kc-fs-header">
+                            <h3 id="kc-kebab-sheet-title">Product Options</h3>
+                            <button class="kc-fs-close" onclick="closeProductKebabSheet()" aria-label="x">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <div class="kc-kebab-actions">
+                            <button class="kc-kebab-row" onclick="handleKebabAction('view')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="more"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg>
+                                <span>View</span>
+                            </button>
+                            <button class="kc-kebab-row" onclick="handleKebabAction('edit')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <span>Edit</span>
+                            </button>
+                            <button class="kc-kebab-row" id="kc-kebab-duplicate-btn" onclick="handleKebabAction('duplicate')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                <span>Duplicate</span>
+                            </button>
+                            <button class="kc-kebab-row" id="kc-kebab-stock-toggle" onclick="handleKebabAction('toggleStock')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="more"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                <span id="kc-kebab-stock-text">Restock</span>
+                            </button>
+                            <button class="kc-kebab-row kc-kebab-danger" onclick="handleKebabAction('delete')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="trash"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Discard Confirm Dialog -->
+                <div class="dlg" id="prod-discard-dlg" role="alertdialog" aria-labelledby="pdd-discard-title">
+                    <h3 id="pdd-discard-title">Discard changes?</h3>
+                    <p>You have unsaved changes that will be lost.</p>
+                    <div class="acts">
+                        <button class="btn" onclick="closeDiscardConfirmDialog()">Keep editing</button>
+                        <button class="btn" style="color:var(--red,#e5534b);border-color:var(--red,#e5534b)" onclick="executeDiscardChanges()">Discard</button>
                     </div>
                 </div>
 
@@ -2364,6 +2496,14 @@
     <!-- Manage Order & Tracking Modal -->
     <div class="modal-overlay" id="admin-order-modal">
         <div class="modal" style="max-width:700px">
+            <!-- Mobile Modal Header (<=768px) -->
+            <div class="kc-modal-mobile-header">
+                <button class="kc-modal-back-btn" type="button" onclick="handleProductModalClose()" aria-label="chevron">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <span class="kc-modal-title" id="kc-modal-mobile-title">Add New Product</span>
+                <div style="width:36px"></div>
+            </div>
             <button class="modal-close" onclick="closeModal('admin-order-modal')">×</button>
             <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.2rem">Manage Order Tracking &amp;
                 Status</h3>
@@ -2769,7 +2909,7 @@
                 Add New Product</h3>
             <div class="modal-form-grid">
                 <div class="form-group"><label class="form-label">Product Name *</label>
-                    <input type="text" class="form-input" id="pm-name" placeholder="e.g. Eternal Gold Necklace">
+                    <input type="text" class="form-input" id="pm-name" oninput="markProductFormDirty(); clearFieldError('pm-name')" placeholder="e.g. Eternal Gold Necklace">
                 </div>
                 <div class="form-group"><label class="form-label">Category *</label>
                     <select class="form-input" id="pm-cat">
@@ -2788,7 +2928,7 @@
                     </select>
                 </div>
                 <div class="form-group"><label class="form-label">Price (₹) *</label>
-                    <input type="number" class="form-input" id="pm-price" placeholder="1299">
+                    <input type="number" class="form-input" id="pm-price" oninput="markProductFormDirty(); clearFieldError('pm-price')" placeholder="1299">
                 </div>
                 <div class="form-group"><label class="form-label">MRP (₹)</label>
                     <input type="number" class="form-input" id="pm-mrp" placeholder="1799">
@@ -2867,7 +3007,7 @@
             <div class="modal-actions-sticky">
                 <button class="btn btn-gold" id="btn-save-product" style="flex:1" onclick="saveProduct()">💾 Save
                     Product</button>
-                <button class="btn btn-ghost" onclick="closeModal('add-product-modal')">Cancel</button>
+                <button class="btn btn-ghost" onclick="handleProductModalClose()" class="kc-modal-btn-cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -5886,6 +6026,293 @@
             });
         }
 
+        
+        /* ========================================================
+           B2: ADMIN PRODUCTS MOBILE CONTROLLER (<=768px)
+           ======================================================== */
+        window._activeKebabProductId = null;
+        window._productFormDirty = false;
+
+        function getProductStockAndStatusChips(p) {
+            let stockNum = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' || p.stock === 'in' ? 50 : (p.stockStatus === 'low' || p.stock === 'low' ? 3 : 0));
+            let stockClass = 'kc-stock-in';
+            let stockLabel = 'In stock ' + stockNum;
+            if (stockNum === 0 || p.stockStatus === 'out' || p.stock === 'out_of_stock' || p.stock === 'out') {
+                stockClass = 'kc-stock-out';
+                stockLabel = 'Out of stock';
+            } else if (stockNum <= 5 || p.stockStatus === 'low') {
+                stockClass = 'kc-stock-low';
+                stockLabel = 'Low stock ' + stockNum;
+            }
+
+            const st = String(p.status || 'active').toLowerCase();
+            let statusClass = 'kc-status-active';
+            let statusLabel = 'Active';
+            if (st === 'draft') {
+                statusClass = 'kc-status-draft';
+                statusLabel = 'Draft';
+            } else if (st === 'archived') {
+                statusClass = 'kc-status-archived';
+                statusLabel = 'Archived';
+            }
+
+            return { stockClass, stockLabel, statusClass, statusLabel, stockNum };
+        }
+
+        window.handleMobileProductSearch = function(val) {
+            const deskInput = document.getElementById('prod-search-input');
+            if (deskInput) deskInput.value = val;
+            productCurrentPage = 1;
+            renderProductsTable(window.adminProducts);
+        };
+
+        window.openProductFilterSheet = function() {
+            const sheet = document.getElementById('kc-prod-filter-sheet');
+            if (!sheet) return;
+            // Sync with current selects
+            const catSel = document.getElementById('prod-cat-filter');
+            const statusSel = document.getElementById('prod-status-filter');
+            if (catSel) document.getElementById('kc-prod-fs-cat').value = catSel.value;
+            if (statusSel) document.getElementById('kc-prod-fs-status').value = statusSel.value;
+            updateProductFilterCount();
+            sheet.classList.add('on');
+            document.body.classList.add('lock');
+        };
+
+        window.closeProductFilterSheet = function() {
+            document.getElementById('kc-prod-filter-sheet')?.classList.remove('on');
+            document.body.classList.remove('lock');
+        };
+
+        window.updateProductFilterCount = function() {
+            const cat = document.getElementById('kc-prod-fs-cat')?.value || 'all';
+            const status = document.getElementById('kc-prod-fs-status')?.value || 'all';
+            const stock = document.getElementById('kc-prod-fs-stock')?.value || 'all';
+
+            const rawList = window.adminProducts || adminProducts || [];
+            const count = rawList.filter(p => {
+                const matchesCat = cat === 'all' || (p.category || p.cat) === cat;
+                const st = String(p.status || 'active').toLowerCase();
+                const matchesStatus = status === 'all' || st === status;
+                const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' || p.stock === 'in' ? 50 : (p.stockStatus === 'low' || p.stock === 'low' ? 3 : 0));
+                let stockGroup = 'in';
+                if (stockVal === 0 || p.stockStatus === 'out' || p.stock === 'out_of_stock' || p.stock === 'out') stockGroup = 'out';
+                else if (stockVal <= 5 || p.stockStatus === 'low') stockGroup = 'low';
+                const matchesStock = stock === 'all' || stockGroup === stock;
+                return matchesCat && matchesStatus && matchesStock;
+            }).length;
+
+            const applyBtn = document.getElementById('kc-prod-fs-apply-btn');
+            if (applyBtn) {
+                applyBtn.textContent = 'Show ' + count + ' products';
+            }
+        };
+
+        window.applyProductFilters = function() {
+            const cat = document.getElementById('kc-prod-fs-cat')?.value || 'all';
+            const status = document.getElementById('kc-prod-fs-status')?.value || 'all';
+            const stock = document.getElementById('kc-prod-fs-stock')?.value || 'all';
+
+            const deskCat = document.getElementById('prod-cat-filter');
+            if (deskCat) deskCat.value = cat;
+            const deskStatus = document.getElementById('prod-status-filter');
+            if (deskStatus) deskStatus.value = stock !== 'all' ? stock : (status !== 'all' ? status : 'all');
+
+            let activeCount = 0;
+            if (cat !== 'all') activeCount++;
+            if (status !== 'all') activeCount++;
+            if (stock !== 'all') activeCount++;
+
+            const badge = document.getElementById('kc-prod-filter-badge');
+            if (badge) {
+                if (activeCount > 0) {
+                    badge.textContent = String(activeCount);
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            productCurrentPage = 1;
+            renderProductsTable(window.adminProducts);
+            closeProductFilterSheet();
+        };
+
+        window.clearProductFilters = function() {
+            const deskInput = document.getElementById('prod-search-input');
+            if (deskInput) deskInput.value = '';
+            const mobInput = document.getElementById('kc-prod-mobile-search');
+            if (mobInput) mobInput.value = '';
+
+            const catSel = document.getElementById('prod-cat-filter');
+            if (catSel) catSel.value = 'all';
+            const statusSel = document.getElementById('prod-status-filter');
+            if (statusSel) statusSel.value = 'all';
+
+            const fsCat = document.getElementById('kc-prod-fs-cat');
+            if (fsCat) fsCat.value = 'all';
+            const fsStatus = document.getElementById('kc-prod-fs-status');
+            if (fsStatus) fsStatus.value = 'all';
+            const fsStock = document.getElementById('kc-prod-fs-stock');
+            if (fsStock) fsStock.value = 'all';
+
+            const badge = document.getElementById('kc-prod-filter-badge');
+            if (badge) badge.style.display = 'none';
+
+            productCurrentPage = 1;
+            renderProductsTable(window.adminProducts);
+            closeProductFilterSheet();
+        };
+
+        window.openProductKebabSheet = function(productId) {
+            window._activeKebabProductId = productId;
+            const allProducts = window.adminProducts || adminProducts || [];
+            const p = allProducts.find(x => String(x.id) === String(productId));
+            if (!p) return;
+
+            const titleEl = document.getElementById('kc-kebab-sheet-title');
+            if (titleEl) titleEl.textContent = p.name || 'Product Options';
+
+            const stockVal = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 10 : 0);
+            const toggleTextEl = document.getElementById('kc-kebab-stock-text');
+            if (toggleTextEl) {
+                toggleTextEl.textContent = stockVal === 0 ? 'Restock (+20)' : 'Restock (+20)';
+            }
+
+            document.getElementById('kc-prod-kebab-sheet')?.classList.add('on');
+            document.body.classList.add('lock');
+        };
+
+        window.closeProductKebabSheet = function() {
+            document.getElementById('kc-prod-kebab-sheet')?.classList.remove('on');
+            document.body.classList.remove('lock');
+        };
+
+        window.handleKebabAction = function(action) {
+            const id = window._activeKebabProductId;
+            closeProductKebabSheet();
+            if (!id) return;
+
+            if (action === 'view') {
+                openProductDetailSheet(id);
+            } else if (action === 'edit') {
+                openEditProduct(id);
+            } else if (action === 'duplicate') {
+                duplicateProduct(id);
+            } else if (action === 'toggleStock') {
+                restockProductFromSheet(id);
+            } else if (action === 'delete') {
+                promptDeleteProduct(id);
+            }
+        };
+
+        window.duplicateProduct = function(productId) {
+            const allProducts = window.adminProducts || adminProducts || [];
+            const p = allProducts.find(x => String(x.id) === String(productId));
+            if (!p) {
+                if (typeof Toast !== 'undefined') Toast.error('Product not found');
+                return;
+            }
+
+            closeProductSheet();
+            openAddProductModal();
+
+            const titleEl = document.getElementById('product-modal-title');
+            if (titleEl) titleEl.textContent = 'Duplicate Product';
+            const mobileTitleEl = document.getElementById('kc-modal-mobile-title');
+            if (mobileTitleEl) mobileTitleEl.textContent = 'Duplicate Product';
+
+            const nameEl = document.getElementById('pm-name'); if (nameEl) nameEl.value = (p.name || '') + ' (Copy)';
+            const descEl = document.getElementById('pm-description'); if (descEl) descEl.value = p.description || '';
+            const catEl = document.getElementById('pm-cat'); if (catEl) catEl.value = p.category || '';
+            const priceEl = document.getElementById('pm-price'); if (priceEl) priceEl.value = p.price || 0;
+            const mrpEl = document.getElementById('pm-mrp'); if (mrpEl) mrpEl.value = p.mrp || p.price || 0;
+            const gstEl = document.getElementById('pm-gst'); if (gstEl) gstEl.value = p.gst || 3;
+            const discEl = document.getElementById('pm-discount'); if (discEl) discEl.value = p.discount || 0;
+
+            const stockUnits = typeof p.stock === 'number' ? p.stock : (p.stockStatus === 'in' ? 50 : (p.stockStatus === 'low' ? 5 : 0));
+            const stockCountEl = document.getElementById('pm-stock-count');
+            if (stockCountEl) stockCountEl.value = stockUnits;
+            const stockSelEl = document.getElementById('pm-stock');
+            if (stockSelEl) stockSelEl.value = p.stockStatus || 'in';
+
+            const tagsEl = document.getElementById('pm-tags'); if (tagsEl) tagsEl.value = (p.tags || []).join(', ');
+
+            currentUploadedImages = [...(p.imageURLs || p.images || (p.image ? [p.image] : []))];
+            const imgsEl = document.getElementById('pm-images'); if (imgsEl) imgsEl.value = currentUploadedImages.join(', ');
+            const imgPreview = document.getElementById('pm-images-preview');
+            if (imgPreview) {
+                imgPreview.innerHTML = currentUploadedImages.map(url => '<div class="preview-item"><img src="' + url + '"><button class="remove-btn" onclick="removeMedia(\'' + url + '\', \'image\')">×</button></div>').join('');
+            }
+
+            markProductFormDirty();
+        };
+
+        window.copyProductSku = function(sku) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(sku).then(() => {
+                    if (typeof Toast !== 'undefined') Toast.success('SKU copied');
+                    else if (typeof showToast === 'function') showToast('SKU copied');
+                });
+            } else {
+                if (typeof Toast !== 'undefined') Toast.success('SKU copied');
+            }
+        };
+
+        window.setProductDetailHeroImg = function(thumbEl, url) {
+            const hero = document.getElementById('kc-pds-main-hero');
+            if (hero) hero.src = url;
+            document.querySelectorAll('.kc-pds-thumb-item').forEach(el => el.classList.remove('active'));
+            if (thumbEl) thumbEl.classList.add('active');
+        };
+
+        window.toggleProductAccordion = function(headerEl) {
+            const acc = headerEl.closest('.kc-accordion');
+            if (acc) {
+                acc.classList.toggle('open');
+            }
+        };
+
+        window.markProductFormDirty = function() {
+            window._productFormDirty = true;
+        };
+
+        window.clearFieldError = function(fieldId) {
+            const err = document.getElementById('err-' + fieldId);
+            if (err) err.classList.remove('visible');
+        };
+
+        window.handleProductModalClose = function() {
+            if (window._productFormDirty) {
+                document.getElementById('prod-discard-dlg')?.classList.add('on');
+            } else {
+                closeModal('add-product-modal');
+            }
+        };
+
+        window.closeDiscardConfirmDialog = function() {
+            document.getElementById('prod-discard-dlg')?.classList.remove('on');
+        };
+
+        window.executeDiscardChanges = function() {
+            window._productFormDirty = false;
+            document.getElementById('prod-discard-dlg')?.classList.remove('on');
+            closeModal('add-product-modal');
+        };
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const modal = document.getElementById('add-product-modal');
+                if (modal && (modal.classList.contains('open') || modal.style.display === 'block')) {
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')) {
+                        setTimeout(() => {
+                            document.activeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }, 100);
+                    }
+                }
+            });
+        }
+
         function renderProductsTable(products) {
             const tbody = document.getElementById('products-table');
             const mobileOutput = document.getElementById('products-mobile-output');
@@ -5955,70 +6382,46 @@
                 }
             }
 
-            // 2. Mobile List / Grid Output
+            // 2. Mobile List / Card Output (<=768px)
             if (mobileOutput) {
                 if (filteredList.length === 0) {
-                    mobileOutput.innerHTML = `<p class="sub" style="text-align:center;padding:24px 0">No products match your search.</p>`;
-                } else if (productViewMode === 'grid') {
-                    mobileOutput.className = 'grid';
-                    mobileOutput.innerHTML = pageList.map(p => {
-                        const sName = DOMPurify.sanitize(p.name || 'Unnamed');
-                        const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '';
-                        const badge = getProductStockBadge(p);
-                        const priceFmt = '₹' + Number(p.price || 0).toLocaleString('en-IN');
-                        const lineIconSvg = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
-
-                        return `
-                            <div class="gc" data-id="${p.id}" tabindex="0" role="button" aria-label="View ${sName}" onclick="openProductDetailSheet('${p.id}')" onkeydown="handleProductCardKeydown(event, '${p.id}')">
-                                <div class="im">
-                                    ${mainImg ? `<img src="${mainImg}" alt="${sName}">` : lineIconSvg}
-                                </div>
-                                <div class="t">
-                                    <div class="nm">${sName}</div>
-                                    <div class="pr"><span>${priceFmt}</span></div>
-                                    <div class="bd ${badge.cls}" style="margin-top:4px">${badge.text}</div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
+                    mobileOutput.innerHTML = `
+                        <div class="kc-prod-empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--kc-muted)" stroke-width="1.5" aria-label="image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <p>No products found</p>
+                            <button class="kc-empty-clear-btn" onclick="clearProductFilters()">Clear filters</button>
+                        </div>
+                    `;
                 } else {
                     mobileOutput.className = 'list';
                     mobileOutput.innerHTML = pageList.map(p => {
                         const sName = DOMPurify.sanitize(p.name || 'Unnamed');
-                        const sCat = DOMPurify.sanitize(p.category || 'Jewelry');
+                        const sCat = DOMPurify.sanitize(p.category || p.cat || 'Jewelry');
                         const mainImg = p.primaryImageURL || p.imageURLs?.[0] || p.images?.[0] || p.image || '';
-                        const badge = getProductStockBadge(p);
-                        const priceFmt = '₹' + Number(p.price || 0).toLocaleString('en-IN');
-                        const lineIconSvg = `<svg width="28" height="28" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
+                        const price = Number(p.price || 0);
+                        const mrp = Number(p.mrp || 0);
+                        const chips = getProductStockAndStatusChips(p);
 
                         return `
-                            <div class="pc" data-id="${p.id}" tabindex="0" role="button" aria-label="View ${sName}" onclick="openProductDetailSheet('${p.id}')" onkeydown="handleProductCardKeydown(event, '${p.id}')">
-                                <div class="im">
-                                    ${mainImg ? `<img src="${mainImg}" alt="${sName}">` : lineIconSvg}
+                            <div class="kc-prod-card" data-prod-id="${p.id}" onclick="openProductDetailSheet('${p.id}')">
+                                <div class="kc-pc-thumb-wrap">
+                                    ${mainImg ? `<img class="kc-pc-thumb" src="${mainImg}" alt="${sName}" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<svg width=\\'28\\' height=\\'28\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'var(--kc-muted)\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><polyline points=\\'21 15 16 10 5 21\\'/></svg>'">` : `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--kc-muted)" stroke-width="1.5" aria-label="image"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
                                 </div>
-                                <div>
-                                    <div class="nm">${sName}</div>
-                                    <div class="ct">${sCat}</div>
-                                    <div class="pr">
-                                        <span>${priceFmt}</span>
-                                        <span class="bd ${badge.cls}">${badge.text}</span>
+                                <div class="kc-pc-mid">
+                                    <div class="kc-pc-name">${sName}</div>
+                                    <div class="kc-pc-cat">${sCat}</div>
+                                    <div class="kc-pc-price">
+                                        <span class="kc-gold-price">₹${Math.round(price).toLocaleString('en-IN')}</span>
+                                        ${mrp && mrp > price ? `<s class="kc-mrp-price">₹${Math.round(mrp).toLocaleString('en-IN')}</s>` : ''}
+                                    </div>
+                                    <div class="kc-pc-chips">
+                                        <span class="kc-stock-chip ${chips.stockClass}"><span class="kc-chip-dot"></span>${chips.stockLabel}</span>
+                                        <span class="kc-status-chip ${chips.statusClass}">${chips.statusLabel}</span>
                                     </div>
                                 </div>
-                                <button class="ib mb" aria-label="More options for ${sName}" data-id="${p.id}" onclick="toggleProductMenu(event, '${p.id}')">
-                                    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                                </button>
-                                <div class="menu" id="prod-menu-${p.id}" onclick="event.stopPropagation()">
-                                    <button onclick="closeAllMenus(); openProductDetailSheet('${p.id}')">
-                                        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg>
-                                        View
-                                    </button>
-                                    <button onclick="closeAllMenus(); openEditProduct('${p.id}')">
-                                        <svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
-                                        Edit
-                                    </button>
-                                    <button class="d" onclick="closeAllMenus(); promptDeleteProduct('${p.id}')">
-                                        <svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
-                                        Delete
+                                <div class="kc-pc-right">
+                                    <button class="kc-prod-kebab-btn" onclick="event.stopPropagation(); openProductKebabSheet('${p.id}')" aria-label="more">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-label="more"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>
                                     </button>
                                 </div>
                             </div>
@@ -6026,6 +6429,14 @@
                     }).join('');
                 }
             }
+
+            // Mobile Pagination Bar update
+            const mobilePgText = document.getElementById('kc-prod-pg-text');
+            const mobilePgPrev = document.getElementById('kc-prod-pg-prev');
+            const mobilePgNext = document.getElementById('kc-prod-pg-next');
+            if (mobilePgText) mobilePgText.textContent = `Page ${productCurrentPage} of ${totalPages}`;
+            if (mobilePgPrev) mobilePgPrev.disabled = (productCurrentPage <= 1);
+            if (mobilePgNext) mobilePgNext.disabled = (productCurrentPage >= totalPages);
         }
 
         window.filterProductsUI = function() {
@@ -6087,12 +6498,214 @@
             const reviewsCount = p.reviews || p.reviewsCount || 0;
             const ratingVal = p.rating || 0;
             const isFeatured = p.featured || p.isFeatured;
-
             const badge = getProductStockBadge(p);
 
-            // Photos gallery
             const imgs = (p.imageURLs && p.imageURLs.length) ? p.imageURLs : ((p.images && p.images.length) ? p.images : (p.image ? [p.image] : []));
             const lineIconSvg = `<svg width="96" height="96" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 14c4 22 10 32 22 38 12-6 18-16 22-38"/><path d="M26 30l6 8 6-8-6-6z"/></svg>`;
+
+            const contentEl = document.getElementById('prod-sheet-content');
+
+            if (window.innerWidth <= 768) {
+                // SCREEN 2: MOBILE FULL-SCREEN DETAIL SHEET (<=768px)
+                const chips = getProductStockAndStatusChips(p);
+                const firstImg = imgs[0] || '';
+                const mainImgSrc = firstImg || '/img-fallback.svg';
+
+                let thumbsHtml = '';
+                if (imgs.length > 0) {
+                    thumbsHtml = imgs.map((url, idx) => `
+                        <div class="kc-pds-thumb-item ${idx===0?'active':''}" onclick="setProductDetailHeroImg(this, '${url}')">
+                            <img src="${url}" alt="Thumbnail ${idx+1}">
+                        </div>
+                    `).join('');
+                } else {
+                    thumbsHtml = `
+                        <div class="kc-pds-thumb-item active" style="display:flex;align-items:center;justify-content:center;color:var(--kc-muted)">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="image"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        </div>
+                    `;
+                }
+
+                const hasReviews = reviewsCount > 0 && ratingVal > 0;
+                const reviewsAccordionHtml = hasReviews ? `
+                    <div class="kc-accordion">
+                        <div class="kc-acc-header" onclick="toggleProductAccordion(this)">
+                            <div class="kc-acc-header-left">
+                                <span class="kc-acc-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-label="more"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                </span>
+                                <span>Reviews (${reviewsCount})</span>
+                            </div>
+                            <span class="kc-acc-chevron">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                            </span>
+                        </div>
+                        <div class="kc-acc-body">
+                            <div class="kc-info-row">
+                                <span class="kc-info-label">Average rating</span>
+                                <span class="kc-info-value" style="color:var(--kc-gold)">${ratingVal} ★ / 5.0</span>
+                            </div>
+                            <div class="kc-info-row">
+                                <span class="kc-info-label">Total reviews</span>
+                                <span class="kc-info-value">${reviewsCount} verified reviews</span>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <!-- 1. Sticky Header -->
+                        <div class="kc-pds-header">
+                            <button class="kc-pds-back-btn" onclick="closeProductSheet()" aria-label="chevron">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <div class="kc-pds-header-title">${sName}</div>
+                            <button class="kc-pds-kebab-btn" onclick="openProductKebabSheet('${p.id}')" aria-label="more">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-label="more"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- 2. Image Strip: 100% width main image + 88px horizontal snap thumbnails -->
+                        <div class="kc-pds-hero-img-wrap">
+                            <img id="kc-pds-main-hero" class="kc-pds-hero-img" src="${mainImgSrc}" alt="${sName}" onerror="this.src='/img-fallback.svg'">
+                        </div>
+                        <div class="kc-pds-thumbs-strip">
+                            ${thumbsHtml}
+                        </div>
+
+                        <!-- 3. Summary Strip -->
+                        <div class="kc-pds-summary">
+                            <div class="kc-pds-price-row">
+                                <span class="kc-pds-gold-price">₹${Math.round(price).toLocaleString('en-IN')}</span>
+                                <div style="display:flex;gap:6px">
+                                    <span class="kc-stock-chip ${chips.stockClass}"><span class="kc-chip-dot"></span>${chips.stockLabel}</span>
+                                    <span class="kc-status-chip ${chips.statusClass}">${chips.statusLabel}</span>
+                                </div>
+                            </div>
+                            <div class="kc-pds-sku-row">
+                                <span>SKU: ${sku}</span>
+                                <button class="kc-mini-copy-btn" onclick="copyProductSku('${sku}')" aria-label="copy">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 4. Accordion Cards (Details open first) -->
+                        <div class="kc-accordion open">
+                            <div class="kc-acc-header" onclick="toggleProductAccordion(this)">
+                                <div class="kc-acc-header-left">
+                                    <span class="kc-acc-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="more"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                    </span>
+                                    <span>Details</span>
+                                </div>
+                                <span class="kc-acc-chevron">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                                </span>
+                            </div>
+                            <div class="kc-acc-body">
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Category</span>
+                                    <span class="kc-info-value">${sCat}</span>
+                                </div>
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Tags</span>
+                                    <span class="kc-info-value">${(p.tags || []).join(', ') || 'None'}</span>
+                                </div>
+                                <div class="kc-info-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+                                    <span class="kc-info-label">Description</span>
+                                    <span class="kc-info-value" style="white-space:pre-wrap;font-size:13px;line-height:1.4">${p.description || 'No description provided.'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kc-accordion">
+                            <div class="kc-acc-header" onclick="toggleProductAccordion(this)">
+                                <div class="kc-acc-header-left">
+                                    <span class="kc-acc-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="more"><path d="M6 3h12M6 8h12M6 13l7 8M6 13h5a4 4 0 0 0 0-8"/></svg>
+                                    </span>
+                                    <span>Pricing</span>
+                                </div>
+                                <span class="kc-acc-chevron">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                                </span>
+                            </div>
+                            <div class="kc-acc-body">
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Selling Price</span>
+                                    <span class="kc-info-value" style="color:var(--kc-gold);font-weight:500">₹${Math.round(price).toLocaleString('en-IN')}</span>
+                                </div>
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Original Price (MRP)</span>
+                                    <span class="kc-info-value">₹${Math.round(p.mrp || price).toLocaleString('en-IN')}</span>
+                                </div>
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Discount</span>
+                                    <span class="kc-info-value">${p.discount || (p.mrp > price ? Math.round((p.mrp - price)/p.mrp * 100) : 0)}% off</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kc-accordion">
+                            <div class="kc-acc-header" onclick="toggleProductAccordion(this)">
+                                <div class="kc-acc-header-left">
+                                    <span class="kc-acc-icon">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="more"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                    </span>
+                                    <span>Inventory</span>
+                                </div>
+                                <span class="kc-acc-chevron">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                                </span>
+                            </div>
+                            <div class="kc-acc-body">
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Current Stock</span>
+                                    <span class="kc-info-value">${stockVal} units</span>
+                                </div>
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Stock Status</span>
+                                    <span class="kc-info-value">${chips.stockLabel}</span>
+                                </div>
+                                <div class="kc-info-row">
+                                    <span class="kc-info-label">Product Status</span>
+                                    <span class="kc-info-value">${chips.statusLabel}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${reviewsAccordionHtml}
+
+                        <!-- 5. Sticky Bottom Action Bar -->
+                        <div class="kc-pds-bottom-bar">
+                            <button class="kc-pds-btn-primary" onclick="closeProductSheet(); openEditProduct('${p.id}')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <span>Edit product</span>
+                            </button>
+                            <button class="kc-pds-icon-action" onclick="duplicateProduct('${p.id}')" aria-label="copy" title="Duplicate">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                            <button class="kc-pds-icon-action kc-pds-danger" onclick="promptDeleteProduct('${p.id}')" aria-label="trash" title="Delete">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="trash"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+                document.getElementById('prod-sheet-ov')?.classList.add('on');
+                document.getElementById('prod-detail-sheet')?.classList.add('on');
+                document.body.classList.add('lock');
+                const sheetEl = document.getElementById('prod-detail-sheet');
+                if (sheetEl) sheetEl.scrollTop = 0;
+                return;
+            }
+
+            // Desktop Existing View (continues below)
+            // Note: allProducts, p, sName, sCat, sku, price, unitsSold, revenue, stockVal, wishlist, reviewsCount, ratingVal, isFeatured, badge already declared above
+
+            // Photos gallery
+            // Note: imgs and lineIconSvg already declared above
             
             let gallerySlidesHtml = '';
             if (imgs.length > 0) {
@@ -6141,7 +6754,7 @@
             }).join('');
 
             // Sheet HTML content
-            const contentEl = document.getElementById('prod-sheet-content');
+            // contentEl already declared above
             if (contentEl) {
                 contentEl.innerHTML = `
                     <div class="gal" id="psh-gallery" onscroll="handleSheetGalleryScroll(this)">
