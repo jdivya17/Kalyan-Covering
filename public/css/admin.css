@@ -1916,13 +1916,28 @@ body.lock {
 .kc-status-badge.refunded, .kc-pay-chip.refunded { background: #231a38; color: #b79cf2; }
 
 /* Hide floating WhatsApp on admin */
-.whatsapp-float, .whatsapp-button, .wa-btn-float, a[href*="whatsapp.com"]:not(.kc-contact-btn), a[href*="wa.me"]:not(.kc-contact-btn) {
+.whatsapp-float, .whatsapp-button, .wa-btn-float, a[href*="whatsapp.com"]:not(.kc-contact-btn):not(.kc-wa-btn), a[href*="wa.me"]:not(.kc-contact-btn):not(.kc-wa-btn), button[data-wa]:not(.kc-contact-btn):not(.kc-wa-btn) {
   display: none !important;
 }
 
 /* Desktop styles stay unchanged; bottom nav & mobile topbar hidden on desktop */
 .kc-bottom-nav, .kc-mobile-topbar {
   display: none;
+}
+
+
+/* ========================================================
+   B3: ADMIN INVOICES MOBILE UI — DESKTOP DEFAULTS (HIDE MOBILE ELEMENTS)
+   ======================================================== */
+.kc-inv-mobile-topbar,
+.kc-inv-mobile-filterbar,
+.kc-inv-mobile-pagination,
+#kc-inv-filter-sheet,
+#kc-inv-kebab-sheet,
+.kc-inv-empty-state,
+.kc-inv-skeleton-card,
+#idm-mobile-content {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -3506,6 +3521,573 @@ body.lock {
   }
   @keyframes kc-spin {
     to { transform: rotate(360deg); }
+  }
+
+
+
+  /* ========================================================
+     B3: ADMIN INVOICES MOBILE UI (<=768px)
+     ======================================================== */
+  /* 1. Hide desktop elements in #panel-invoices */
+  #panel-invoices > div:first-child,
+  #panel-invoices .stats-grid,
+  #panel-invoices .desktop-table-wrap,
+  #panel-invoices #inv-load-more,
+  #idm-desktop-content {
+    display: none !important;
+  }
+
+  #panel-invoices {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 0 calc(70px + env(safe-area-inset-bottom, 0px)) 0 !important;
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. Top bar: 36px round menu button, title "Invoices" (16px 500), right 36px round bell */
+  .kc-inv-mobile-topbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 12px;
+    background: var(--kc-bg, #0d0a06);
+    border-bottom: 1px solid var(--kc-line, #2e2619);
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* 3. Search & Filter row */
+  .kc-inv-mobile-filterbar {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--kc-bg, #0d0a06);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .kc-inv-search-box {
+    flex: 1;
+    height: 44px;
+    background: var(--kc-card, #15120c);
+    border: 1px solid var(--kc-line, #2e2619);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+  .kc-inv-search-box svg {
+    color: var(--kc-muted, #9a917f);
+    flex-shrink: 0;
+  }
+  .kc-inv-search-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--kc-text, #f7f3eb);
+    font-size: 16px;
+    font-family: inherit;
+    min-width: 0;
+  }
+  .kc-inv-search-box input::placeholder {
+    color: var(--kc-muted, #9a917f);
+  }
+
+  .kc-inv-filter-btn {
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--kc-gold, #d6b25e);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--kc-gold, #d6b25e);
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kc-inv-filter-btn:active {
+    background: rgba(214, 178, 94, 0.1);
+  }
+  .kc-inv-filter-badge {
+    background: var(--kc-gold, #d6b25e);
+    color: var(--kc-on-gold, #0a0805);
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 1px 6px;
+    line-height: 1.2;
+  }
+
+  /* 4. Invoice Card */
+  .kc-inv-card {
+    margin: 10px 12px;
+    background: var(--kc-card, #15120c);
+    border: 1px solid var(--kc-line, #2e2619);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: calc(100% - 24px);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s ease;
+  }
+  .kc-inv-card:active {
+    border-color: var(--kc-line2, #3a2f1a);
+  }
+
+  .kc-inv-row1,
+  .kc-inv-row2,
+  .kc-inv-row3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .kc-inv-no {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--kc-text, #f7f3eb);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .kc-inv-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .kc-inv-status-chip .kc-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .kc-inv-row2 {
+    margin: 6px 0 8px;
+    font-size: 12px;
+    color: var(--kc-muted, #9a917f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .kc-inv-order-id {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--kc-muted, #9a917f);
+  }
+
+  .kc-inv-total {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--kc-gold, #d6b25e);
+  }
+
+  /* Actions row inside card */
+  .kc-inv-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--kc-line, #2e2619);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kc-inv-act-btn {
+    flex: 1;
+    height: 44px;
+    min-height: 44px;
+    border: 1px solid var(--kc-line2, #3a2f1a);
+    background: transparent;
+    color: var(--kc-text, #f7f3eb);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kc-inv-act-btn:active {
+    border-color: var(--kc-gold, #d6b25e);
+    color: var(--kc-gold, #d6b25e);
+  }
+  .kc-inv-act-btn svg {
+    color: var(--kc-gold, #d6b25e);
+    flex-shrink: 0;
+  }
+  .kc-inv-act-kebab {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border: 1px solid var(--kc-line2, #3a2f1a);
+    background: transparent;
+    color: var(--kc-gold, #d6b25e);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kc-inv-act-kebab:active {
+    border-color: var(--kc-gold, #d6b25e);
+    background: rgba(214, 178, 94, 0.1);
+  }
+
+  /* 5. Date pills in Filter sheet */
+  .kc-inv-date-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .kc-inv-date-pill {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+    border: 1px solid var(--kc-line, #2e2619);
+    background: var(--kc-card, #15120c);
+    color: var(--kc-muted, #9a917f);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .kc-inv-date-pill.active {
+    border-color: var(--kc-gold, #d6b25e);
+    color: var(--kc-gold, #d6b25e);
+    background: rgba(214, 178, 94, 0.1);
+  }
+
+  /* 6. Pagination */
+  .kc-inv-mobile-pagination {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin: 8px 0 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kc-inv-page-btn {
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--kc-line, #2e2619);
+    color: var(--kc-text, #f7f3eb);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .kc-inv-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .kc-inv-page-info {
+    font-size: 13px;
+    color: var(--kc-muted, #9a917f);
+    font-weight: 500;
+  }
+
+  /* 7. Skeleton */
+  .kc-inv-skeleton-card {
+    display: flex !important;
+    pointer-events: none;
+  }
+
+  /* 8. Empty state */
+  .kc-inv-empty-state {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    text-align: center;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kc-inv-empty-state p {
+    font-size: 14px;
+    color: var(--kc-muted, #9a917f);
+    margin: 0;
+  }
+
+  /* SCREEN 2: INVOICE PREVIEW (#invoice-detail-modal on <=768px) */
+  #invoice-detail-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: var(--kc-bg, #0d0a06) !important;
+    z-index: 1000 !important;
+    overflow-y: auto !important;
+    margin: 0 !important;
+    padding: 0 0 85px 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-sizing: border-box !important;
+  }
+  #invoice-detail-modal .modal {
+    max-width: 100vw !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    background: var(--kc-bg, #0d0a06) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 0 85px 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+  #invoice-detail-modal .modal-close {
+    display: none !important;
+  }
+
+  #idm-mobile-content {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .kc-inv-modal-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 12px;
+    background: var(--kc-bg, #0d0a06);
+    border-bottom: 1px solid var(--kc-line, #2e2619);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .kc-inv-back-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--kc-line, #2e2619);
+    color: var(--kc-text, #f7f3eb);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  .kc-inv-modal-title {
+    flex: 1;
+    text-align: center;
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .kc-inv-copy-header-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--kc-line, #2e2619);
+    color: var(--kc-text, #f7f3eb);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  /* Invoice summary strip */
+  .kc-inv-summary-strip {
+    text-align: center;
+    padding: 14px 12px;
+    background: var(--kc-bg, #0d0a06);
+    border-bottom: 1px solid var(--kc-line, #2e2619);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kc-inv-gold-total {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--kc-gold, #d6b25e);
+  }
+  .kc-inv-summary-sub {
+    font-size: 12px;
+    color: var(--kc-muted, #9a917f);
+    margin-top: 4px;
+  }
+
+  /* Stacked cards for preview sections */
+  .kc-inv-section-card {
+    margin: 8px 12px;
+    background: var(--kc-card, #15120c);
+    border: 1px solid var(--kc-line, #2e2619);
+    border-radius: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+    width: calc(100% - 24px);
+  }
+  .kc-inv-section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--kc-gold, #d6b25e);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .kc-inv-mini-act {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--kc-line2, #3a2f1a);
+    background: transparent;
+    color: var(--kc-gold, #d6b25e);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .kc-inv-mini-act:active {
+    background: rgba(214, 178, 94, 0.1);
+  }
+
+  /* Items stacked rows */
+  .kc-inv-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(46, 38, 25, 0.6);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .kc-inv-item-row:last-child {
+    border-bottom: none;
+  }
+  .kc-inv-item-info {
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
+  }
+  .kc-inv-item-name {
+    font-size: 13px;
+    color: var(--kc-text, #f7f3eb);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .kc-inv-item-meta {
+    font-size: 12px;
+    color: var(--kc-muted, #9a917f);
+    margin-top: 2px;
+  }
+  .kc-inv-item-total {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--kc-gold, #d6b25e);
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  /* Sticky bottom bar for preview */
+  .kc-inv-modal-bottom-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: var(--kc-bg, #0d0a06) !important;
+    border-top: 1px solid var(--kc-line, #2e2619) !important;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+    z-index: 1010 !important;
+    box-sizing: border-box !important;
+  }
+  .kc-inv-btn-primary {
+    flex: 1;
+    height: 44px;
+    min-height: 44px;
+    background: var(--kc-gold, #d6b25e);
+    color: var(--kc-on-gold, #0a0805);
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  .kc-inv-btn-primary:active {
+    opacity: 0.9;
+  }
+  .kc-inv-icon-action {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--kc-line2, #3a2f1a);
+    color: var(--kc-gold, #d6b25e);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kc-inv-icon-action:active {
+    border-color: var(--kc-gold, #d6b25e);
+    background: rgba(214, 178, 94, 0.1);
   }
 
 }
