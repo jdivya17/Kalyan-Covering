@@ -124,15 +124,31 @@ export async function saveCoupon() {
 }
 
 export function deleteCoupon(id, code) {
-  confirmModal('Delete Coupon?', `Remove code ${code}?`, 'Delete', async () => {
+  const doDel = async () => {
     try {
       await deleteDoc(doc(db, 'coupons', id));
       toast('Coupon deleted');
-      loadCoupons();
+      if (typeof window !== 'undefined' && typeof window.loadCoupons === 'function') window.loadCoupons();
+      if (typeof window !== 'undefined' && typeof window.renderCouponsTable === 'function' && window.couponsCache) {
+        window.couponsCache = window.couponsCache.filter(c => c.id !== id);
+        window.renderCouponsTable(window.couponsCache);
+      }
     } catch (err) {
       toast('Error: ' + err.message);
     }
-  });
+  };
+
+  if (typeof window !== 'undefined' && typeof window.showStyledConfirm === 'function') {
+    window.showStyledConfirm({
+      title: 'Delete Coupon?',
+      message: `Remove coupon "${code}"? This action cannot be undone.`,
+      confirmText: 'Delete Coupon',
+      danger: true,
+      onConfirm: doDel
+    });
+  } else {
+    confirmModal('Delete Coupon?', `Remove code ${code}?`, 'Delete', doDel);
+  }
 }
 
 if (typeof window !== 'undefined') {

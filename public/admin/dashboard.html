@@ -1890,6 +1890,144 @@
         </div>
     </div>
 
+    <!-- Customer Filter Bottom Sheet (<=768px) -->
+    <div class="kc-filter-sheet-overlay" id="kc-cust-filter-sheet" onclick="if(event.target===this) closeCustomerFilterSheet()">
+        <div class="kc-filter-sheet">
+            <div class="kc-fs-header">
+                <h3>Filter Customers</h3>
+                <button class="kc-fs-close" onclick="closeCustomerFilterSheet()" aria-label="close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="close"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="kc-fs-body">
+                <div class="kc-fs-group">
+                    <label class="kc-fs-label">Role</label>
+                    <div class="kc-fs-chips" id="kc-cust-role-chips">
+                        <button type="button" class="kc-fs-chip active" data-role="all" onclick="setCustomerRoleFilter('all')">All</button>
+                        <button type="button" class="kc-fs-chip" data-role="customer" onclick="setCustomerRoleFilter('customer')">Customer</button>
+                        <button type="button" class="kc-fs-chip" data-role="staff" onclick="setCustomerRoleFilter('staff')">Staff</button>
+                        <button type="button" class="kc-fs-chip" data-role="manager" onclick="setCustomerRoleFilter('manager')">Manager</button>
+                        <button type="button" class="kc-fs-chip" data-role="owner" onclick="setCustomerRoleFilter('owner')">Owner</button>
+                    </div>
+                </div>
+
+                <div class="kc-fs-group" style="margin-top:14px">
+                    <label class="kc-fs-label">Sort By</label>
+                    <div class="kc-fs-chips" id="kc-cust-sort-chips">
+                        <button type="button" class="kc-fs-chip active" data-sort="newest" onclick="setCustomerSortFilter('newest')">Newest</button>
+                        <button type="button" class="kc-fs-chip" data-sort="orders" onclick="setCustomerSortFilter('orders')">Most Orders</button>
+                        <button type="button" class="kc-fs-chip" data-sort="spend" onclick="setCustomerSortFilter('spend')">Highest Spend</button>
+                    </div>
+                </div>
+            </div>
+            <div class="kc-fs-footer" style="display:flex;gap:10px;margin-top:20px">
+                <button type="button" class="btn btn-outline" style="flex:1;height:44px" onclick="clearCustomerFilters()">Clear</button>
+                <button type="button" class="btn btn-gold" id="kc-cust-apply-btn" style="flex:2;height:44px" onclick="applyCustomerFilters()">Show Customers</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Kebab Bottom Sheet (<=768px) -->
+    <div class="kc-filter-sheet-overlay" id="kc-cust-kebab-sheet" onclick="if(event.target===this) closeCustomerKebabSheet()">
+        <div class="kc-filter-sheet kc-kebab-sheet">
+            <div class="kc-fs-header">
+                <h3 id="kc-cust-kebab-title">Customer Options</h3>
+                <button class="kc-fs-close" onclick="closeCustomerKebabSheet()" aria-label="close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="close"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="kc-kebab-actions">
+                <button class="kc-kebab-row" onclick="handleCustomerKebabAction('view')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>View Profile</span>
+                </button>
+                <button class="kc-kebab-row" id="kc-kebab-role-btn" onclick="handleCustomerKebabAction('role')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                    <span>Change Role</span>
+                </button>
+                <button class="kc-kebab-row" onclick="handleCustomerKebabAction('call')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    <span>Call Customer</span>
+                </button>
+                <button class="kc-kebab-row kc-contact-btn kc-wa-btn" onclick="handleCustomerKebabAction('whatsapp')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <span>WhatsApp Customer</span>
+                </button>
+                <button class="kc-kebab-row" onclick="handleCustomerKebabAction('copy')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Copy Customer ID</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Bottom Sheet (<=768px) -->
+    <div class="kc-filter-sheet-overlay" id="kc-role-sheet" onclick="if(event.target===this) closeRoleSheet()">
+        <div class="kc-filter-sheet">
+            <div class="kc-fs-header">
+                <h3 id="kc-role-sheet-title">Change Account Role</h3>
+                <button class="kc-fs-close" onclick="closeRoleSheet()" aria-label="close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="close"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="kc-fs-body">
+                <p style="font-size:13px;color:var(--kc-muted);margin:0 0 12px" id="kc-role-sheet-user-name">Select role:</p>
+                <div class="kc-role-options" id="kc-role-options">
+                    <label class="kc-role-radio-row">
+                        <input type="radio" name="kc_role_choice" value="customer">
+                        <div class="kc-role-radio-info">
+                            <div class="kc-role-radio-title">Customer</div>
+                            <div class="kc-role-radio-desc">Standard storefront customer, no admin access.</div>
+                        </div>
+                    </label>
+                    <label class="kc-role-radio-row">
+                        <input type="radio" name="kc_role_choice" value="staff">
+                        <div class="kc-role-radio-info">
+                            <div class="kc-role-radio-title">Staff</div>
+                            <div class="kc-role-radio-desc">Manage products, orders, inventory and stock alerts.</div>
+                        </div>
+                    </label>
+                    <label class="kc-role-radio-row">
+                        <input type="radio" name="kc_role_choice" value="manager">
+                        <div class="kc-role-radio-info">
+                            <div class="kc-role-radio-title">Manager</div>
+                            <div class="kc-role-radio-desc">Manage products, orders, coupons, customer reviews, and staff.</div>
+                        </div>
+                    </label>
+                    <label class="kc-role-radio-row">
+                        <input type="radio" name="kc_role_choice" value="owner">
+                        <div class="kc-role-radio-info">
+                            <div class="kc-role-radio-title">Owner</div>
+                            <div class="kc-role-radio-desc">Full store administrative control and system settings.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="kc-fs-footer" style="display:flex;gap:10px;margin-top:16px">
+                <button type="button" class="btn btn-outline" style="flex:1;height:44px" onclick="closeRoleSheet()">Cancel</button>
+                <button type="button" class="btn btn-gold" id="kc-role-save-btn" style="flex:2;height:44px" onclick="saveRoleFromSheet()">Save Role</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reusable Styled Confirm Dialog -->
+    <div class="kc-filter-sheet-overlay" id="kc-styled-confirm-dialog" style="z-index:2000" onclick="if(event.target===this) window.closeStyledConfirm(false)">
+        <div class="kc-filter-sheet" style="border-radius:16px 16px 0 0;max-width:500px;margin:0 auto">
+            <div class="kc-fs-header">
+                <h3 id="kc-confirm-title" style="color:var(--kc-gold)">Confirm Action</h3>
+            </div>
+            <div class="kc-fs-body" style="padding:12px 0">
+                <p id="kc-confirm-message" style="font-size:14px;color:var(--kc-text);line-height:1.5;margin:0">Are you sure?</p>
+            </div>
+            <div class="kc-fs-footer" style="display:flex;gap:10px;margin-top:16px">
+                <button type="button" class="btn btn-outline" id="kc-confirm-cancel-btn" style="flex:1;height:44px" onclick="window.closeStyledConfirm(false)">Cancel</button>
+                <button type="button" class="btn btn-gold" id="kc-confirm-ok-btn" style="flex:1;height:44px" onclick="window.closeStyledConfirm(true)">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+iv>
+
 iv>
 
     <!-- Orders Card & Table View -->
@@ -2133,6 +2271,46 @@ iv>
                 <!-- ===== USERS PANEL ===== -->
                 <div class="admin-panel" id="panel-users">
 
+                    <!-- Mobile Topbar & Search/Filter (<=768px) -->
+                    <div class="kc-cust-mobile-topbar">
+                        <button class="kc-topbar-btn" onclick="openSidebar()" aria-label="menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                        <span class="kc-topbar-title">Customers</span>
+                        <button class="kc-topbar-btn" onclick="showPanel('settings')" aria-label="bell">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="kc-cust-mobile-filterbar">
+                        <div class="kc-cust-search-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" id="cust-mobile-search-input" placeholder="Search customers" oninput="handleMobileCustomerSearch(this.value)">
+                        </div>
+                        <button class="kc-cust-filter-btn" id="cust-mobile-filter-btn" onclick="openCustomerFilterSheet()" aria-label="filter">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="filter"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            <span>Filter</span>
+                            <span class="kc-filter-badge" id="cust-filter-count-badge" style="display:none">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Mobile Customers List -->
+                    <div class="mobile-data-list" id="mobile-users-list"></div>
+
+                    <!-- Mobile Customers Pagination -->
+                    <div class="kc-cust-mobile-pagination" id="kc-cust-pagination">
+                        <button class="kc-cust-page-btn" id="kc-cust-prev-btn" onclick="changeCustomerPage(-1)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            Prev
+                        </button>
+                        <span class="kc-cust-page-info" id="kc-cust-page-info">Page 1 of 1</span>
+                        <button class="kc-cust-page-btn" id="kc-cust-next-btn" onclick="changeCustomerPage(1)">
+                            Next
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+
+
     <div class="vhead">
         <div>
             <h1>Customers</h1>
@@ -2369,6 +2547,34 @@ iv>
                 </div>
                 <!-- ===== COUPONS ===== -->
                 <div class="admin-panel" id="panel-coupons">
+
+                    <!-- Mobile Topbar & Search/Filter (<=768px) -->
+                    <div class="kc-cpn-mobile-topbar">
+                        <button class="kc-topbar-btn" onclick="openSidebar()" aria-label="menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                        <span class="kc-topbar-title">Coupons</span>
+                        <button class="kc-cpn-add-btn" onclick="openCouponModal()" aria-label="add coupon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-label="plus"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
+
+                    <div class="kc-cpn-mobile-filterbar">
+                        <div class="kc-cpn-search-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" id="cpn-mobile-search-input" placeholder="Search coupon code" oninput="handleMobileCouponSearch(this.value)">
+                        </div>
+                        <div class="kc-cpn-filter-chips" id="kc-cpn-filter-chips">
+                            <button type="button" class="kc-cpn-chip active" data-status="" onclick="setCouponStatusFilter('')">All</button>
+                            <button type="button" class="kc-cpn-chip" data-status="active" onclick="setCouponStatusFilter('active')">Active</button>
+                            <button type="button" class="kc-cpn-chip" data-status="expired" onclick="setCouponStatusFilter('expired')">Expired</button>
+                            <button type="button" class="kc-cpn-chip" data-status="inactive" onclick="setCouponStatusFilter('inactive')">Inactive</button>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Coupons List -->
+                    <div class="mobile-data-list" id="mobile-coupons-list"></div>
+
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
                         <div>
                             <h2 style="font-family:var(--font-serif);color:var(--gold);margin:0">🎟️ Coupon Management
@@ -2527,6 +2733,8 @@ iv>
     <div class="modal-overlay" id="coupon-modal">
         <div class="modal" style="max-width:600px">
             <button class="modal-close" onclick="closeModal('coupon-modal')">×</button>
+            <div id="cpm-desktop-content">
+
             <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.5rem" id="coupon-modal-title">
                 Create Coupon</h3>
             <input type="hidden" id="cpn-id">
@@ -2582,7 +2790,85 @@ iv>
                 <button class="btn btn-gold" style="flex:1" id="cpn-save-btn" onclick="saveCoupon()">💾 Save
                     Coupon</button>
             </div>
-        </div>
+        
+            </div>
+
+            <!-- Mobile Coupon Form (<=768px) -->
+            <div id="cpm-mobile-content">
+                <div class="kc-cpn-mobile-header">
+                    <button class="kc-cust-back-btn" onclick="handleCouponModalDiscard()" aria-label="back">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="back"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <div class="kc-cust-modal-title" id="cpn-mob-modal-title">Create Coupon</div>
+                    <div style="width:36px"></div>
+                </div>
+
+                <!-- Group 1: Code, Status & Type -->
+                <div class="kc-cpn-form-card">
+                    <div class="kc-cpn-card-title">Coupon Details</div>
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Coupon Code *</label>
+                        <input type="text" id="cpn-mob-code" class="form-input" placeholder="e.g. FESTIVE20" oninput="this.value=this.value.toUpperCase().replace(/\s/g,''); syncCouponMobToDesk('code', this.value)">
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Discount Type</label>
+                        <div class="kc-cpn-segmented" id="cpn-mob-type-seg">
+                            <button type="button" class="kc-cpn-seg-btn active" data-type="percentage" onclick="setCouponTypeSegment('percentage')">% Percentage</button>
+                            <button type="button" class="kc-cpn-seg-btn" data-type="flat" onclick="setCouponTypeSegment('flat')">₹ Flat Amount</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Status</label>
+                        <select id="cpn-mob-status" class="form-input" onchange="syncCouponMobToDesk('status', this.value)">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Group 2: Value & Limits -->
+                <div class="kc-cpn-form-card">
+                    <div class="kc-cpn-card-title">Discount Value &amp; Limits</div>
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" id="cpn-mob-val-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Discount Value (% or ₹) *</label>
+                        <input type="number" id="cpn-mob-val" class="form-input" placeholder="20" min="0" oninput="syncCouponMobToDesk('val', this.value)">
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Min Order Value (₹)</label>
+                        <input type="number" id="cpn-mob-min-order" class="form-input" placeholder="e.g. 999" min="0" oninput="syncCouponMobToDesk('min', this.value)">
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Total Usage Limit (0 = Unlimited)</label>
+                        <input type="number" id="cpn-mob-usage-limit" class="form-input" placeholder="100" min="0" oninput="syncCouponMobToDesk('usageLimit', this.value)">
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Per-User Limit</label>
+                        <input type="number" id="cpn-mob-per-user" class="form-input" placeholder="1" min="0" value="1" oninput="syncCouponMobToDesk('perUser', this.value)">
+                    </div>
+                </div>
+
+                <!-- Group 3: Dates -->
+                <div class="kc-cpn-form-card">
+                    <div class="kc-cpn-card-title">Expiry Schedule</div>
+                    <div class="form-group" style="margin:0">
+                        <label class="form-label" style="font-size:12px;color:var(--kc-muted);margin-bottom:4px">Expiry Date</label>
+                        <input type="date" id="cpn-mob-expiry" class="form-input" onchange="syncCouponMobToDesk('expiry', this.value)">
+                    </div>
+                </div>
+
+                <!-- Sticky Bottom Bar -->
+                <div class="kc-cpn-mobile-bottom-bar" id="cpn-mob-bottom-bar">
+                    <button type="button" class="btn btn-outline" style="flex:1;height:44px" onclick="handleCouponModalDiscard()">Cancel</button>
+                    <button type="button" class="btn btn-gold" id="cpn-mob-save-btn" style="flex:2;height:44px" onclick="saveCoupon()">💾 Save Coupon</button>
+                </div>
+            </div>
+
+</div>
     </div>
 
     <!-- Add/Edit Branch Modal -->
@@ -2790,6 +3076,8 @@ iv>
     <div class="modal-overlay" id="user-detail-modal">
         <div class="modal" style="max-width:750px;width:95%">
             <button class="modal-close" onclick="closeModal('user-detail-modal')">×</button>
+            <div id="udm-desktop-content">
+
             <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
                 <div
                     style="width:48px;height:48px;border-radius:50%;background:rgba(255,215,0,0.15);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1.4rem;font-weight:bold">
@@ -2858,7 +3146,83 @@ iv>
             <div style="display:flex;justify-content:flex-end;margin-top:1.5rem">
                 <button class="btn btn-gold" onclick="closeModal('user-detail-modal')">Close</button>
             </div>
-        </div>
+        
+            </div>
+
+            <!-- Mobile Customer Detail Sheet (<=768px) -->
+            <div id="udm-mobile-content">
+                <div class="kc-cust-modal-header">
+                    <button class="kc-cust-back-btn" onclick="closeModal('user-detail-modal')" aria-label="back">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="back"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <div class="kc-cust-modal-title" id="udm-mob-header-name">Customer Profile</div>
+                    <button class="kc-cust-copy-btn" id="udm-mob-copy-id-btn" aria-label="copy customer id">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+                <div class="kc-cust-summary-strip">
+                    <div class="kc-cust-modal-avatar" id="udm-mob-avatar">👤</div>
+                    <div class="kc-cust-modal-name" id="udm-mob-name">Customer Name</div>
+                    <span class="kc-cust-role-chip" id="udm-mob-role-chip" style="background:#222;color:#aaa">CUSTOMER</span>
+                    <div class="kc-cust-modal-sub" id="udm-mob-sub">Registered — · 0 orders</div>
+                </div>
+
+                <!-- Contact Info Card -->
+                <div class="kc-cust-section-card">
+                    <div class="kc-cust-section-title">Contact Details</div>
+                    <div class="kc-cust-detail-row">
+                        <span class="kc-cust-label">Phone</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span id="udm-mob-phone">—</span>
+                            <div style="display:inline-flex;gap:6px">
+                                <a id="udm-mob-call-link" href="#" class="kc-inv-mini-act" aria-label="call"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></a>
+                                <a id="udm-mob-wa-link" href="#" target="_blank" class="kc-inv-mini-act kc-contact-btn kc-wa-btn" aria-label="whatsapp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kc-cust-detail-row">
+                        <span class="kc-cust-label">Email</span>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span id="udm-mob-email">—</span>
+                            <a id="udm-mob-mail-link" href="#" class="kc-inv-mini-act" aria-label="email"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg></a>
+                        </div>
+                    </div>
+                    <div class="kc-cust-detail-row">
+                        <span class="kc-cust-label">Last Active</span>
+                        <span id="udm-mob-lastlogin">—</span>
+                    </div>
+                </div>
+
+                <!-- Addresses Card -->
+                <div class="kc-cust-section-card">
+                    <div class="kc-cust-section-title">Saved / Shipping Addresses</div>
+                    <div id="udm-mob-address-list" style="display:flex;flex-direction:column;gap:6px">
+                        <div style="font-size:12px;color:var(--kc-muted)">No addresses on file.</div>
+                    </div>
+                </div>
+
+                <!-- Recent Orders Card -->
+                <div class="kc-cust-section-card">
+                    <div class="kc-cust-section-title" id="udm-mob-orders-title">Recent Orders</div>
+                    <div id="udm-mob-orders-list" style="display:flex;flex-direction:column;gap:8px">
+                        <div style="font-size:12px;color:var(--kc-muted)">No orders placed yet.</div>
+                    </div>
+                </div>
+
+                <!-- Role & Permissions Card -->
+                <div class="kc-cust-section-card" id="udm-mob-role-card">
+                    <div class="kc-cust-section-title">Account Role</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <span class="kc-cust-role-chip" id="udm-mob-role-badge">CUSTOMER</span>
+                            <div style="font-size:11px;color:var(--kc-muted);margin-top:4px" id="udm-mob-role-desc">Storefront customer account</div>
+                        </div>
+                        <button type="button" class="btn btn-outline" id="udm-mob-change-role-btn" style="height:36px;font-size:12px;padding:0 12px" onclick="openRoleSheetFromDetail()">Change Role</button>
+                    </div>
+                </div>
+            </div>
+
+</div>
     </div>
 
     <!-- Product Detail Modal -->
@@ -3776,45 +4140,523 @@ iv>
             }
         };
 
-        window.renderUsersTable = function () {
+        
+        // ============================================================
+        // B4: REUSABLE STYLED CONFIRM DIALOG
+        // ============================================================
+        let activeConfirmResolver = null;
+        window.showStyledConfirm = function({ title, message, confirmText = 'Confirm', isDanger = false }) {
+            return new Promise(resolve => {
+                activeConfirmResolver = resolve;
+                const dialog = document.getElementById('kc-styled-confirm-dialog');
+                const titleEl = document.getElementById('kc-confirm-title');
+                const msgEl = document.getElementById('kc-confirm-message');
+                const okBtn = document.getElementById('kc-confirm-ok-btn');
+                if (titleEl) titleEl.textContent = title || 'Confirm Action';
+                if (msgEl) msgEl.textContent = message || 'Are you sure?';
+                if (okBtn) {
+                    okBtn.textContent = confirmText;
+                    if (isDanger) {
+                        okBtn.style.background = '#e53e3e';
+                        okBtn.style.color = '#fff';
+                    } else {
+                        okBtn.style.background = 'var(--kc-gold, #d6b25e)';
+                        okBtn.style.color = 'var(--kc-on-gold, #0a0805)';
+                    }
+                }
+                if (dialog) dialog.classList.add('active');
+            });
+        };
 
+        window.closeStyledConfirm = function(result) {
+            const dialog = document.getElementById('kc-styled-confirm-dialog');
+            if (dialog) dialog.classList.remove('active');
+            if (activeConfirmResolver) {
+                activeConfirmResolver(result);
+                activeConfirmResolver = null;
+            }
+        };
+
+        // ============================================================
+        // B4: ADMIN CUSTOMERS MOBILE CONTROLLER
+        // ============================================================
+        window.mobileCustomerState = {
+            search: '',
+            role: 'all',
+            sort: 'newest',
+            page: 1,
+            perPage: 10,
+            selectedKebabId: null,
+            targetRoleUserId: null,
+            detailUserId: null
+        };
+
+        function getCustomerInitials(name) {
+            if (!name || name === 'Anonymous' || name === 'Customer') return '👤';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        function getCustomerRoleInfo(role) {
+            const r = (role || 'customer').toLowerCase();
+            if (r === 'owner') return { label: 'Owner', bg: '#2e2619', color: '#d6b25e' };
+            if (r === 'manager') return { label: 'Manager', bg: '#2a2310', color: '#f0c75e' };
+            if (r === 'staff') return { label: 'Staff', bg: '#122338', color: '#6db3f2' };
+            return { label: 'Customer', bg: '#222', color: '#aaa' };
+        }
+
+        function renderCustomerSkeletons(count = 4) {
+            let sHtml = '';
+            for (let i = 0; i < count; i++) {
+                sHtml += `
+                <div class="kc-cust-card kc-cust-skeleton-card" style="opacity:0.6;pointer-events:none">
+                    <div class="kc-cust-header-row">
+                        <div style="width:44px;height:44px;border-radius:50%;background:var(--kc-line)"></div>
+                        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                            <div style="width:120px;height:16px;background:var(--kc-line);border-radius:4px"></div>
+                            <div style="width:160px;height:12px;background:var(--kc-line);border-radius:4px"></div>
+                            <div style="width:100px;height:12px;background:var(--kc-line);border-radius:4px"></div>
+                        </div>
+                    </div>
+                    <div class="kc-cust-card-actions" style="margin-top:10px;border-top:1px solid var(--kc-line);padding-top:10px">
+                        <div style="flex:1;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                        <div style="flex:1;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                        <div style="flex:1;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                        <div style="width:44px;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                    </div>
+                </div>`;
+            }
+            return sHtml;
+        }
+
+        window.openCustomerFilterSheet = function() {
+            const sheet = document.getElementById('kc-cust-filter-sheet');
+            if (sheet) sheet.classList.add('active');
+            updateCustomerFilterCount();
+        };
+
+        window.closeCustomerFilterSheet = function() {
+            const sheet = document.getElementById('kc-cust-filter-sheet');
+            if (sheet) sheet.classList.remove('active');
+        };
+
+        window.setCustomerRoleFilter = function(role) {
+            mobileCustomerState.role = role;
+            document.querySelectorAll('#kc-cust-role-chips .kc-fs-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-role') === role);
+            });
+            updateCustomerFilterCount();
+        };
+
+        window.setCustomerSortFilter = function(sort) {
+            mobileCustomerState.sort = sort;
+            document.querySelectorAll('#kc-cust-sort-chips .kc-fs-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-sort') === sort);
+            });
+            updateCustomerFilterCount();
+        };
+
+        window.updateCustomerFilterCount = function() {
+            let activeCount = 0;
+            if (mobileCustomerState.role !== 'all') activeCount++;
+            if (mobileCustomerState.sort !== 'newest') activeCount++;
+
+            const badge = document.getElementById('cust-filter-count-badge');
+            if (badge) {
+                if (activeCount > 0) {
+                    badge.textContent = activeCount;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            const matches = getFilteredCustomers();
+            const applyBtn = document.getElementById('kc-cust-apply-btn');
+            if (applyBtn) {
+                applyBtn.textContent = `Show ${matches.length} Customers`;
+            }
+        };
+
+        window.handleMobileCustomerSearch = function(val) {
+            mobileCustomerState.search = (val || '').toLowerCase().trim();
+            mobileCustomerState.page = 1;
+            renderMobileUsersList();
+        };
+
+        function getFilteredCustomers() {
+            const users = window.adminData?.users || [];
+            const query = mobileCustomerState.search;
+            const roleFilter = mobileCustomerState.role;
+            const sort = mobileCustomerState.sort;
+            const orders = window.adminData?.orders || [];
+
+            let filtered = users.filter(u => {
+                const name = (u.name || u.displayName || u.fullName || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const phone = (u.phone || u.phoneNumber || '').toLowerCase();
+
+                const qMatch = !query || name.includes(query) || email.includes(query) || phone.includes(query);
+                const rMatch = roleFilter === 'all' || (u.role || 'customer').toLowerCase() === roleFilter;
+
+                return qMatch && rMatch;
+            });
+
+            // Sort
+            if (sort === 'orders') {
+                filtered.sort((a, b) => {
+                    const aCount = a.orderCount || orders.filter(o => o.customerId === a.id || o.userId === a.id || (o.customerEmail && o.customerEmail === a.email)).length;
+                    const bCount = b.orderCount || orders.filter(o => o.customerId === b.id || o.userId === b.id || (o.customerEmail && o.customerEmail === b.email)).length;
+                    return bCount - aCount;
+                });
+            } else if (sort === 'spend') {
+                filtered.sort((a, b) => {
+                    const aSpend = a.totalSpend || 0;
+                    const bSpend = b.totalSpend || 0;
+                    return bSpend - aSpend;
+                });
+            } else {
+                // Newest
+                filtered.sort((a, b) => {
+                    const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : 0);
+                    const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt ? new Date(b.createdAt) : 0);
+                    return bDate - aDate;
+                });
+            }
+
+            return filtered;
+        }
+
+        window.applyCustomerFilters = function() {
+            mobileCustomerState.page = 1;
+            renderMobileUsersList();
+            closeCustomerFilterSheet();
+        };
+
+        window.clearCustomerFilters = function() {
+            mobileCustomerState.search = '';
+            mobileCustomerState.role = 'all';
+            mobileCustomerState.sort = 'newest';
+            mobileCustomerState.page = 1;
+            const searchInput = document.getElementById('cust-mobile-search-input');
+            if (searchInput) searchInput.value = '';
+            document.querySelectorAll('#kc-cust-role-chips .kc-fs-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-role') === 'all');
+            });
+            document.querySelectorAll('#kc-cust-sort-chips .kc-fs-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-sort') === 'newest');
+            });
+            renderMobileUsersList();
+            closeCustomerFilterSheet();
+            updateCustomerFilterCount();
+        };
+
+        window.changeCustomerPage = function(delta) {
+            mobileCustomerState.page += delta;
+            renderMobileUsersList();
+        };
+
+        function renderMobileUsersList() {
+            const mobileList = document.getElementById('mobile-users-list');
+            if (!mobileList) return;
+
+            const filtered = getFilteredCustomers();
+            const totalPages = Math.ceil(filtered.length / mobileCustomerState.perPage) || 1;
+
+            if (mobileCustomerState.page > totalPages) mobileCustomerState.page = totalPages;
+            if (mobileCustomerState.page < 1) mobileCustomerState.page = 1;
+
+            const pageInfo = document.getElementById('kc-cust-page-info');
+            if (pageInfo) pageInfo.textContent = `Page ${mobileCustomerState.page} of ${totalPages}`;
+
+            const prevBtn = document.getElementById('kc-cust-prev-btn');
+            if (prevBtn) prevBtn.disabled = mobileCustomerState.page <= 1;
+
+            const nextBtn = document.getElementById('kc-cust-next-btn');
+            if (nextBtn) nextBtn.disabled = mobileCustomerState.page >= totalPages;
+
+            const paginationEl = document.getElementById('kc-cust-pagination');
+
+            if (filtered.length === 0) {
+                mobileList.innerHTML = `
+                    <div class="kc-cust-empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--kc-muted)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <p style="font-size:14px;color:var(--kc-muted);margin:8px 0 12px">No customers found</p>
+                        <button type="button" class="btn btn-outline" style="height:44px;padding:0 20px" onclick="clearCustomerFilters()">Clear filters</button>
+                    </div>
+                `;
+                if (paginationEl) paginationEl.style.display = 'none';
+                return;
+            }
+
+            if (paginationEl) paginationEl.style.display = 'flex';
+
+            const startIdx = (mobileCustomerState.page - 1) * mobileCustomerState.perPage;
+            const paged = filtered.slice(startIdx, startIdx + mobileCustomerState.perPage);
+            const orders = window.adminData?.orders || [];
+
+            mobileList.innerHTML = paged.map(u => {
+                const name = u.name || u.displayName || u.fullName || 'Customer';
+                const initials = getCustomerInitials(name);
+                const email = u.email || '—';
+                const phone = u.phone || u.phoneNumber || '—';
+                const roleInfo = getCustomerRoleInfo(u.role);
+
+                const userOrders = orders.filter(o =>
+                    (o.customerId && o.customerId === u.id) ||
+                    (o.userId && o.userId === u.id) ||
+                    (o.customerEmail && email !== '—' && o.customerEmail.toLowerCase() === email.toLowerCase()) ||
+                    (o.customerPhone && phone !== '—' && o.customerPhone === phone)
+                );
+
+                const orderCount = u.orderCount || userOrders.length;
+                const totalSpent = u.totalSpend || userOrders.reduce((sum, o) => sum + (o.grandTotal || o.totalAmount || o.total || 0), 0);
+
+                let statsRow = '';
+                if (orderCount > 0 || totalSpent > 0) {
+                    statsRow = `
+                    <div class="kc-cust-bottom-row">
+                        <span><b>${orderCount}</b> order${orderCount !== 1 ? 's' : ''}</span>
+                        <span>•</span>
+                        <span><b>₹${Number(totalSpent).toLocaleString('en-IN')}</b> spent</span>
+                    </div>`;
+                }
+
+                const phoneDigits = phone !== '—' ? phone.replace(/\D/g, '') : '';
+                const waPhone = phoneDigits.slice(-10);
+                const waText = encodeURIComponent(`Hi ${name}, thank you for shopping with Kalyan Covering!`);
+
+                return `
+                    <div class="kc-cust-card" onclick="openUserDetailModal('${u.id}')">
+                        <div class="kc-cust-header-row">
+                            <div class="kc-cust-avatar">${initials}</div>
+                            <div class="kc-cust-info">
+                                <div class="kc-cust-name-row">
+                                    <span class="kc-cust-name">${DOMPurify.sanitize(name)}</span>
+                                    <span class="kc-cust-role-chip" style="background:${roleInfo.bg};color:${roleInfo.color}">${roleInfo.label}</span>
+                                </div>
+                                <div class="kc-cust-email">${DOMPurify.sanitize(email)}</div>
+                                <div class="kc-cust-phone">${DOMPurify.sanitize(phone)}</div>
+                            </div>
+                        </div>
+                        ${statsRow}
+                        <div class="kc-cust-card-actions">
+                            <a href="${phoneDigits ? 'tel:' + phoneDigits : '#'}" class="kc-cust-act-btn" onclick="event.stopPropagation()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                Call
+                            </a>
+                            <a href="${waPhone ? 'https://wa.me/91' + waPhone + '?text=' + waText : '#'}" target="_blank" class="kc-cust-act-btn kc-contact-btn kc-wa-btn" onclick="event.stopPropagation()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                WhatsApp
+                            </a>
+                            <a href="${email !== '—' ? 'mailto:' + email : '#'}" class="kc-cust-act-btn" onclick="event.stopPropagation()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>
+                                Email
+                            </a>
+                            <button class="kc-cust-act-kebab" onclick="event.stopPropagation(); openCustomerKebabSheet('${u.id}')" aria-label="customer options">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.openCustomerKebabSheet = function(userId) {
+            const users = window.adminData?.users || [];
+            const u = users.find(x => x.id === userId || x.uid === userId);
+            if (!u) return;
+
+            mobileCustomerState.selectedKebabId = u.id || u.uid;
+            const titleEl = document.getElementById('kc-cust-kebab-title');
+            if (titleEl) titleEl.textContent = u.name || u.displayName || 'Customer Options';
+
+            // Role change permission check
+            const roleBtn = document.getElementById('kc-kebab-role-btn');
+            const canChange = window.currentRole === 'owner' || window.currentRole === 'manager';
+            if (roleBtn) roleBtn.style.display = canChange ? 'flex' : 'none';
+
+            const sheet = document.getElementById('kc-cust-kebab-sheet');
+            if (sheet) sheet.classList.add('active');
+        };
+
+        window.closeCustomerKebabSheet = function() {
+            const sheet = document.getElementById('kc-cust-kebab-sheet');
+            if (sheet) sheet.classList.remove('active');
+        };
+
+        window.handleCustomerKebabAction = function(action) {
+            const uid = mobileCustomerState.selectedKebabId;
+            closeCustomerKebabSheet();
+            if (!uid) return;
+            const users = window.adminData?.users || [];
+            const u = users.find(x => x.id === uid || x.uid === uid);
+            if (!u) return;
+
+            if (action === 'view') {
+                openUserDetailModal(u.id);
+            } else if (action === 'role') {
+                openRoleSheet(u.id);
+            } else if (action === 'call') {
+                const phone = (u.phone || u.phoneNumber || '').replace(/\D/g, '');
+                if (phone) window.location.href = 'tel:' + phone;
+                else Toast.info('No Phone Number', 'Customer has not provided a phone number.');
+            } else if (action === 'whatsapp') {
+                const phone = (u.phone || u.phoneNumber || '').replace(/\D/g, '').slice(-10);
+                if (phone) {
+                    const text = encodeURIComponent(`Hi ${u.name || 'Customer'}, thank you for shopping with Kalyan Covering!`);
+                    window.open(`https://wa.me/91${phone}?text=${text}`, '_blank');
+                } else {
+                    Toast.info('No Phone Number', 'Customer has not provided a phone number.');
+                }
+            } else if (action === 'copy') {
+                navigator.clipboard?.writeText(u.id || u.uid || '');
+                Toast.success('Customer ID Copied', u.id || u.uid);
+            }
+        };
+
+        window.openRoleSheet = function(userId) {
+            if (window.currentRole !== 'owner' && window.currentRole !== 'manager') {
+                Toast.error('Permission Denied', 'Only Owners and Managers can change account roles.');
+                return;
+            }
+
+            const users = window.adminData?.users || [];
+            const u = users.find(x => x.id === userId || x.uid === userId);
+            if (!u) return;
+
+            mobileCustomerState.targetRoleUserId = u.id || u.uid;
+            const userNameEl = document.getElementById('kc-role-sheet-user-name');
+            if (userNameEl) userNameEl.textContent = `Select role for ${u.name || u.displayName || 'Customer'}:`;
+
+            const currentRole = (u.role || 'customer').toLowerCase();
+            document.querySelectorAll('#kc-role-options input[type="radio"]').forEach(r => {
+                r.checked = r.value === currentRole;
+            });
+
+            const sheet = document.getElementById('kc-role-sheet');
+            if (sheet) sheet.classList.add('active');
+        };
+
+        window.closeRoleSheet = function() {
+            const sheet = document.getElementById('kc-role-sheet');
+            if (sheet) sheet.classList.remove('active');
+        };
+
+        window.openRoleSheetFromDetail = function() {
+            if (mobileCustomerState.detailUserId) {
+                openRoleSheet(mobileCustomerState.detailUserId);
+            }
+        };
+
+        window.saveRoleFromSheet = async function() {
+            const uid = mobileCustomerState.targetRoleUserId;
+            if (!uid) return;
+
+            const selectedRadio = document.querySelector('#kc-role-options input[type="radio"]:checked');
+            if (!selectedRadio) return;
+            const newRole = selectedRadio.value;
+
+            const users = window.adminData?.users || [];
+            const u = users.find(x => x.id === uid || x.uid === uid);
+            const userName = u ? (u.name || u.displayName || 'this customer') : 'this customer';
+
+            if (newRole === 'owner' || newRole === 'manager') {
+                const confirmed = await showStyledConfirm({
+                    title: 'Elevate Permissions?',
+                    message: `Grant ${newRole.toUpperCase()} privileges to ${userName}? This gives administrative control over the store.`,
+                    confirmText: 'Elevate Role'
+                });
+                if (!confirmed) return;
+            }
+
+            closeRoleSheet();
+            await updateUserRole(uid, newRole);
+        };
+
+        window.updateUserRole = async function(targetUid, role) {
+            Toast.info('Updating role...');
+            try {
+                if (typeof callVercelApi === 'function') {
+                    await callVercelApi('/api/admin/set-user-role', { targetUid, role });
+                }
+
+                // Update in-memory user
+                const users = window.adminData?.users || [];
+                const targetUser = users.find(x => x.id === targetUid || x.uid === targetUid);
+                if (targetUser) {
+                    targetUser.role = role;
+                }
+
+                Toast.success('Role Updated', `User role set to ${role.toUpperCase()}`);
+
+                // Update open detail modal if same user
+                if (mobileCustomerState.detailUserId === targetUid) {
+                    const roleInfo = getCustomerRoleInfo(role);
+                    const mobRoleChip = document.getElementById('udm-mob-role-chip');
+                    const mobRoleBadge = document.getElementById('udm-mob-role-badge');
+                    if (mobRoleChip) {
+                        mobRoleChip.textContent = role.toUpperCase();
+                        mobRoleChip.style.background = roleInfo.bg;
+                        mobRoleChip.style.color = roleInfo.color;
+                    }
+                    if (mobRoleBadge) {
+                        mobRoleBadge.textContent = role.toUpperCase();
+                        mobRoleBadge.style.background = roleInfo.bg;
+                        mobRoleBadge.style.color = roleInfo.color;
+                    }
+                }
+
+                // Re-render
+                renderUsersTable();
+            } catch (err) {
+                console.error('updateUserRole error:', err);
+                Toast.error('Role Update Failed', err.message || 'Error updating user role');
+            }
+        };
+
+        window.renderUsersTable = function () {
             const tbody = document.getElementById('users-table-body');
             const counter = document.getElementById('total-users-label');
-            if (!tbody) return;
 
             const users = window.adminData?.users || [];
             if (counter) counter.textContent = users.length + ' registered customers.';
 
-            if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted2)">No registered users found.</td></tr>';
-                return;
+            if (tbody) {
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted2)">No registered users found.</td></tr>';
+                } else {
+                    tbody.innerHTML = users.map(u => {
+                        const name = u.name || u.displayName || u.fullName || 'Anonymous';
+                        const initial = name.charAt(0).toUpperCase();
+                        const email = u.email || u.phone || 'N/A';
+                        const dateStr = u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleDateString('en-IN') : new Date(u.lastLogin).toLocaleDateString('en-IN')) : 'Never';
+                        const spend = u.totalSpend || 0;
+                        
+                        return `<tr style="cursor:pointer" onclick="openUserDetailModal('${u.id}')">
+                            <td>
+                                <div class="namecell">
+                                    <span class="avatar-sm">${initial}</span>
+                                    <div>
+                                        <b style="display:block;color:var(--ivory)">${DOMPurify.sanitize(name)}</b>
+                                        <span style="color:var(--muted2);font-size:.78rem">${DOMPurify.sanitize(email)}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="mono">${u.loginCount || 1} logins</td>
+                            <td class="mono">₹${spend}</td>
+                            <td>${dateStr}</td>
+                            <td><button class="tbtn ghost sm" onclick="event.stopPropagation(); openUserDetailModal('${u.id}')">View</button></td>
+                        </tr>`;
+                    }).join('');
+                }
             }
 
-            tbody.innerHTML = users.map(u => {
-                const name = u.name || u.displayName || u.fullName || 'Anonymous';
-                const initial = name.charAt(0).toUpperCase();
-                const email = u.email || u.phone || 'N/A';
-                const dateStr = u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleDateString('en-IN') : new Date(u.lastLogin).toLocaleDateString('en-IN')) : 'Never';
-                const spend = u.totalSpend || 0;
-                
-                return `<tr style="cursor:pointer" onclick="openUserDetailModal('${u.id}')">
-                    <td>
-                        <div class="namecell">
-                            <span class="avatar-sm">${initial}</span>
-                            <div>
-                                <b style="display:block;color:var(--ivory)">${DOMPurify.sanitize(name)}</b>
-                                <span style="color:var(--muted2);font-size:.78rem">${DOMPurify.sanitize(email)}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="mono">${u.loginCount || 1} logins</td>
-                    <td class="mono">₹${spend}</td>
-                    <td>${dateStr}</td>
-                    <td><button class="tbtn ghost sm" onclick="event.stopPropagation(); openUserDetailModal('${u.id}')">View</button></td>
-                </tr>`;
-            }).join('');
-        }
-
+            if (typeof renderMobileUsersList === 'function') {
+                renderMobileUsersList();
+            }
+        };
 
         window.openUserDetailModal = function (userId) {
             const users = window.adminData.users || [];
@@ -3854,15 +4696,23 @@ iv>
                 (o.customerPhone && phone !== 'N/A' && o.customerPhone === phone)
             );
 
-            document.getElementById('udm-user-name').textContent = name;
-            document.getElementById('udm-user-email').textContent = email;
-            document.getElementById('udm-user-phone').textContent = phone;
-            document.getElementById('udm-user-role').textContent = role;
-            document.getElementById('udm-user-regdate').textContent = regDate;
-            document.getElementById('udm-user-lastlogin').textContent = lastLogin;
-            document.getElementById('udm-user-ordercount').textContent = `${userOrders.length} order${userOrders.length !== 1 ? 's' : ''}`;
+            // Populate Desktop fields
+            const dName = document.getElementById('udm-user-name');
+            if (dName) dName.textContent = name;
+            const dEmail = document.getElementById('udm-user-email');
+            if (dEmail) dEmail.textContent = email;
+            const dPhone = document.getElementById('udm-user-phone');
+            if (dPhone) dPhone.textContent = phone;
+            const dRole = document.getElementById('udm-user-role');
+            if (dRole) dRole.textContent = role;
+            const dReg = document.getElementById('udm-user-regdate');
+            if (dReg) dReg.textContent = regDate;
+            const dLast = document.getElementById('udm-user-lastlogin');
+            if (dLast) dLast.textContent = lastLogin;
+            const dCount = document.getElementById('udm-user-ordercount');
+            if (dCount) dCount.textContent = `${userOrders.length} order${userOrders.length !== 1 ? 's' : ''}`;
 
-            // Render Order History list/table in modal
+            // Desktop order history table
             const ordersTbody = document.getElementById('udm-orders-tbody');
             if (ordersTbody) {
                 if (userOrders.length === 0) {
@@ -3887,8 +4737,130 @@ iv>
                 }
             }
 
+            // Populate Mobile fields
+            mobileCustomerState.detailUserId = u.id || u.uid;
+            const mobHeaderName = document.getElementById('udm-mob-header-name');
+            if (mobHeaderName) mobHeaderName.textContent = name;
+
+            const mobCopyIdBtn = document.getElementById('udm-mob-copy-id-btn');
+            if (mobCopyIdBtn) {
+                mobCopyIdBtn.onclick = () => {
+                    navigator.clipboard?.writeText(u.id || u.uid || '');
+                    Toast.success('Customer ID Copied', u.id || u.uid);
+                };
+            }
+
+            const mobAvatar = document.getElementById('udm-mob-avatar');
+            if (mobAvatar) mobAvatar.textContent = getCustomerInitials(name);
+
+            const mobName = document.getElementById('udm-mob-name');
+            if (mobName) mobName.textContent = name;
+
+            const roleInfo = getCustomerRoleInfo(u.role);
+            const mobRoleChip = document.getElementById('udm-mob-role-chip');
+            if (mobRoleChip) {
+                mobRoleChip.textContent = role;
+                mobRoleChip.style.background = roleInfo.bg;
+                mobRoleChip.style.color = roleInfo.color;
+            }
+
+            const orderCount = u.orderCount || userOrders.length;
+            const totalSpent = u.totalSpend || userOrders.reduce((sum, o) => sum + (o.grandTotal || o.totalAmount || o.total || 0), 0);
+            const mobSub = document.getElementById('udm-mob-sub');
+            if (mobSub) mobSub.textContent = `Registered ${regDate} · ₹${Number(totalSpent).toLocaleString('en-IN')} spent`;
+
+            const mobPhone = document.getElementById('udm-mob-phone');
+            if (mobPhone) mobPhone.textContent = phone;
+
+            const phoneDigits = phone !== 'N/A' && phone !== '—' ? phone.replace(/\D/g, '') : '';
+            const mobCallLink = document.getElementById('udm-mob-call-link');
+            if (mobCallLink) mobCallLink.href = phoneDigits ? `tel:${phoneDigits}` : '#';
+
+            const mobWaLink = document.getElementById('udm-mob-wa-link');
+            if (mobWaLink) {
+                const waPhone = phoneDigits.slice(-10);
+                const waText = encodeURIComponent(`Hi ${name}, thank you for shopping with Kalyan Covering!`);
+                mobWaLink.href = waPhone ? `https://wa.me/91${waPhone}?text=${waText}` : '#';
+            }
+
+            const mobEmail = document.getElementById('udm-mob-email');
+            if (mobEmail) mobEmail.textContent = email;
+
+            const mobMailLink = document.getElementById('udm-mob-mail-link');
+            if (mobMailLink) mobMailLink.href = email !== 'N/A' && email !== '—' ? `mailto:${email}` : '#';
+
+            const mobLastLogin = document.getElementById('udm-mob-lastlogin');
+            if (mobLastLogin) mobLastLogin.textContent = lastLogin;
+
+            // Addresses
+            const mobAddrList = document.getElementById('udm-mob-address-list');
+            if (mobAddrList) {
+                const addrs = [];
+                userOrders.forEach(o => {
+                    if (o.shippingAddress && o.shippingAddress.addressLine1) {
+                        const formatted = `${o.shippingAddress.addressLine1}, ${o.shippingAddress.city || ''}, ${o.shippingAddress.state || ''} ${o.shippingAddress.pincode || ''}`.trim();
+                        if (!addrs.includes(formatted)) addrs.push(formatted);
+                    }
+                });
+                if (u.address) addrs.push(u.address);
+
+                if (addrs.length === 0) {
+                    mobAddrList.innerHTML = '<div style="font-size:12px;color:var(--kc-muted);padding:4px 0">No saved addresses on file.</div>';
+                } else {
+                    mobAddrList.innerHTML = addrs.map((a, i) => `
+                        <div style="font-size:13px;color:var(--kc-text);line-height:1.4;padding:4px 0;border-bottom:1px solid rgba(46,38,25,0.4)">
+                            <div style="font-size:11px;color:var(--kc-muted)">Address ${i+1}</div>
+                            ${DOMPurify.sanitize(a)}
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Orders list
+            const mobOrdersTitle = document.getElementById('udm-mob-orders-title');
+            if (mobOrdersTitle) mobOrdersTitle.textContent = `Recent Orders (${userOrders.length})`;
+
+            const mobOrdersList = document.getElementById('udm-mob-orders-list');
+            if (mobOrdersList) {
+                if (userOrders.length === 0) {
+                    mobOrdersList.innerHTML = '<div style="font-size:12px;color:var(--kc-muted);padding:4px 0">No orders placed by this user yet.</div>';
+                } else {
+                    mobOrdersList.innerHTML = userOrders.map(o => {
+                        const shortId = (o.id || 'ORD').substring(0, 10).toUpperCase();
+                        const total = o.totalAmount || o.total || 0;
+                        const status = o.orderStatus || o.status || 'Placed';
+                        const dt = typeof _fmtOrderDate === 'function' ? _fmtOrderDate(o.createdAt || o.date) : '—';
+                        return `
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(46,38,25,0.4);font-size:13px">
+                                <div>
+                                    <div style="font-family:monospace;font-weight:600;color:var(--kc-gold)">#${shortId}</div>
+                                    <div style="font-size:11px;color:var(--kc-muted);margin-top:2px">${dt} · <span style="color:#6fd39a">${status}</span></div>
+                                </div>
+                                <div style="font-weight:600;color:var(--kc-gold);font-size:14px">₹${Number(total).toLocaleString('en-IN')}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Role card
+            const mobRoleBadge = document.getElementById('udm-mob-role-badge');
+            if (mobRoleBadge) {
+                mobRoleBadge.textContent = role;
+                mobRoleBadge.style.background = roleInfo.bg;
+                mobRoleBadge.style.color = roleInfo.color;
+            }
+
+            const canChangeRole = window.currentRole === 'owner' || window.currentRole === 'manager';
+            const changeRoleBtn = document.getElementById('udm-mob-change-role-btn');
+            if (changeRoleBtn) {
+                changeRoleBtn.style.display = canChangeRole ? 'inline-block' : 'none';
+            }
+
             openModal('user-detail-modal');
         };
+
+        
         window.clearAllProductsFromFirebase = async function () {
             // Role check: only owner can mass-delete
             if (window.currentRole !== 'owner') {
@@ -9071,9 +10043,40 @@ iv>
         // ============================================================
         let allCoupons = [];
 
+        window.mobileCouponState = {
+            search: '',
+            status: '',
+            initialFormData: null
+        };
+
+        function renderCouponSkeletons(count = 4) {
+            let sHtml = '';
+            for (let i = 0; i < count; i++) {
+                sHtml += `
+                <div class="kc-cpn-card kc-cpn-skeleton-card" style="opacity:0.6;pointer-events:none">
+                    <div class="kc-cpn-row1">
+                        <div style="width:100px;height:16px;background:var(--kc-line);border-radius:4px"></div>
+                        <div style="width:60px;height:20px;background:var(--kc-line);border-radius:10px"></div>
+                    </div>
+                    <div style="width:140px;height:24px;background:var(--kc-line);border-radius:12px;margin:8px 0"></div>
+                    <div style="width:100%;height:6px;background:var(--kc-line);border-radius:3px;margin:8px 0"></div>
+                    <div class="kc-cpn-actions" style="margin-top:10px;border-top:1px solid var(--kc-line);padding-top:10px">
+                        <div style="width:80px;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                        <div style="flex:1;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                        <div style="flex:1;height:44px;background:var(--kc-line);border-radius:8px"></div>
+                    </div>
+                </div>`;
+            }
+            return sHtml;
+        }
+
         async function loadCoupons() {
             const tbody = document.getElementById('coupons-table-body');
-            if (!tbody) return;
+            const mobileList = document.getElementById('mobile-coupons-list');
+            if (mobileList && (!allCoupons || allCoupons.length === 0)) {
+                mobileList.innerHTML = renderCouponSkeletons(4);
+            }
+
             try {
                 const snap = await getDocs(collection(db, 'coupons'));
                 allCoupons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -9081,78 +10084,264 @@ iv>
                 updateCouponStats(allCoupons);
             } catch (err) {
                 console.error('loadCoupons:', err);
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--red)">Failed to load coupons.</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--red)">Failed to load coupons.</td></tr>';
+                if (mobileList) mobileList.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--red)">Failed to load coupons.</div>';
             }
         }
+        window.loadCoupons = loadCoupons;
 
         function updateCouponStats(coupons) {
             const now = new Date();
-            const active = coupons.filter(c => c.status === 'active' && (!c.expiryDate || c.expiryDate.toDate() >= now)).length;
-            const expired = coupons.filter(c => c.expiryDate && c.expiryDate.toDate() < now).length;
+            const active = coupons.filter(c => c.status === 'active' && (!c.expiryDate || (c.expiryDate.toDate ? c.expiryDate.toDate() : new Date(c.expiryDate)) >= now)).length;
+            const expired = coupons.filter(c => c.expiryDate && (c.expiryDate.toDate ? c.expiryDate.toDate() : new Date(c.expiryDate)) < now).length;
             const totalUsed = coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0);
-            document.getElementById('cpn-stat-total').textContent = coupons.length;
-            document.getElementById('cpn-stat-active').textContent = active;
-            document.getElementById('cpn-stat-expired').textContent = expired;
-            document.getElementById('cpn-stat-used').textContent = totalUsed;
+            
+            const totalEl = document.getElementById('cpn-stat-total');
+            if (totalEl) totalEl.textContent = coupons.length;
+            const actEl = document.getElementById('cpn-stat-active');
+            if (actEl) actEl.textContent = active;
+            const expEl = document.getElementById('cpn-stat-expired');
+            if (expEl) expEl.textContent = expired;
+            const usedEl = document.getElementById('cpn-stat-used');
+            if (usedEl) usedEl.textContent = totalUsed;
         }
+
+        window.setCouponStatusFilter = function(status) {
+            mobileCouponState.status = status;
+            document.querySelectorAll('#kc-cpn-filter-chips .kc-cpn-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-status') === status);
+            });
+            filterCoupons();
+        };
+
+        window.handleMobileCouponSearch = function(val) {
+            mobileCouponState.search = (val || '').toLowerCase().trim();
+            filterCoupons();
+        };
+
+        window.copyCouponCode = function(code) {
+            if (!code) return;
+            navigator.clipboard?.writeText(code);
+            Toast.success('Coupon Code Copied', code);
+        };
 
         function renderCouponsTable(coupons) {
             const tbody = document.getElementById('coupons-table-body');
-            if (!tbody) return;
-            if (!coupons.length) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:3rem;color:#555">No coupons found. Click "+ Create Coupon" to add one.</td></tr>';
-                return;
-            }
+            const mobileList = document.getElementById('mobile-coupons-list');
             const now = new Date();
-            tbody.innerHTML = coupons.map(c => {
-                const isExpired = c.expiryDate && c.expiryDate.toDate() < now;
-                const expiryStr = c.expiryDate
-                    ? c.expiryDate.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                    : '—';
-                const usageStr = c.usageLimit != null
-                    ? `${c.usedCount || 0} / ${c.usageLimit}`
-                    : `${c.usedCount || 0} / ∞`;
-                const valueStr = c.discountType === 'percentage'
-                    ? `${c.discountValue}%`
-                    : `₹${c.discountValue}`;
-                const statusBadge = isExpired
-                    ? `<span style="background:rgba(255,138,0,.15);color:var(--orange);border:1px solid rgba(255,138,0,.3);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">EXPIRED</span>`
-                    : c.status === 'active'
-                        ? `<span style="background:rgba(0,204,102,.12);color:var(--green);border:1px solid rgba(0,204,102,.25);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">ACTIVE</span>`
-                        : `<span style="background:rgba(255,0,0,.1);color:var(--red);border:1px solid rgba(255,0,0,.2);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">INACTIVE</span>`;
-                return `<tr style="cursor:pointer" onclick="openCouponModal('${c.id}')">
-                    <td data-label="Code" style="color:var(--gold);font-weight:700;letter-spacing:.5px">${DOMPurify.sanitize(c.code || '')}</td>
-                    <td data-label="Type" style="font-size:.8rem;color:#aaa">${c.discountType === 'percentage' ? '% Percentage' : '₹ Flat'}</td>
-                    <td data-label="Value" style="font-weight:700">${valueStr}</td>
-                    <td data-label="Min Order" style="color:#aaa;font-size:.82rem">${c.minOrderValue != null ? '₹' + c.minOrderValue : '—'}</td>
-                    <td data-label="Usage" style="font-size:.82rem">${usageStr}</td>
-                    <td data-label="Per User" style="font-size:.82rem">${c.perUserLimit != null ? (c.perUserLimit === 0 ? '∞' : c.perUserLimit) : '1'}</td>
-                    <td data-label="Expiry" style="font-size:.8rem;color:${isExpired ? 'var(--orange)' : '#aaa'}">${expiryStr}</td>
-                    <td data-label="Status">${statusBadge}</td>
-                    <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end">
-                        <button class="tbl-btn edit" onclick="event.stopPropagation(); openCouponModal('${c.id}')">✏️ Edit</button>
-                        <button class="tbl-btn" style="border-color:rgba(255,0,0,.3);color:var(--red)" onclick="deleteCoupon('${c.id}','${DOMPurify.sanitize(c.code || '')}')">🗑 Delete</button>
-                    </div></td>
-                `;
-            }).join('');
+
+            // 1. Desktop Table Rendering
+            if (tbody) {
+                if (!coupons.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:3rem;color:#555">No coupons found. Click "+ Create Coupon" to add one.</td></tr>';
+                } else {
+                    tbody.innerHTML = coupons.map(c => {
+                        const expDate = c.expiryDate?.toDate ? c.expiryDate.toDate() : (c.expiryDate ? new Date(c.expiryDate) : null);
+                        const isExpired = expDate && expDate < now;
+                        const expiryStr = expDate
+                            ? expDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : '—';
+                        const usageStr = c.usageLimit != null
+                            ? `${c.usedCount || 0} / ${c.usageLimit}`
+                            : `${c.usedCount || 0} / ∞`;
+                        const valueStr = c.discountType === 'percentage'
+                            ? `${c.discountValue}%`
+                            : `₹${c.discountValue}`;
+                        const statusBadge = isExpired
+                            ? `<span style="background:rgba(255,138,0,.15);color:var(--orange);border:1px solid rgba(255,138,0,.3);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">EXPIRED</span>`
+                            : c.status === 'active'
+                                ? `<span style="background:rgba(0,204,102,.12);color:var(--green);border:1px solid rgba(0,204,102,.25);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">ACTIVE</span>`
+                                : `<span style="background:rgba(255,0,0,.1);color:var(--red);border:1px solid rgba(255,0,0,.2);padding:.15rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700">INACTIVE</span>`;
+                        return `<tr style="cursor:pointer" onclick="openCouponModal('${c.id}')">
+                            <td data-label="Code" style="color:var(--gold);font-weight:700;letter-spacing:.5px">${DOMPurify.sanitize(c.code || '')}</td>
+                            <td data-label="Type" style="font-size:.8rem;color:#aaa">${c.discountType === 'percentage' ? '% Percentage' : '₹ Flat'}</td>
+                            <td data-label="Value" style="font-weight:700">${valueStr}</td>
+                            <td data-label="Min Order" style="color:#aaa;font-size:.82rem">${c.minOrderValue != null ? '₹' + c.minOrderValue : (c.minPurchase ? '₹' + c.minPurchase : '—')}</td>
+                            <td data-label="Usage" style="font-size:.82rem">${usageStr}</td>
+                            <td data-label="Per User" style="font-size:.82rem">${c.perUserLimit != null ? (c.perUserLimit === 0 ? '∞' : c.perUserLimit) : '1'}</td>
+                            <td data-label="Expiry" style="font-size:.8rem;color:${isExpired ? 'var(--orange)' : '#aaa'}">${expiryStr}</td>
+                            <td data-label="Status">${statusBadge}</td>
+                            <td data-label="Actions" onclick="event.stopPropagation()"><div class="tbl-actions" style="justify-content:flex-end">
+                                <button class="tbl-btn edit" onclick="event.stopPropagation(); openCouponModal('${c.id}')">✏️ Edit</button>
+                                <button class="tbl-btn" style="border-color:rgba(255,0,0,.3);color:var(--red)" onclick="deleteCoupon('${c.id}','${DOMPurify.sanitize(c.code || '')}')">🗑 Delete</button>
+                            </div></td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+
+            // 2. Mobile Cards Rendering
+            if (mobileList) {
+                if (!coupons.length) {
+                    mobileList.innerHTML = `
+                        <div class="kc-cpn-empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--kc-muted)"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="11" y2="16"></line></svg>
+                            <p style="font-size:14px;color:var(--kc-muted);margin:8px 0 12px">No coupons yet</p>
+                            <button type="button" class="btn btn-gold" style="height:44px;padding:0 20px" onclick="openCouponModal()">+ Create Coupon</button>
+                        </div>
+                    `;
+                } else {
+                    mobileList.innerHTML = coupons.map(c => {
+                        const code = DOMPurify.sanitize(c.code || '');
+                        const expDate = c.expiryDate?.toDate ? c.expiryDate.toDate() : (c.expiryDate ? new Date(c.expiryDate) : null);
+                        const isExpired = expDate && expDate < now;
+                        const isImminent = expDate && !isExpired && (expDate.getTime() - now.getTime() < 3 * 24 * 3600 * 1000);
+                        
+                        let statusChip = '';
+                        if (isExpired) {
+                            statusChip = '<span class="kc-cpn-status-chip" style="background:#222;color:#aaa">Expired</span>';
+                        } else if (c.status === 'inactive') {
+                            statusChip = '<span class="kc-cpn-status-chip" style="background:#2e1414;color:#f08a8a">Disabled</span>';
+                        } else {
+                            statusChip = '<span class="kc-cpn-status-chip" style="background:#12281c;color:#6fd39a">Active</span>';
+                        }
+
+                        const discountText = c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`;
+                        const minOrderVal = c.minOrderValue != null ? c.minOrderValue : (c.minPurchase || 0);
+                        const minOrderText = minOrderVal > 0 ? `Min order ₹${Number(minOrderVal).toLocaleString('en-IN')}` : 'No minimum order';
+
+                        const used = c.usedCount || 0;
+                        const limit = c.usageLimit;
+                        const usagePct = limit ? Math.min(100, Math.round((used / limit) * 100)) : (used > 0 ? 100 : 0);
+                        const usageText = limit ? `${used} / ${limit} used` : `${used} used (unlimited)`;
+
+                        let expiryText = 'Never expires';
+                        if (expDate) {
+                            expiryText = (isExpired ? 'Expired ' : 'Expires ') + expDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        }
+                        const expiryCls = (isExpired || isImminent) ? 'kc-cpn-expiry-danger' : '';
+
+                        const perUserText = (c.perUserLimit === 0 || c.perUserLimit === null) ? 'Unlimited per user' : `Limit ${c.perUserLimit || 1} per user`;
+
+                        const isActive = c.status === 'active';
+
+                        return `
+                            <div class="kc-cpn-card">
+                                <div class="kc-cpn-row1">
+                                    <div class="kc-cpn-code-wrap">
+                                        <span class="kc-cpn-code">${code}</span>
+                                        <button class="kc-cpn-copy-icon" onclick="copyCouponCode('${code}')" aria-label="copy coupon code">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        </button>
+                                    </div>
+                                    ${statusChip}
+                                </div>
+
+                                <div class="kc-cpn-row2">
+                                    <span class="kc-cpn-discount-badge">${discountText}</span>
+                                    <span class="kc-cpn-min-order">${minOrderText}</span>
+                                </div>
+
+                                <div class="kc-cpn-row3">
+                                    <div class="kc-cpn-bar-wrap">
+                                        <div class="kc-cpn-bar-fill" style="width:${usagePct}%"></div>
+                                    </div>
+                                    <div class="kc-cpn-meta-text">
+                                        <span>${usageText}</span>
+                                        <span class="${expiryCls}">${expiryText}</span>
+                                    </div>
+                                    <div style="font-size:11px;color:var(--kc-muted);margin-top:2px">${perUserText}</div>
+                                </div>
+
+                                <div class="kc-cpn-actions">
+                                    <button class="kc-cpn-toggle-btn ${isActive ? 'active' : ''}" onclick="toggleCouponStatus('${c.id}', '${c.status}')">
+                                        ${isActive ? 'Active' : 'Inactive'}
+                                    </button>
+                                    <button class="kc-cpn-act-btn" onclick="openCouponModal('${c.id}')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                        Edit
+                                    </button>
+                                    <button class="kc-cpn-act-btn danger" onclick="deleteCoupon('${c.id}', '${code}')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
         }
+        window.renderCouponsTable = renderCouponsTable;
 
         window.filterCoupons = function () {
-            const q = (document.getElementById('cpn-search')?.value || '').toLowerCase();
-            const status = document.getElementById('cpn-filter-status')?.value || '';
+            const q = (document.getElementById('cpn-search')?.value || mobileCouponState.search || '').toLowerCase();
+            const status = document.getElementById('cpn-filter-status')?.value || mobileCouponState.status || '';
             const type = document.getElementById('cpn-filter-type')?.value || '';
+            const now = new Date();
+
             const filtered = allCoupons.filter(c => {
                 const matchQ = !q || (c.code || '').toLowerCase().includes(q) || (c.discountType || '').toLowerCase().includes(q);
-                const matchStatus = !status || c.status === status;
+                let matchStatus = true;
+                if (status === 'active') {
+                    const expDate = c.expiryDate?.toDate ? c.expiryDate.toDate() : (c.expiryDate ? new Date(c.expiryDate) : null);
+                    matchStatus = c.status === 'active' && (!expDate || expDate >= now);
+                } else if (status === 'expired') {
+                    const expDate = c.expiryDate?.toDate ? c.expiryDate.toDate() : (c.expiryDate ? new Date(c.expiryDate) : null);
+                    matchStatus = expDate && expDate < now;
+                } else if (status === 'inactive') {
+                    matchStatus = c.status === 'inactive';
+                }
                 const matchType = !type || c.discountType === type;
                 return matchQ && matchStatus && matchType;
             });
+
             renderCouponsTable(filtered);
+        };
+
+        window.toggleCouponStatus = async function (id, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+            try {
+                await updateDoc(doc(db, 'coupons', id), { status: newStatus, updatedAt: serverTimestamp() });
+                Toast.success('Coupon Updated', `Coupon status set to ${newStatus}`);
+                await loadCoupons();
+            } catch (err) {
+                console.error('toggleCouponStatus error:', err);
+                Toast.error('Update Failed', err.message);
+            }
+        };
+
+        window.setCouponTypeSegment = function (type) {
+            document.querySelectorAll('#cpn-mob-type-seg .kc-cpn-seg-btn').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-type') === type);
+            });
+            const deskType = document.getElementById('cpn-discount-type');
+            if (deskType) deskType.value = type;
+            const label = document.getElementById('cpn-mob-val-label');
+            if (label) label.textContent = type === 'percentage' ? 'Discount Value (%) *' : 'Discount Value (₹) *';
+        };
+
+        window.syncCouponMobToDesk = function (field, val) {
+            if (field === 'code') {
+                const el = document.getElementById('cpn-code');
+                if (el) el.value = val;
+            } else if (field === 'status') {
+                const el = document.getElementById('cpn-status');
+                if (el) el.value = val;
+            } else if (field === 'val') {
+                const el = document.getElementById('cpn-discount-value');
+                if (el) el.value = val;
+            } else if (field === 'min') {
+                const el = document.getElementById('cpn-min-order');
+                if (el) el.value = val;
+            } else if (field === 'usageLimit') {
+                const el = document.getElementById('cpn-usage-limit');
+                if (el) el.value = val;
+            } else if (field === 'perUser') {
+                const el = document.getElementById('cpn-per-user');
+                if (el) el.value = val;
+            } else if (field === 'expiry') {
+                const el = document.getElementById('cpn-expiry');
+                if (el) el.value = val;
+            }
         };
 
         window.openCouponModal = function (id) {
             const titleEl = document.getElementById('coupon-modal-title');
+            const mobTitleEl = document.getElementById('cpn-mob-modal-title');
             document.getElementById('cpn-id').value = id || '';
+
+            // Reset desktop form
             document.getElementById('cpn-code').value = '';
             document.getElementById('cpn-status').value = 'active';
             document.getElementById('cpn-discount-type').value = 'percentage';
@@ -9162,26 +10351,115 @@ iv>
             document.getElementById('cpn-usage-limit').value = '';
             document.getElementById('cpn-per-user').value = '1';
 
+            // Reset mobile form
+            const mobCode = document.getElementById('cpn-mob-code');
+            if (mobCode) mobCode.value = '';
+            const mobStatus = document.getElementById('cpn-mob-status');
+            if (mobStatus) mobStatus.value = 'active';
+            setCouponTypeSegment('percentage');
+            const mobVal = document.getElementById('cpn-mob-val');
+            if (mobVal) mobVal.value = '';
+            const mobExpiry = document.getElementById('cpn-mob-expiry');
+            if (mobExpiry) mobExpiry.value = '';
+            const mobMin = document.getElementById('cpn-mob-min-order');
+            if (mobMin) mobMin.value = '';
+            const mobUsage = document.getElementById('cpn-mob-usage-limit');
+            if (mobUsage) mobUsage.value = '';
+            const mobPerUser = document.getElementById('cpn-mob-per-user');
+            if (mobPerUser) mobPerUser.value = '1';
+
             if (id) {
                 const c = allCoupons.find(x => x.id === id);
                 if (c) {
-                    titleEl.textContent = `Edit Coupon: ${c.code}`;
+                    const titleText = `Edit Coupon: ${c.code}`;
+                    if (titleEl) titleEl.textContent = titleText;
+                    if (mobTitleEl) mobTitleEl.textContent = titleText;
+
                     document.getElementById('cpn-code').value = c.code || '';
                     document.getElementById('cpn-status').value = c.status || 'active';
                     document.getElementById('cpn-discount-type').value = c.discountType || 'percentage';
                     document.getElementById('cpn-discount-value').value = c.discountValue != null ? c.discountValue : '';
                     if (c.expiryDate) {
-                        const d = c.expiryDate.toDate();
+                        const d = c.expiryDate.toDate ? c.expiryDate.toDate() : new Date(c.expiryDate);
                         document.getElementById('cpn-expiry').value = d.toISOString().split('T')[0];
+                        if (mobExpiry) mobExpiry.value = d.toISOString().split('T')[0];
                     }
-                    document.getElementById('cpn-min-order').value = c.minOrderValue != null ? c.minOrderValue : '';
+                    document.getElementById('cpn-min-order').value = c.minOrderValue != null ? c.minOrderValue : (c.minPurchase || '');
                     document.getElementById('cpn-usage-limit').value = c.usageLimit != null ? c.usageLimit : '';
                     document.getElementById('cpn-per-user').value = c.perUserLimit != null ? c.perUserLimit : '1';
+
+                    // Sync mobile
+                    if (mobCode) mobCode.value = c.code || '';
+                    if (mobStatus) mobStatus.value = c.status || 'active';
+                    setCouponTypeSegment(c.discountType || 'percentage');
+                    if (mobVal) mobVal.value = c.discountValue != null ? c.discountValue : '';
+                    if (mobMin) mobMin.value = c.minOrderValue != null ? c.minOrderValue : (c.minPurchase || '');
+                    if (mobUsage) mobUsage.value = c.usageLimit != null ? c.usageLimit : '';
+                    if (mobPerUser) mobPerUser.value = c.perUserLimit != null ? c.perUserLimit : '1';
                 }
             } else {
-                titleEl.textContent = 'Create Coupon';
+                if (titleEl) titleEl.textContent = 'Create Coupon';
+                if (mobTitleEl) mobTitleEl.textContent = 'Create Coupon';
             }
+
+            // Record initial data for dirty check
+            mobileCouponState.initialFormData = {
+                code: document.getElementById('cpn-code').value,
+                status: document.getElementById('cpn-status').value,
+                discountType: document.getElementById('cpn-discount-type').value,
+                discountValue: document.getElementById('cpn-discount-value').value,
+                expiry: document.getElementById('cpn-expiry').value,
+                minOrder: document.getElementById('cpn-min-order').value,
+                usageLimit: document.getElementById('cpn-usage-limit').value,
+                perUser: document.getElementById('cpn-per-user').value
+            };
+
+            // Setup visualViewport listener for mobile keyboard
+            if (window.visualViewport) {
+                const vpHandler = () => {
+                    const bottomBar = document.getElementById('cpn-mob-bottom-bar');
+                    if (bottomBar && window.innerWidth <= 768) {
+                        const offset = window.innerHeight - window.visualViewport.height;
+                        bottomBar.style.bottom = offset > 0 ? `${offset}px` : '0px';
+                    }
+                };
+                window.visualViewport.removeEventListener('resize', window._cpnVpHandler);
+                window._cpnVpHandler = vpHandler;
+                window.visualViewport.addEventListener('resize', vpHandler);
+            }
+
             openModal('coupon-modal');
+        };
+
+        window.handleCouponModalDiscard = function () {
+            const init = mobileCouponState.initialFormData;
+            if (!init) {
+                closeModal('coupon-modal');
+                return;
+            }
+
+            const isDirty = 
+                document.getElementById('cpn-code').value !== init.code ||
+                document.getElementById('cpn-status').value !== init.status ||
+                document.getElementById('cpn-discount-type').value !== init.discountType ||
+                document.getElementById('cpn-discount-value').value !== init.discountValue ||
+                document.getElementById('cpn-expiry').value !== init.expiry ||
+                document.getElementById('cpn-min-order').value !== init.minOrder ||
+                document.getElementById('cpn-usage-limit').value !== init.usageLimit ||
+                document.getElementById('cpn-per-user').value !== init.perUser;
+
+            if (isDirty) {
+                showStyledConfirm({
+                    title: 'Discard Changes?',
+                    message: 'You have unsaved changes to this coupon. Discard them?',
+                    confirmText: 'Discard',
+                    isDanger: true
+                }).then(ok => {
+                    if (ok) closeModal('coupon-modal');
+                });
+            } else {
+                closeModal('coupon-modal');
+            }
         };
 
         window.saveCoupon = async function () {
@@ -9196,32 +10474,33 @@ iv>
             const perUserRaw = document.getElementById('cpn-per-user').value;
 
             // Validation
-            if (!code) { Toast.error('Validation', 'Coupon code is required.'); return; }
-            if (isNaN(discountVal) || discountVal < 0) { Toast.error('Validation', 'Enter a valid discount value.'); return; }
-            if (discountType === 'percentage' && discountVal > 100) { Toast.error('Validation', 'Percentage cannot exceed 100.'); return; }
+            if (!code) { Toast.error('Validation Error', 'Coupon code is required.'); return; }
+            if (isNaN(discountVal) || discountVal < 0) { Toast.error('Validation Error', 'Enter a valid discount value.'); return; }
+            if (discountType === 'percentage' && discountVal > 100) { Toast.error('Validation Error', 'Percentage cannot exceed 100%.'); return; }
 
             const data = {
                 code,
                 status,
                 discountType,
                 discountValue: discountVal,
-                expiryDate: expiryRaw ? window.firebase_Timestamp.fromDate(new Date(expiryRaw)) : null,
+                expiryDate: expiryRaw ? (window.firebase_Timestamp?.fromDate ? window.firebase_Timestamp.fromDate(new Date(expiryRaw)) : new Date(expiryRaw)) : null,
                 minOrderValue: minOrderRaw !== '' ? parseFloat(minOrderRaw) : null,
+                minPurchase: minOrderRaw !== '' ? parseFloat(minOrderRaw) : 0,
                 usageLimit: usageLimRaw !== '' ? parseInt(usageLimRaw, 10) : null,
                 perUserLimit: perUserRaw !== '' ? parseInt(perUserRaw, 10) : 1,
                 updatedAt: serverTimestamp()
             };
 
             const btn = document.getElementById('cpn-save-btn');
-            btn.disabled = true; btn.textContent = '⏳ Saving...';
+            const mobBtn = document.getElementById('cpn-mob-save-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+            if (mobBtn) { mobBtn.disabled = true; mobBtn.textContent = '⏳ Saving...'; }
 
             try {
                 if (id) {
-                    // Edit — preserve usedCount
                     await updateDoc(doc(db, 'coupons', id), data);
                     Toast.success('Coupon Updated', `${code} has been updated.`);
                 } else {
-                    // Create — initialise usedCount to 0
                     await addDoc(collection(db, 'coupons'), { ...data, usedCount: 0, createdAt: serverTimestamp() });
                     Toast.success('Coupon Created', `${code} is now live.`);
                 }
@@ -9231,12 +10510,20 @@ iv>
                 console.error('saveCoupon:', err);
                 Toast.error('Save Failed', err.message);
             } finally {
-                btn.disabled = false; btn.textContent = '💾 Save Coupon';
+                if (btn) { btn.disabled = false; btn.textContent = '💾 Save Coupon'; }
+                if (mobBtn) { mobBtn.disabled = false; mobBtn.textContent = '💾 Save Coupon'; }
             }
         };
 
         window.deleteCoupon = async function (id, code) {
-            if (!confirm(`Delete coupon "${code}"? This cannot be undone.`)) return;
+            const confirmed = await showStyledConfirm({
+                title: 'Delete Coupon?',
+                message: `Remove coupon "${code}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                isDanger: true
+            });
+            if (!confirmed) return;
+
             try {
                 await deleteDoc(doc(db, 'coupons', id));
                 Toast.success('Coupon Deleted', `${code} has been removed.`);
@@ -9247,7 +10534,6 @@ iv>
             }
         };
 
-        // ============================================================
         // CUSTOMER REVIEW MODERATION
         // ============================================================
 
