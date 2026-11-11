@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1261,6 +1261,67 @@
                 <!-- ===== DASHBOARD ===== -->
                 <!-- ===== DASHBOARD ===== -->
 <div class="admin-panel active" id="panel-dashboard">
+
+    <!-- B5: Mobile Dashboard Topbar (<=768px) -->
+    <div class="kc-dash-mobile-topbar">
+      <div class="kc-dash-topbar-left">
+        <button class="kc-dash-topbar-menu" onclick="openSide()" aria-label="Open menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="kc-dash-title">Dashboard</span>
+      </div>
+      <div class="kc-dash-topbar-right">
+        <button class="kc-dash-bell-btn" id="b5-dash-bell-btn" onclick="openNotifSheet()" aria-label="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="kc-dash-bell-badge" id="b5-bell-badge"></span>
+        </button>
+      </div>
+    </div>
+    <!-- B5: Greeting + Date -->
+    <div class="kc-dash-greeting">
+      <div class="kc-dash-hi" id="b5-dash-greeting">Hi there 👋</div>
+      <div class="kc-dash-date" id="b5-dash-date"></div>
+    </div>
+    <!-- B5: Stat Cards Grid (2 columns) -->
+    <div class="kc-dash-stat-grid" id="b5-stat-grid">
+      <div class="kc-dash-stat-card" id="b5-stat-revenue" onclick="showPanel('analytics')" aria-label="Revenue this month" title="">
+        <div class="kc-dash-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="kc-dash-stat-label">Revenue (Month)</div>
+        <div class="kc-dash-stat-value kc-dash-skeleton" id="b5-stat-revenue-val" style="min-height:24px;min-width:60px">...</div>
+      </div>
+      <div class="kc-dash-stat-card" id="b5-stat-orders" onclick="showPanel('orders')" aria-label="Orders today" title="">
+        <div class="kc-dash-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <div class="kc-dash-stat-label">Orders (Today)</div>
+        <div class="kc-dash-stat-value kc-dash-skeleton" id="b5-stat-orders-val" style="min-height:24px;min-width:40px">...</div>
+      </div>
+      <div class="kc-dash-stat-card" id="b5-stat-pending" onclick="showPanel('orders')" aria-label="Pending orders" title="">
+        <div class="kc-dash-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="kc-dash-stat-label">Pending Orders</div>
+        <div class="kc-dash-stat-value kc-dash-skeleton" id="b5-stat-pending-val" style="min-height:24px;min-width:40px">...</div>
+      </div>
+      <div class="kc-dash-stat-card" id="b5-stat-lowstock" onclick="showPanel('stockalerts')" aria-label="Low stock items" title="">
+        <div class="kc-dash-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="kc-dash-stat-label">Low Stock</div>
+        <div class="kc-dash-stat-value kc-dash-skeleton" id="b5-stat-lowstock-val" style="min-height:24px;min-width:40px">...</div>
+      </div>
+    </div>
+    <!-- B5: Needs Attention -->
+    <div class="kc-dash-needs-attention" id="b5-needs-attention">
+      <div class="kc-dash-section-title">Needs Attention</div>
+      <div class="kc-dash-needs-card" id="b5-needs-container">
+        <div class="kc-dash-needs-empty">Checking...</div>
+      </div>
+    </div>
+    <!-- B5: Recent Orders -->
+    <div class="kc-dash-recent-mobile" id="b5-recent-mobile">
+      <div class="kc-dash-recent-header">
+        <div class="kc-dash-section-title" style="margin-bottom:0">Recent Orders</div>
+        <button class="kc-dash-view-all" onclick="showPanel('orders')">View all</button>
+      </div>
+      <div class="kc-dash-recent-card" id="b5-recent-orders-list">
+        <div class="kc-dash-recent-empty">Loading...</div>
+      </div>
+    </div>
     <div class="vhead">
         <div>
             <h1>Dashboard</h1>
@@ -2064,7 +2125,7 @@ iv>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                         </button>
                         <span class="kc-topbar-title">Invoices</span>
-                        <button class="kc-topbar-btn" onclick="showPanel('settings')" aria-label="bell">
+                        <button class="kc-topbar-btn" onclick="openNotifSheet()" aria-label="Notifications">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         </button>
                     </div>
@@ -2277,7 +2338,7 @@ iv>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="menu"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                         </button>
                         <span class="kc-topbar-title">Customers</span>
-                        <button class="kc-topbar-btn" onclick="showPanel('settings')" aria-label="bell">
+                        <button class="kc-topbar-btn" onclick="openNotifSheet()" aria-label="Notifications">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="bell"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         </button>
                     </div>
@@ -4001,7 +4062,8 @@ iv>
         };
 
         window.deleteBranch = async function (id) {
-            if (!confirm('Are you sure you want to delete this branch?')) return;
+            const __branchDelOk = await new Promise(r => window.showStyledConfirm({ title: 'Delete Branch?', message: 'Are you sure you want to delete this branch?', confirmText: 'Delete', danger: true, onConfirm: () => r(true), onCancel: () => r(false) }));
+            if (!__branchDelOk) return;
             try {
                 await deleteDoc(doc(db, "branches", id));
                 Toast.success('Branch Deleted');
@@ -4867,7 +4929,8 @@ iv>
                 Toast.error('Unauthorized', 'Only the Owner can delete all products.');
                 return false;
             }
-            if (!confirm('DANGER: This will permanently delete ALL products from your website. This action cannot be undone. Are you absolutely sure?')) return false;
+            const __clearAllOk = await new Promise(r => window.showStyledConfirm({ title: 'DANGER: Delete ALL Products?', message: 'This will permanently delete ALL products from your website. This action cannot be undone.', confirmText: 'Delete ALL', danger: true, onConfirm: () => r(true), onCancel: () => r(false) }));
+            if (!__clearAllOk) return false;
             if (prompt('Type "DELETE ALL" to confirm:') !== 'DELETE ALL') {
                 Toast.info('Cancelled', 'Delete all operation cancelled.');
                 return false;
@@ -5180,7 +5243,8 @@ iv>
                     }
 
                     if (errors.length > 0) {
-                        alert(`CSV Validation Warnings:\n${errors.slice(0, 10).join('\n')}${errors.length > 10 ? `\n...and ${errors.length - 10} more errors` : ''}`);
+                        if (typeof Toast !== 'undefined') Toast.error('CSV Validation Warnings', `${errors.length} row(s) skipped. First: ${errors[0]}`);
+                    else console.warn('CSV Validation:', errors);
                     }
 
                     if (validProducts.length === 0) {
@@ -5188,7 +5252,7 @@ iv>
                         return;
                     }
 
-                    const confirmed = confirm(`Found ${validProducts.length} valid product(s) to import (${errors.length} skipped). Proceed with Firestore import?`);
+                    const confirmed = await new Promise(r => window.showStyledConfirm({ title: 'Import Products?', message: `Found ${validProducts.length} valid product(s) to import (${errors.length} skipped). Proceed with Firestore import?`, confirmText: 'Import', danger: false, onConfirm: () => r(true), onCancel: () => r(false) }));
                     if (!confirmed) return;
 
                     try {
@@ -5231,7 +5295,7 @@ iv>
             const orders = window._filteredOrders || window.adminOrders || [];
             if (!orders || orders.length === 0) {
                 if (typeof Toast !== 'undefined') Toast.error('Export Error', 'No orders available to export.');
-                else alert('No orders to export.');
+                else if (typeof Toast !== 'undefined') Toast.error('Export Error', 'No orders to export.');
                 return;
             }
 
@@ -8242,7 +8306,8 @@ iv>
 
         async function deleteProduct(id) {
             try {
-                if (!confirm('Are you sure you want to delete this product?')) return;
+                const __prodDelOk = await new Promise(r => window.showStyledConfirm({ title: 'Delete Product?', message: 'Are you sure you want to delete this product?', confirmText: 'Delete', danger: true, onConfirm: () => r(true), onCancel: () => r(false) }));
+                if (!__prodDelOk) return;
                 const success = await window.deleteProductFromFirebase(id);
                 if (success) {
                     adminProducts = adminProducts.filter(p => p.id !== id);
@@ -8646,7 +8711,8 @@ iv>
         window.approveVideo = approveVideo;
 
         async function removeVideo(id) {
-            if (!confirm('Remove this video?')) return;
+            const __vidRemOk = await new Promise(r => window.showStyledConfirm({ title: 'Remove Video?', message: 'Remove this video?', confirmText: 'Remove', danger: true, onConfirm: () => r(true), onCancel: () => r(false) }));
+            if (!__vidRemOk) return;
             try {
                 const idx = window.videosMgmtData.findIndex(x => x.id === id);
                 if (idx > -1) {
@@ -10010,7 +10076,7 @@ iv>
             }, 13 * 60 * 1000);
             // Logout at 15 minutes
             adminIdleTimer = setTimeout(() => {
-                alert('Admin session expired due to inactivity. You will be redirected to login.');
+                if (typeof Toast !== 'undefined') Toast.error('Session Expired', 'You have been logged out due to inactivity.');
                 adminLogout();
             }, ADMIN_IDLE_TIMEOUT_MS);
         }
@@ -10630,7 +10696,8 @@ iv>
         };
 
         window.deleteAdminReview = async function (reviewId) {
-            if (!confirm('Permanently delete this review? This cannot be undone.')) return;
+            const __revDelOk = await new Promise(r => window.showStyledConfirm({ title: 'Delete Review?', message: 'Permanently delete this review? This cannot be undone.', confirmText: 'Delete', danger: true, onConfirm: () => r(true), onCancel: () => r(false) }));
+            if (!__revDelOk) return;
             try {
                 await deleteDoc(doc(db, 'reviews', reviewId));
                 Toast.success('Review Deleted');
@@ -10710,7 +10777,8 @@ iv>
         };
 
         window.notifyCustomers = async function (productId) {
-            if (!confirm('Mark all waiting customers for this product as notified?')) return;
+            const __notifOk = await new Promise(r => window.showStyledConfirm({ title: 'Notify Customers?', message: 'Mark all waiting customers for this product as notified?', confirmText: 'Notify All', danger: false, onConfirm: () => r(true), onCancel: () => r(false) }));
+            if (!__notifOk) return;
             try {
                 const snap = await getDocs(query(collection(db, 'stockAlerts')));
                 const alertsToUpdate = snap.docs.filter(d => {
@@ -10987,7 +11055,7 @@ iv>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span>Home</span>
         </button>
-        <button class="kc-bn-item active" onclick="showPanel('orders', this); return false;" data-v="orders" aria-label="Orders">
+        <button class="kc-bn-item" onclick="showPanel('orders', this); return false;" data-v="orders" aria-label="Orders">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
             <span>Orders</span>
         </button>
@@ -10999,12 +11067,467 @@ iv>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>Customers</span>
         </button>
-        <button class="kc-bn-item" onclick="openSide(); return false;" aria-label="More">
+        <button class="kc-bn-item" id="kc-bn-more" onclick="openMoreSheet(); return false;" aria-label="More">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
             <span>More</span>
         </button>
     </nav>
 
+
+    <!-- B5: Sidebar Backdrop (<=1024px drawer mode) -->
+    <div id="b5-sidebar-backdrop" onclick="closeSide()"></div>
+
+    <!-- B5: More Bottom Sheet -->
+    <div id="b5-more-sheet-overlay" onclick="closeMoreSheet()"></div>
+    <div id="b5-more-sheet" role="dialog" aria-modal="true" aria-label="More options">
+      <div class="b5-more-grab"></div>
+      <div class="b5-more-title">More</div>
+      <button class="b5-more-row" onclick="closeMoreSheet(); showPanel('invoices');" data-rbac="orders" aria-label="Invoices">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Invoices</span>
+      </button>
+      <button class="b5-more-row" onclick="closeMoreSheet(); showPanel('coupons');" data-rbac="coupons" aria-label="Coupons">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span>Coupons</span>
+      </button>
+      <button class="b5-more-row" onclick="closeMoreSheet(); showPanel('settings');" data-rbac="settings" aria-label="Shipping settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Shipping Settings</span>
+      </button>
+      <button class="b5-more-row" onclick="closeMoreSheet(); showPanel('reviews');" data-rbac="products" aria-label="Reviews">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>Reviews</span>
+      </button>
+      <button class="b5-more-row" onclick="closeMoreSheet(); showPanel('analytics');" data-rbac="analytics" aria-label="Analytics">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Analytics</span>
+      </button>
+      <button class="b5-more-row" id="b5-more-staff-btn" onclick="closeMoreSheet(); showPanel('users');" data-rbac="users" aria-label="Staff & Roles" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Staff &amp; Roles</span>
+      </button>
+      <div class="b5-more-divider"></div>
+      <button class="b5-more-row" onclick="closeMoreSheet(); window.open('/', '_blank');" aria-label="Open store">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>Open Store</span>
+      </button>
+      <button class="b5-more-row danger" id="b5-more-logout-btn" onclick="closeMoreSheet(); confirmAdminLogout();" aria-label="Logout">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Logout</span>
+      </button>
+    </div>
+
+    <!-- B5: Notifications Full-Screen Sheet -->
+    <div id="b5-notif-sheet-overlay" onclick="closeNotifSheet()"></div>
+    <div id="b5-notif-sheet" role="dialog" aria-modal="true" aria-label="Notifications">
+      <div class="b5-notif-header">
+        <button class="b5-notif-back" onclick="closeNotifSheet()" aria-label="Close notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <span class="b5-notif-title">Notifications</span>
+        <button class="b5-notif-mark-all" onclick="clearAllNotifs()" aria-label="Mark all read">Clear all</button>
+      </div>
+      <div class="b5-notif-scroll" id="b5-notif-list"></div>
+    </div>
+
+    <script>
+    // ============================================================
+    // B5: MOBILE DASHBOARD, MORE MENU, GLOBAL CHROME
+    // ============================================================
+    (function() {
+
+    // --- Compact Indian number format (never clips at 360px) ---
+    function formatCompact(num) {
+      if (typeof num !== 'number' || isNaN(num)) return '0';
+      if (num >= 10000000) return (num / 10000000).toFixed(1).replace(/\.0$/, '') + 'Cr';
+      if (num >= 100000) return (num / 100000).toFixed(1).replace(/\.0$/, '') + 'L';
+      if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+      return num.toLocaleString('en-IN');
+    }
+
+    function parseDateSafe(val) {
+      if (!val) return null;
+      if (typeof window.parseOrderDate === 'function') {
+        try { const res = window.parseOrderDate(val); if (res && !isNaN(res.getTime())) return res; } catch(e) {}
+      }
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val.toDate && typeof val.toDate === 'function') return val.toDate();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // --- Update B5 dashboard stat cards ---
+    window.updateB5DashStats = function() {
+      const orders = window.ordersData || [];
+      const prods = window.adminProducts || [];
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      const todayOrders = orders.filter(o => {
+        const d = parseDateSafe(o.createdAt || o.date);
+        return d && d >= today;
+      });
+
+      const monthRevenue = orders
+        .filter(o => {
+          const d = parseDateSafe(o.createdAt || o.date);
+          return d && d >= firstOfMonth && String(o.orderStatus || o.status || '').toLowerCase() !== 'cancelled';
+        })
+        .reduce((s, o) => s + Number(o.totalAmount || o.total || 0), 0);
+
+      const pendingOrders = orders.filter(o =>
+        ['placed', 'pending', 'order placed', 'payment_pending'].includes(String(o.orderStatus || o.status || '').toLowerCase())
+      ).length;
+
+      const lowStock = prods.filter(p => {
+        const s = typeof p.stock === 'number' ? p.stock : (p.stock === 'out_of_stock' ? 0 : 10);
+        return s <= 5;
+      }).length;
+
+      const revEl = document.getElementById('b5-stat-revenue-val');
+      const ordEl = document.getElementById('b5-stat-orders-val');
+      const penEl = document.getElementById('b5-stat-pending-val');
+      const lsEl = document.getElementById('b5-stat-lowstock-val');
+
+      const fullRevStr = '₹' + Math.round(monthRevenue).toLocaleString('en-IN');
+
+      if (revEl) {
+        const compact = '₹' + formatCompact(Math.round(monthRevenue));
+        revEl.textContent = compact;
+        revEl.classList.remove('kc-dash-skeleton');
+        revEl.setAttribute('title', fullRevStr);
+        revEl.setAttribute('aria-label', 'Revenue this month: ' + fullRevStr);
+        const card = document.getElementById('b5-stat-revenue');
+        if (card) card.setAttribute('title', fullRevStr);
+      }
+      if (ordEl) { ordEl.textContent = todayOrders.length; ordEl.classList.remove('kc-dash-skeleton'); }
+      if (penEl) { penEl.textContent = pendingOrders; penEl.classList.remove('kc-dash-skeleton'); }
+      if (lsEl) { lsEl.textContent = lowStock; lsEl.classList.remove('kc-dash-skeleton'); }
+
+      // Update greeting
+      const greetEl = document.getElementById('b5-dash-greeting');
+      const dateEl = document.getElementById('b5-dash-date');
+      if (greetEl) {
+        const name = (document.getElementById('logged-in-name') || {}).textContent || '';
+        const shortName = name.split(' ')[0] || '';
+        greetEl.textContent = 'Hi' + (shortName ? ', ' + shortName : ' there') + ' 👋';
+      }
+      if (dateEl) {
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+      }
+
+      // Update needs attention
+      window.renderB5NeedsAttention();
+      // Update recent orders
+      window.renderB5RecentOrders();
+    };
+
+    // --- Needs Attention ---
+    window.renderB5NeedsAttention = function() {
+      const container = document.getElementById('b5-needs-container');
+      if (!container) return;
+
+      const orders = window.ordersData || [];
+      const prods = window.adminProducts || [];
+      const items = [];
+      const now = Date.now();
+      const h24 = 24 * 60 * 60 * 1000;
+
+      // 1. Refund required
+      orders.filter(o => String(o.orderStatus || o.status || '').toLowerCase().includes('refund')).slice(0, 2).forEach(o => {
+        items.push({ icon: '💸', text: 'Refund required: #' + (o.id || o.orderId || '').substring(0, 10).toUpperCase(), action: () => { if (typeof openAdminOrderModal === 'function') openAdminOrderModal(o.id); } });
+      });
+
+      // 2. Payment pending > 24h
+      orders.filter(o => {
+        const s = String(o.orderStatus || o.status || '').toLowerCase();
+        if (s !== 'payment_pending' && s !== 'awaiting payment') return false;
+        const d = parseDateSafe(o.createdAt || o.date);
+        return d && (now - d.getTime()) > h24;
+      }).slice(0, 2).forEach(o => {
+        items.push({ icon: '⏰', text: 'Payment pending >24h: #' + (o.id || o.orderId || '').substring(0, 10).toUpperCase(), action: () => { if (typeof openAdminOrderModal === 'function') openAdminOrderModal(o.id); } });
+      });
+
+      // 3. Low / out of stock
+      prods.filter(p => {
+        const s = typeof p.stock === 'number' ? p.stock : (p.stock === 'out_of_stock' ? 0 : 10);
+        return s <= 5;
+      }).slice(0, 3).forEach(p => {
+        const s = typeof p.stock === 'number' ? p.stock : 0;
+        const label = s === 0 ? 'Out of stock' : 'Low stock (' + s + ')';
+        items.push({ icon: s === 0 ? '🚫' : '⚠️', text: label + ': ' + (p.name || p.title || 'Product'), action: () => { if (typeof openEditProduct === 'function') openEditProduct(p.id); else showPanel('stockalerts'); } });
+      });
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="kc-dash-needs-empty">✅ All caught up!</div>';
+        return;
+      }
+
+      container.innerHTML = items.slice(0, 5).map((item, i) => `
+        <div class="kc-dash-needs-row" onclick="b5NeedsAction(${i})" tabindex="0" role="button" aria-label="${item.text}">
+          <span class="kc-dash-needs-icon">${item.icon}</span>
+          <span class="kc-dash-needs-text">${item.text}</span>
+          <svg class="kc-dash-needs-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      `).join('');
+      window._b5NeedsItems = items;
+    };
+
+    window.b5NeedsAction = function(i) {
+      const items = window._b5NeedsItems || [];
+      if (items[i] && typeof items[i].action === 'function') items[i].action();
+    };
+
+    // --- Recent Orders ---
+    window.renderB5RecentOrders = function() {
+      const list = document.getElementById('b5-recent-orders-list');
+      if (!list) return;
+      const orders = (window.ordersData || []).slice(0, 5);
+      if (!orders.length) {
+        list.innerHTML = '<div class="kc-dash-recent-empty">No recent orders</div>';
+        return;
+      }
+      const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      list.innerHTML = orders.map(o => {
+        const id = (o.id || o.orderId || 'ORD').substring(0, 10).toUpperCase();
+        const name = esc(o.customerName || o.customer || (o.shippingAddress ? (o.shippingAddress.fullName || o.shippingAddress.name) : 'Customer'));
+        const amt = Number(o.totalAmount || o.total || 0);
+        return `<div class="kc-dash-recent-row" onclick="if(typeof openAdminOrderModal==='function')openAdminOrderModal('${o.id}')" tabindex="0" role="button" aria-label="Order ${id}">
+          <span class="kc-dash-order-id">#${id}</span>
+          <span class="kc-dash-order-name">${name}</span>
+          <span class="kc-dash-order-amt">₹${formatCompact(amt)}</span>
+        </div>`;
+      }).join('');
+    };
+
+    // ---- MORE SHEET ----
+    window.openMoreSheet = function() {
+      // Apply RBAC: show/hide rows based on window.currentRole and window.RBAC
+      const staffBtn = document.getElementById('b5-more-staff-btn');
+      if (staffBtn) {
+        const canSeeUsers = !window.RBAC || !window.currentRole || window.RBAC.canAccess(window.currentRole, 'users');
+        staffBtn.style.display = canSeeUsers ? 'flex' : 'none';
+      }
+      // Apply RBAC to all rows with data-rbac
+      document.querySelectorAll('#b5-more-sheet .b5-more-row[data-rbac]').forEach(row => {
+        const perm = row.getAttribute('data-rbac');
+        if (window.RBAC && window.currentRole && !window.RBAC.canAccess(window.currentRole, perm)) {
+          row.style.display = 'none';
+        } else {
+          row.style.display = 'flex';
+        }
+      });
+      const overlay = document.getElementById('b5-more-sheet-overlay');
+      const sheet = document.getElementById('b5-more-sheet');
+      if (overlay) overlay.classList.add('on');
+      if (sheet) {
+        sheet.classList.add('on');
+        sheet.focus();
+      }
+      document.body.style.overflow = 'hidden';
+    };
+
+    window.closeMoreSheet = function() {
+      const overlay = document.getElementById('b5-more-sheet-overlay');
+      const sheet = document.getElementById('b5-more-sheet');
+      if (overlay) overlay.classList.remove('on');
+      if (sheet) sheet.classList.remove('on');
+      document.body.style.overflow = '';
+    };
+
+    // Escape closes More sheet
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const moreSheet = document.getElementById('b5-more-sheet');
+        if (moreSheet && moreSheet.classList.contains('on')) { closeMoreSheet(); return; }
+        const notifSheet = document.getElementById('b5-notif-sheet');
+        if (notifSheet && notifSheet.classList.contains('on')) { closeNotifSheet(); return; }
+      }
+    });
+
+    // ---- NOTIFICATIONS SHEET ----
+    window.openNotifSheet = function() {
+      const overlay = document.getElementById('b5-notif-sheet-overlay');
+      const sheet = document.getElementById('b5-notif-sheet');
+      if (overlay) overlay.classList.add('on');
+      if (sheet) sheet.classList.add('on');
+      document.body.style.overflow = 'hidden';
+      renderB5NotifSheet();
+    };
+
+    window.closeNotifSheet = function() {
+      const overlay = document.getElementById('b5-notif-sheet-overlay');
+      const sheet = document.getElementById('b5-notif-sheet');
+      if (overlay) overlay.classList.remove('on');
+      if (sheet) sheet.classList.remove('on');
+      document.body.style.overflow = '';
+    };
+
+    function renderB5NotifSheet() {
+      const list = document.getElementById('b5-notif-list');
+      if (!list) return;
+      const notifs = window.notifData || [];
+      if (!notifs.length) {
+        list.innerHTML = `<div class="b5-notif-empty">
+          <div class="b5-notif-empty-icon">✨</div>
+          <div class="b5-notif-empty-title">All Caught Up!</div>
+          <div>No pending alerts right now.</div>
+        </div>`;
+        return;
+      }
+      list.innerHTML = notifs.map((n, i) => `
+        <div class="b5-notif-item" onclick="handleNotifAction(${i})" tabindex="0" role="button" aria-label="${n.title}">
+          <div class="b5-notif-icon-wrap">${n.icon || '🔔'}</div>
+          <div class="b5-notif-body">
+            <div class="b5-notif-text">${n.title || ''}</div>
+            <div class="b5-notif-sub">${n.msg || ''}</div>
+            <div class="b5-notif-time">${n.time || ''}</div>
+          </div>
+          <button class="b5-notif-dismiss" onclick="event.stopPropagation(); dismissNotif(${i}); renderB5NotifSheetPublic();" aria-label="Dismiss">×</button>
+        </div>
+      `).join('');
+    }
+    window.renderB5NotifSheetPublic = function() { renderB5NotifSheet(); };
+
+    // Update bell badge on both topbar and mobile dash bell
+    function syncBellBadge() {
+      const count = (window.notifData || []).length;
+      // Desktop topbar badge
+      const topbarBadge = document.getElementById('topbar-notif-dot');
+      if (topbarBadge) topbarBadge.style.display = count > 0 ? 'block' : 'none';
+      const notifBadge = document.getElementById('notif-badge');
+      if (notifBadge) {
+        notifBadge.textContent = count;
+        notifBadge.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+      // Mobile dash bell badge
+      const bellBadge = document.getElementById('b5-bell-badge');
+      if (bellBadge) {
+        bellBadge.textContent = count > 9 ? '9+' : count;
+        bellBadge.classList.toggle('on', count > 0);
+      }
+    }
+    // Patch dismissNotif to also sync badge
+    const _origDismiss = window.dismissNotif;
+    window.dismissNotif = function(i) {
+      if (typeof _origDismiss === 'function') _origDismiss(i);
+      syncBellBadge();
+    };
+    const _origClearAll = window.clearAllNotifs;
+    window.clearAllNotifs = function() {
+      if (typeof _origClearAll === 'function') _origClearAll();
+      syncBellBadge();
+      closeNotifSheet();
+    };
+    // Initial sync
+    syncBellBadge();
+
+    // ---- BOTTOM NAV ACTIVE STATE SYNC ----
+    // Patch showPanel to sync bottom nav active state
+    const _origShowPanel = window.showPanel;
+    window.showPanel = function(id, btn, opts) {
+      if (typeof _origShowPanel === 'function') _origShowPanel(id, btn, opts);
+      // Sync bottom nav active state
+      document.querySelectorAll('.kc-bn-item[data-v]').forEach(el => {
+        const v = el.getAttribute('data-v');
+        el.classList.toggle('active', v === id);
+      });
+      // On mobile, scroll to top of panel
+      if (window.innerWidth <= 768) {
+        const target = document.getElementById('panel-' + id);
+        if (target) target.scrollTop = 0;
+        window.scrollTo(0, 0);
+      }
+      // Update B5 dashboard when switching to dashboard
+      if (id === 'dashboard') {
+        setTimeout(() => {
+          if (typeof window.updateB5DashStats === 'function') window.updateB5DashStats();
+        }, 0);
+      }
+    };
+
+    // ---- SIDEBAR DRAWER (<=1024px) ----
+    // Patch openSide and closeSide to also manage backdrop
+    const _origOpenSide = window.openSide;
+    const _origCloseSide = window.closeSide;
+
+    window.openSide = function() {
+      const side = document.getElementById('side');
+      if (side) side.classList.add('open');
+      const backdrop = document.getElementById('b5-sidebar-backdrop');
+      if (backdrop) backdrop.classList.add('on');
+      document.body.classList.add('overflow-hidden');
+      // Trap focus
+      if (side) {
+        const first = side.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
+        if (first) first.focus();
+      }
+    };
+
+    window.closeSide = function(noHistory) {
+      const side = document.getElementById('side');
+      if (side) side.classList.remove('open');
+      const backdrop = document.getElementById('b5-sidebar-backdrop');
+      if (backdrop) backdrop.classList.remove('on');
+      document.body.classList.remove('overflow-hidden');
+      if (typeof _origCloseSide === 'function') _origCloseSide(noHistory);
+    };
+
+    // Sidebar links close the sidebar on tap (mobile)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('.sidebar-link');
+      if (link && window.innerWidth <= 1024) {
+        const side = document.getElementById('side');
+        if (side && side.classList.contains('open')) {
+          window.closeSide(true);
+        }
+      }
+    });
+
+    // ---- CONFIRM ADMIN LOGOUT ----
+    window.confirmAdminLogout = function() {
+      window.showStyledConfirm({
+        title: 'Log Out?',
+        message: 'Are you sure you want to log out of the admin panel?',
+        confirmText: 'Log Out',
+        danger: true,
+        onConfirm: function() {
+          if (typeof window.adminLogout === 'function') window.adminLogout();
+        }
+      });
+    };
+
+    // ---- INIT: run on DOMContentLoaded or now if already ready ----
+    function b5Init() {
+      // Update greeting / date immediately
+      const dateEl = document.getElementById('b5-dash-date');
+      if (dateEl) {
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+      }
+      // Update stats if data already available
+      if ((window.ordersData && window.ordersData.length) || (window.adminProducts && window.adminProducts.length)) {
+        window.updateB5DashStats();
+      }
+      syncBellBadge();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', b5Init);
+    } else {
+      setTimeout(b5Init, 100);
+    }
+    // Also update when ordersData or adminProducts arrive
+    const _prevUpdateDash = window.updateDashboardStats;
+    window.updateDashboardStats = function() {
+      if (typeof _prevUpdateDash === 'function') _prevUpdateDash();
+      if (typeof window.updateB5DashStats === 'function') window.updateB5DashStats();
+    };
+
+    })(); // end B5 IIFE
+    </script>
 </body>
 
 </html>
