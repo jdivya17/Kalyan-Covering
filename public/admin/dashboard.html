@@ -4207,9 +4207,13 @@ iv>
         // B4: REUSABLE STYLED CONFIRM DIALOG
         // ============================================================
         let activeConfirmResolver = null;
-        window.showStyledConfirm = function({ title, message, confirmText = 'Confirm', isDanger = false }) {
+        let activeConfirmOpts = null;
+        window.showStyledConfirm = function(opts) {
+            opts = opts || {};
+            const { title, message, confirmText = 'Confirm', isDanger = false, danger = false } = opts;
             return new Promise(resolve => {
                 activeConfirmResolver = resolve;
+                activeConfirmOpts = opts;
                 const dialog = document.getElementById('kc-styled-confirm-dialog');
                 const titleEl = document.getElementById('kc-confirm-title');
                 const msgEl = document.getElementById('kc-confirm-message');
@@ -4218,7 +4222,7 @@ iv>
                 if (msgEl) msgEl.textContent = message || 'Are you sure?';
                 if (okBtn) {
                     okBtn.textContent = confirmText;
-                    if (isDanger) {
+                    if (isDanger || danger) {
                         okBtn.style.background = '#e53e3e';
                         okBtn.style.color = '#fff';
                     } else {
@@ -4233,8 +4237,17 @@ iv>
         window.closeStyledConfirm = function(result) {
             const dialog = document.getElementById('kc-styled-confirm-dialog');
             if (dialog) dialog.classList.remove('active');
+            const boolResult = Boolean(result);
+            if (activeConfirmOpts) {
+                if (boolResult && typeof activeConfirmOpts.onConfirm === 'function') {
+                    try { activeConfirmOpts.onConfirm(); } catch(e) {}
+                } else if (!boolResult && typeof activeConfirmOpts.onCancel === 'function') {
+                    try { activeConfirmOpts.onCancel(); } catch(e) {}
+                }
+                activeConfirmOpts = null;
+            }
             if (activeConfirmResolver) {
-                activeConfirmResolver(result);
+                activeConfirmResolver(boolResult);
                 activeConfirmResolver = null;
             }
         };
@@ -11338,9 +11351,14 @@ iv>
       document.body.style.overflow = '';
     };
 
-    // Escape closes More sheet
+    // Escape closes Confirm dialog, More sheet, Notifications sheet
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
+        const confirmDlg = document.getElementById('kc-styled-confirm-dialog');
+        if (confirmDlg && confirmDlg.classList.contains('active')) {
+          if (typeof window.closeStyledConfirm === 'function') window.closeStyledConfirm(false);
+          return;
+        }
         const moreSheet = document.getElementById('b5-more-sheet');
         if (moreSheet && moreSheet.classList.contains('on')) { closeMoreSheet(); return; }
         const notifSheet = document.getElementById('b5-notif-sheet');
