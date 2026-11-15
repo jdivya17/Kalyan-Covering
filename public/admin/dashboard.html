@@ -10369,6 +10369,12 @@ iv>
         };
 
         window.toggleCouponStatus = async function (id, currentStatus) {
+            // RBAC check: Staff role cannot modify coupons
+            const role = window.currentRole || window.safeStore?.get(sessionStorage, 'kc_admin_role') || window.safeStore?.get(localStorage, 'kc_admin_role');
+            if (role === 'staff' || (window.RBAC && !window.RBAC.canAccess(role, 'coupons'))) {
+                Toast.error('Unauthorized', 'Staff role cannot modify coupons.');
+                return;
+            }
             const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
             try {
                 await updateDoc(doc(db, 'coupons', id), { status: newStatus, updatedAt: serverTimestamp() });
