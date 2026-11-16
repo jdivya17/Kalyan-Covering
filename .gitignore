@@ -35,3 +35,6 @@ serviceAccount*.json
 {
 powershell.cmd
 
+
+screenshots/
+scratch/

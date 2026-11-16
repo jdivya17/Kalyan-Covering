@@ -11,6 +11,9 @@ export let currentProductViewMode = 'table';
 export let editingProductData = null;
 
 export function renderProductsTable(products) {
+  if (typeof window !== "undefined" && typeof window.renderProductsTable === "function" && window.renderProductsTable !== renderProductsTable) {
+    return window.renderProductsTable(products);
+  }
   const list = products || window.adminProducts || (window.adminData && window.adminData.products) || [];
   const tbody = document.getElementById('products-table');
   const countLabel = document.getElementById('products-count-label');

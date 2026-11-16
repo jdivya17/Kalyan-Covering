@@ -51,13 +51,27 @@ export async function renderUsersTable() {
 }
 
 export async function updateUserRole(targetUid, role) {
-  try {
-    await callVercelApi('/api/admin/set-user-role', { targetUid, role });
-    toast(`User role set to ${role}`);
-    renderUsersTable();
-  } catch (err) {
-    console.error('updateUserRole:', err);
-    toast('Role update failed: ' + err.message);
+  const proceed = async () => {
+    try {
+      await callVercelApi('/api/admin/set-user-role', { targetUid, role });
+      toast(`User role set to ${role}`);
+      renderUsersTable();
+    } catch (err) {
+      console.error('updateUserRole:', err);
+      toast('Role update failed: ' + err.message);
+    }
+  };
+
+  if ((role === 'owner' || role === 'manager') && typeof window !== 'undefined' && typeof window.showStyledConfirm === 'function') {
+    window.showStyledConfirm({
+      title: 'Elevate Privileges?',
+      message: `Change user role to ${role.toUpperCase()}? This grants elevated administrative privileges.`,
+      confirmText: `Confirm ${role.toUpperCase()}`,
+      danger: true,
+      onConfirm: proceed
+    });
+  } else {
+    proceed();
   }
 }
 

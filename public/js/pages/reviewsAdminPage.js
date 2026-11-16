@@ -96,7 +96,14 @@ export async function rejectAdminReview(reviewId) {
 }
 
 export async function deleteAdminReview(reviewId) {
-  if (!confirm('Permanently delete this review? This cannot be undone.')) return;
+  const confirmed = await new Promise(r => {
+    if (typeof window !== 'undefined' && typeof window.showStyledConfirm === 'function') {
+      window.showStyledConfirm({ title: 'Delete Review?', message: 'Permanently delete this review? This cannot be undone.', confirmText: 'Delete', danger: true, onConfirm: () => r(true), onCancel: () => r(false) });
+    } else {
+      r(confirm('Permanently delete this review? This cannot be undone.'));
+    }
+  });
+  if (!confirmed) return;
   try {
     await deleteDoc(doc(db, 'reviews', reviewId));
     toast('Review Deleted');

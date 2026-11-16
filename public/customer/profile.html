@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Account | Kalyan Covering</title>
   <meta name="description" content="Manage your profile, view orders, track packages, manage saved addresses and refunds at Kalyan Covering.">
+  <meta property="og:title" content="My Account | Kalyan Covering">
+  <meta property="og:description" content="Manage your profile, view orders, track packages, and manage saved addresses at Kalyan Covering.">
+  <meta property="og:image" content="../assets/kalyan_logo.png">
   <link rel="icon" type="image/png" href="../assets/kalyan_logo.png">
 
   <!-- Fonts & Stylesheets -->
@@ -13,6 +16,28 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/mobile.css">
+
+  <style>
+    #account-sub-email, .prow b, .acard p {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .addresses-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .acard .oact .btn {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
 </head>
 
 <body>
@@ -65,6 +90,22 @@
       </div>
     </div>
   </main>
+
+  
+  <!-- Delete Address Confirmation Modal -->
+  <div id="delete-address-modal" class="auth-modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:1000;display:none;align-items:center;justify-content:center;padding:1.5rem;" onclick="if(event.target===this)closeDeleteModal()">
+    <div style="background:var(--bg2, #0d0a06);border:1px solid var(--line);border-radius:8px;padding:2rem;width:100%;max-width:400px;box-shadow:0 20px 50px rgba(0,0,0,0.8);box-sizing:border-box;text-align:center;">
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(220,53,69,0.12);border:1px solid rgba(220,53,69,0.3);color:var(--danger, #e58a7a);margin:0 auto 1rem;display:grid;place-items:center;font-size:1.4rem;">
+        ⚠️
+      </div>
+      <h3 style="font-family:var(--serif);font-size:1.4rem;color:var(--ivory);margin-bottom:0.4rem;">Remove Address</h3>
+      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.5;">Are you sure you want to remove this saved address?</p>
+      <div style="display:flex;gap:0.75rem;">
+        <button type="button" class="btn solid" id="confirm-delete-btn" style="flex:1;min-height:44px;background:var(--danger);border-color:var(--danger);color:#fff;" onclick="confirmDeleteAddress()">Remove</button>
+        <button type="button" class="btn ghost" style="min-height:44px;padding:0 1.2rem;" onclick="closeDeleteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Global Shell Footer Container -->
   <div id="global-footer"></div>
@@ -218,7 +259,7 @@
       }
 
       container.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div class="addresses-header">
           <h2 class="t" style="margin:0;">Saved Addresses</h2>
           <button class="btn solid sm" onclick="openNewAddressForm()">${ic('plus', 16)} Add New Address</button>
         </div>
