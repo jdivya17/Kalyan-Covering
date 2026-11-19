@@ -1,12 +1,19 @@
 /**
  * shippingService.js — Vercel/Express compatible
- * Uses Firebase Admin SDK via require('../lib/admin') instead of inline init.
+ * Uses Firebase Admin SDK via require('../lib/admin').
+ * Uses centralized config from ./config.
  */
 "use strict";
 
 const { admin, db } = require("../lib/admin");
 const { shiprocketRequest } = require("./shiprocketClient");
-const { sanitizePincode, validateShippingAddress, formatAddressForShiprocket, calculateDimensions } = require("./shippingUtils");
+const { config, assertPickupConfig } = require("./config");
+const {
+    sanitizePincode,
+    validateShippingAddress,
+    formatAddressForShiprocket,
+    calculateDimensions
+} = require("./shippingUtils");
 
 function log(level, message, meta = {}) {
     const entry = { severity: level.toUpperCase(), component: "SHIPPING_SERVICE", message, timestamp: new Date().toISOString(), ...meta };
@@ -16,40 +23,78 @@ function log(level, message, meta = {}) {
 }
 
 async function checkServiceability({ pickupPincode, deliveryPincode, weight, isCOD = false }) {
-    log("info", "Checking serviceability", { pickupPincode, deliveryPincode, weight, isCOD });
-    const sanitizedPickup = sanitizePincode(pickupPincode);
+    const targetPickup = pickupPincode || config.pickupPincode;
+    if (!targetPickup) {
+        throw new Error("Shiprocket pickup location/pincode is not configured. Set SHIPROCKET_PICKUP_PINCODE.");
+    }
+
+    const sanitizedPickup = sanitizePincode(targetPickup);
     const sanitizedDelivery = sanitizePincode(deliveryPincode);
-    if (typeof weight !== "number" || isNaN(weight) || weight <= 0) throw new Error(`Invalid weight: ${weight}.`);
-    const params = { pickup_postcode: sanitizedPickup, delivery_postcode: sanitizedDelivery, weight, cod: isCOD ? 1 : 0 };
+    const packageWeight = typeof weight === "number" && !isNaN(weight) && weight > 0 ? weight : config.defaultWeightKg;
+
+    log("info", "Checking serviceability", { sanitizedPickup, sanitizedDelivery, packageWeight, isCOD });
+
+    const params = {
+        pickup_postcode: sanitizedPickup,
+        delivery_postcode: sanitizedDelivery,
+        weight: packageWeight,
+        cod: isCOD ? 1 : 0
+    };
+
     try {
         const result = await shiprocketRequest("GET", "/courier/serviceability/", null, params);
         const couriers = result?.data?.available_courier_companies || [];
         return {
             isServiceable: couriers.length > 0,
             availableCouriers: couriers.map(c => ({
-                courierId: c.courier_company_id, courierName: c.courier_name,
-                estimatedDays: c.estimated_delivery_days, ratePerKg: c.rate,
-                totalRate: c.freight_charge, cod: c.cod === 1, tracking: c.tracking,
-                minWeight: c.min_weight, isRecommended: c.is_recommended === 1,
+                courierId: c.courier_company_id,
+                courierName: c.courier_name,
+                estimatedDays: c.estimated_delivery_days,
+                ratePerKg: c.rate,
+                totalRate: c.freight_charge,
+                cod: c.cod === 1,
+                tracking: c.tracking,
+                minWeight: c.min_weight,
+                isRecommended: c.is_recommended === 1,
             })),
             rawResponse: result?.data || {},
         };
     } catch (err) {
+        log("error", "Serviceability check failed", { error: err.message });
         throw new Error(`Serviceability check failed: ${err.message}`);
     }
 }
 
 async function getAvailableCouriersForOrder(orderId, pickupPincode) {
     if (!orderId) throw new Error("orderId is required.");
-    if (!pickupPincode) throw new Error("pickupPincode is required.");
+    const activePickupPincode = pickupPincode || config.pickupPincode;
+    if (!activePickupPincode) {
+        throw new Error("Shiprocket pickup location/pincode is not configured. Set SHIPROCKET_PICKUP_PINCODE.");
+    }
+
     const orderSnap = await db.collection("orders").doc(orderId).get();
     if (!orderSnap.exists) throw new Error(`Order ${orderId} not found.`);
     const order = orderSnap.data();
     const shippingAddress = order.shippingAddress;
     if (!shippingAddress) throw new Error(`Order ${orderId} has no shipping address.`);
-    try { validateShippingAddress(shippingAddress); } catch (e) { throw new Error(`Invalid address on order: ${e.message}`); }
+
+    try {
+        validateShippingAddress(shippingAddress);
+    } catch (e) {
+        throw new Error(`Invalid address on order: ${e.message}`);
+    }
+
     const dims = calculateDimensions(order.items || []);
-    const result = await checkServiceability({ pickupPincode, deliveryPincode: shippingAddress.pin || shippingAddress.pincode, weight: dims.weight, isCOD: order.payment?.method === "cod" });
+    const isCod = (order.payment?.method === "cod" || order.paymentMethod === "cod");
+    const deliveryPin = shippingAddress.pin || shippingAddress.pincode;
+
+    const result = await checkServiceability({
+        pickupPincode: activePickupPincode,
+        deliveryPincode: deliveryPin,
+        weight: dims.weight,
+        isCOD: isCod
+    });
+
     try {
         await db.collection("orders").doc(orderId).update({
             "shippingDetails.serviceabilityChecked": true,
@@ -57,8 +102,17 @@ async function getAvailableCouriersForOrder(orderId, pickupPincode) {
             "shippingDetails.isServiceable": result.isServiceable,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-    } catch (e) { log("warn", "Cache serviceability failed", { error: e.message }); }
-    return { orderId, orderNumber: order.orderNumber, customerPin: shippingAddress.pin || shippingAddress.pincode, packageWeight: dims.weight, ...result };
+    } catch (e) {
+        log("warn", "Cache serviceability failed", { error: e.message });
+    }
+
+    return {
+        orderId,
+        orderNumber: order.orderNumber || orderId,
+        customerPin: deliveryPin,
+        packageWeight: dims.weight,
+        ...result
+    };
 }
 
 async function getTrackingByShipmentId(shipmentId) {
@@ -67,12 +121,23 @@ async function getTrackingByShipmentId(shipmentId) {
         const result = await shiprocketRequest("GET", `/courier/track/shipment/${shipmentId}`);
         const td = result?.tracking_data || result;
         return {
-            shipmentId, currentStatus: td?.shipment_status || null,
-            awbCode: td?.awb_code || null, courierName: td?.courier_name || null,
-            activities: (td?.activities || []).map(a => ({ date: a.date, status: a.status, activity: a.activity, location: a.location })),
-            expectedDeliveryDate: td?.etd || null, rawResponse: td,
+            shipmentId,
+            currentStatus: td?.shipment_status || null,
+            awbCode: td?.awb_code || null,
+            courierName: td?.courier_name || null,
+            activities: (td?.activities || []).map(a => ({
+                date: a.date,
+                status: a.status,
+                activity: a.activity,
+                location: a.location
+            })),
+            expectedDeliveryDate: td?.etd || null,
+            rawResponse: td,
         };
-    } catch (err) { throw new Error(`Tracking failed for shipment ${shipmentId}: ${err.message}`); }
+    } catch (err) {
+        log("error", "Tracking by shipmentId failed", { shipmentId, error: err.message });
+        throw err;
+    }
 }
 
 async function getTrackingByOrderId(orderId, updateOrder = true) {
@@ -81,15 +146,25 @@ async function getTrackingByOrderId(orderId, updateOrder = true) {
     if (!orderSnap.exists) throw new Error(`Order ${orderId} not found.`);
     const order = orderSnap.data();
     const shipmentId = order.shippingDetails?.shiprocketShipmentId;
-    const awbCode = order.shippingDetails?.awbCode;
-    if (!shipmentId && !awbCode) throw new Error(`Order ${orderId} has no Shiprocket shipment ID. Create a shipment first.`);
+    const awbCode = order.shippingDetails?.awbCode || order.shippingDetails?.trackingNumber;
+
+    if (!shipmentId && !awbCode) {
+        throw new Error(`Order ${orderId} has no Shiprocket shipment ID. Create a shipment first.`);
+    }
+
     let trackingResult;
     if (shipmentId) {
         trackingResult = await getTrackingByShipmentId(shipmentId);
     } else {
         const result = await shiprocketRequest("GET", "/courier/track", null, { awb: awbCode });
-        trackingResult = { awbCode, currentStatus: result?.tracking_data?.shipment_status || null, activities: result?.tracking_data?.activities || [], rawResponse: result?.tracking_data || result };
+        trackingResult = {
+            awbCode,
+            currentStatus: result?.tracking_data?.shipment_status || null,
+            activities: result?.tracking_data?.activities || [],
+            rawResponse: result?.tracking_data || result
+        };
     }
+
     if (updateOrder && trackingResult.currentStatus) {
         try {
             await db.collection("orders").doc(orderId).update({
@@ -97,17 +172,26 @@ async function getTrackingByOrderId(orderId, updateOrder = true) {
                 "shippingDetails.latestTrackingStatus": trackingResult.currentStatus,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-        } catch (e) { log("warn", "Failed to update tracking on order", { error: e.message }); }
+        } catch (e) {
+            log("warn", "Failed to update tracking on order", { error: e.message });
+        }
     }
-    return { orderId, orderNumber: order.orderNumber, ...trackingResult };
+    return { orderId, orderNumber: order.orderNumber || orderId, ...trackingResult };
 }
 
 async function getPickupLocations() {
     const result = await shiprocketRequest("GET", "/settings/company/pickup");
     const locations = result?.data?.shipping_address || [];
     return locations.map(loc => ({
-        id: loc.id, name: loc.pickup_location, address: loc.address, city: loc.city,
-        state: loc.state, country: loc.country, pincode: loc.pin_code, phone: loc.phone, email: loc.email,
+        id: loc.id,
+        name: loc.pickup_location,
+        address: loc.address,
+        city: loc.city,
+        state: loc.state,
+        country: loc.country,
+        pincode: loc.pin_code,
+        phone: loc.phone,
+        email: loc.email,
         isDefault: loc.is_first_kilometer === 1,
     }));
 }
@@ -118,18 +202,50 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
     const orderRef = db.collection("orders").doc(orderId);
     let orderData = null;
 
-    // Transaction lock for idempotency
+    // Transaction lock for idempotency and order guard checks
     const lockResult = await db.runTransaction(async (transaction) => {
         const snap = await transaction.get(orderRef);
         if (!snap.exists) throw new Error(`Order ${orderId} not found.`);
         const data = snap.data();
 
-        if (data.paymentStatus !== "paid" && data.payment?.method !== "cod") {
-            throw new Error(`Order ${orderId} is not paid and is not COD.`);
+        // 1. Guard checks on order status
+        const orderStatus = String(data.orderStatus || data.status || "pending").toLowerCase();
+        const isRefundRequired = Boolean(data.refundRequired || data.cancellation?.refundRequired);
+
+        if (["cancelled", "canceled"].includes(orderStatus)) {
+            throw new Error(`Cannot create shipment: Order ${orderId} is cancelled.`);
         }
-        if (data.shippingDetails?.shiprocketShipmentId) {
+        if (["returned", "return_requested"].includes(orderStatus)) {
+            throw new Error(`Cannot create shipment: Order ${orderId} has been returned.`);
+        }
+        if (orderStatus === "action_required_oversold" || orderStatus === "oversold") {
+            throw new Error(`Cannot create shipment: Order ${orderId} is in oversold review state.`);
+        }
+        if (orderStatus === "payment_pending") {
+            throw new Error(`Cannot create shipment: Order ${orderId} payment is still pending.`);
+        }
+        if (isRefundRequired) {
+            throw new Error(`Cannot create shipment: Order ${orderId} has a pending refund request.`);
+        }
+
+        const isCod = (data.payment?.method === "cod" || data.paymentMethod === "cod");
+        const isPaid = data.paymentStatus === "paid";
+
+        if (!isPaid && !isCod) {
+            throw new Error(`Cannot create shipment: Online order ${orderId} is not marked as paid.`);
+        }
+
+        const allowedStatuses = ["pending", "confirmed", "packed", "placed", "order_placed"];
+        if (!allowedStatuses.includes(orderStatus)) {
+            throw new Error(`Cannot create shipment: Order status is "${orderStatus}". Shipments can only be created for pending, confirmed, or packed orders.`);
+        }
+
+        // 2. Check if shipment already created (idempotency)
+        if (data.shippingDetails?.shiprocketShipmentId || data.shippingDetails?.shiprocketOrderId || data.shippingDetails?.shiprocket_order_id) {
             return { alreadyCreated: true, data: data.shippingDetails };
         }
+
+        // 3. Check lock flag
         if (data.shippingDetails?.creatingShipment) {
             const creatingAt = data.shippingDetails?.creatingShipmentAt;
             let isStale = false;
@@ -140,7 +256,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
                 }
             }
             if (!isStale) {
-                throw new Error(`Shipment creation already in progress for order ${orderId}.`);
+                throw new Error(`Shipment creation already in progress for order ${orderId}. Please wait.`);
             }
         }
 
@@ -149,6 +265,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             "shippingDetails.creatingShipmentAt": admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+
         return { alreadyCreated: false, data };
     });
 
@@ -157,8 +274,8 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
         return {
             success: true,
             orderId,
-            shiprocketOrderId: sd.shiprocketOrderId || null,
-            shiprocketShipmentId: sd.shiprocketShipmentId,
+            shiprocketOrderId: sd.shiprocketOrderId || sd.shiprocket_order_id || null,
+            shiprocketShipmentId: sd.shiprocketShipmentId || null,
             awbCode: sd.awbCode || sd.trackingNumber || null,
             courierName: sd.courierName || sd.carrier || null,
             trackingUrl: sd.trackingUrl || null,
@@ -171,14 +288,16 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
     orderData = lockResult.data;
 
     try {
-        // Check pickup locations
+        // Assert pickup config
+        assertPickupConfig();
+
         const pickupLocations = await getPickupLocations();
         const availableNames = pickupLocations.map(l => l.name);
-        const selectedPickup = pickupLocation || process.env.STORE_PICKUP_LOCATION || "";
+        const selectedPickup = pickupLocation || config.pickupLocation;
 
         if (!selectedPickup || !availableNames.includes(selectedPickup)) {
-            const locationList = availableNames.length > 0 ? availableNames.join(", ") : "none available";
-            throw new Error(`STORE_PICKUP_LOCATION '${selectedPickup || "undefined"}' missing or not found in Shiprocket pickup locations. Available pickup locations: [${locationList}]`);
+            const locationList = availableNames.length > 0 ? availableNames.join(", ") : "none found in Shiprocket account";
+            throw new Error(`Shiprocket pickup location not found. Ensure configured pickup location '${selectedPickup || ""}' matches Shiprocket exactly. Available: [${locationList}]`);
         }
 
         let deliveryAddress;
@@ -192,16 +311,18 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
         const orderItems = (orderData.items || []).map(item => ({
             name: item.name || "Jewellery Item",
             sku: item.sku || item.id || "SKU-UNKNOWN",
-            units: item.qty || 1,
+            units: item.qty || item.quantity || 1,
             selling_price: item.price || 0,
             discount: 0,
             tax: 0,
             hsn: 7113
         }));
 
-        const dateObj = orderData.createdAt ? (orderData.createdAt.toDate ? orderData.createdAt.toDate() : new Date(orderData.createdAt)) : new Date();
+        const dateObj = orderData.createdAt
+            ? (orderData.createdAt.toDate ? orderData.createdAt.toDate() : new Date(orderData.createdAt))
+            : new Date();
         const orderDate = dateObj.toISOString().replace("T", " ").replace(/\.\d+Z$/, "").substring(0, 16);
-        const isCod = orderData.payment?.method === "cod";
+        const isCod = (orderData.payment?.method === "cod" || orderData.paymentMethod === "cod");
 
         const adhocPayload = {
             order_id: orderData.orderNumber || orderId,
@@ -220,7 +341,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             shipping_is_billing: true,
             order_items: orderItems,
             payment_method: isCod ? "COD" : "Prepaid",
-            sub_total: orderData.totalAmount,
+            sub_total: orderData.totalAmount || 0,
             length: dims.length,
             breadth: dims.breadth,
             height: dims.height,
@@ -238,7 +359,7 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
         if (!selectedCourierId) {
             try {
                 const serviceability = await checkServiceability({
-                    pickupPincode: process.env.STORE_PICKUP_PINCODE || orderData.pickupPincode,
+                    pickupPincode: config.pickupPincode,
                     deliveryPincode: orderData.shippingAddress?.pin || orderData.shippingAddress?.pincode,
                     weight: dims.weight,
                     isCOD: isCod
@@ -310,10 +431,12 @@ async function createShipmentForOrder(orderId, pickupLocation = "", courierId = 
             message: `Shipment created. ID: ${shipmentId}`
         };
     } catch (err) {
+        // Clear creatingShipment flag on failure
         await orderRef.update({
             "shippingDetails.creatingShipment": false,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }).catch(() => {});
+
         log("error", "Shipment creation failed", { orderId, error: err.message });
         throw err;
     }
@@ -330,5 +453,12 @@ async function cancelShiprocketOrder(shiprocketOrderId) {
     }
 }
 
-module.exports = { checkServiceability, getAvailableCouriersForOrder, getTrackingByShipmentId, getTrackingByOrderId, getPickupLocations, createShipmentForOrder, cancelShiprocketOrder };
-
+module.exports = {
+    checkServiceability,
+    getAvailableCouriersForOrder,
+    getTrackingByShipmentId,
+    getTrackingByOrderId,
+    getPickupLocations,
+    createShipmentForOrder,
+    cancelShiprocketOrder
+};
