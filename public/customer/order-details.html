@@ -274,8 +274,97 @@
   <script type="module" src="../js/utils/shellInit.js"></script>
   <script type="module">
     import { getOrder } from '../js/services/orderService.js';
-    import { formatCurrency } from '../js/utils/helpers.js';
+    import { formatCurrency, escapeHtml } from '../js/utils/helpers.js';
     import { generateInvoicePDF } from '../js/utils/invoiceGenerator.js';
+
+    function renderTracking(order) {
+      const section = document.getElementById('detail-tracking-section');
+      const content = document.getElementById('detail-tracking-content');
+      if (!section || !content) return;
+
+      const sd = order.shippingDetails || {};
+      const awb = sd.awbCode || sd.trackingNumber || null;
+      const carrier = sd.courierName || sd.carrier || null;
+      const rawTrackUrl = sd.trackingUrl || (awb ? `https://shiprocket.co/tracking/${awb}` : null);
+      const safeTrackUrl = (typeof rawTrackUrl === 'string' && rawTrackUrl.startsWith('https://'))
+        ? encodeURI(rawTrackUrl)
+        : null;
+      const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+
+      let html = '';
+
+      if (awb || carrier) {
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:1rem; background:rgba(214,178,94,0.05); border:1px solid rgba(214,178,94,0.2); border-radius:4px; margin-bottom:1.5rem;">
+            <div>
+              ${carrier ? `<div style="font-size:0.85rem; color:var(--muted,#a99f8a); margin-bottom:4px;">Courier Partner: <b style="color:var(--ivory,#f3ead6);">${escapeHtml(carrier)}</b></div>` : ''}
+              ${awb ? `
+                <div style="font-size:0.88rem; color:var(--muted,#a99f8a); display:flex; align-items:center; gap:8px;">
+                  <span>AWB / Tracking: <b style="color:var(--gold,#d6b25e);">${escapeHtml(awb)}</b></span>
+                  <button type="button" class="copy-awb-btn" data-awb="${escapeHtml(awb)}" style="background:transparent; border:1px solid rgba(214,178,94,0.4); color:var(--gold,#d6b25e); border-radius:3px; padding:2px 8px; font-size:0.75rem; cursor:pointer;">Copy</button>
+                </div>
+              ` : ''}
+            </div>
+            ${safeTrackUrl ? `
+              <a href="${escapeHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="btn btn-gold" style="padding:0.5rem 1rem; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                <span>Track on Carrier</span> ↗
+              </a>
+            ` : ''}
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(214,178,94,0.15); border-radius:4px; margin-bottom:1.5rem; color:var(--muted,#a99f8a); font-size:0.9rem;">
+            Your order is being prepared. Tracking will appear after dispatch.
+          </div>
+        `;
+      }
+
+      if (history.length > 0) {
+        html += `
+          <div style="margin-top:1rem;">
+            <h4 style="font-size:0.95rem; color:var(--gold,#d6b25e); margin-bottom:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Status Updates</h4>
+            <ol style="list-style:none; padding:0 0 0 1.2rem; margin:0; position:relative; border-left:2px solid rgba(214,178,94,0.2);">
+              ${history.map((h) => {
+                const rawTime = h.changedAt || h.timestamp;
+                const dateObj = rawTime?.toDate ? rawTime.toDate() : (rawTime ? new Date(rawTime) : null);
+                const timeStr = dateObj && !isNaN(dateObj.getTime())
+                  ? dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                const statusName = String(h.status || '').replace(/_/g, ' ').toUpperCase();
+                const note = h.note || '';
+
+                return `
+                  <li style="position:relative; margin-bottom:1.25rem; padding-left:0.8rem;">
+                    <span style="position:absolute; left:-1.75rem; top:2px; width:10px; height:10px; border-radius:50%; background:var(--gold,#d6b25e); box-shadow:0 0 8px rgba(214,178,94,0.6);"></span>
+                    <div style="font-size:0.9rem; font-weight:600; color:var(--ivory,#f3ead6);">${escapeHtml(statusName)}</div>
+                    ${timeStr ? `<div style="font-size:0.78rem; color:var(--gold-hi,#f5e0a3); margin-top:2px;">${escapeHtml(timeStr)}</div>` : ''}
+                    ${note ? `<div style="font-size:0.82rem; color:var(--muted,#a99f8a); margin-top:3px;">${escapeHtml(note)}</div>` : ''}
+                  </li>
+                `;
+              }).join('')}
+            </ol>
+          </div>
+        `;
+      }
+
+      content.innerHTML = html;
+      section.style.display = 'block';
+
+      // Attach clipboard listener using data-awb
+      const copyBtn = content.querySelector('.copy-awb-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const awbVal = copyBtn.getAttribute('data-awb') || '';
+          if (!awbVal || !navigator.clipboard) return;
+          navigator.clipboard.writeText(awbVal).then(() => {
+            const prev = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = prev; }, 2000);
+          }).catch(() => {});
+        });
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
@@ -290,6 +379,8 @@
         if (order) {
           document.getElementById('detail-order-id').textContent = 'Order #' + (order.orderNumber || order.id);
           document.getElementById('detail-order-date').textContent = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+          
+          renderTracking(order);
           
           const statusEl = document.getElementById('detail-order-status');
           if (statusEl) {

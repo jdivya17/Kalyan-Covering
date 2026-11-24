@@ -6,7 +6,15 @@ const { logAudit, sendError } = require("../lib/utils");
 const { restoreOrderStockInTransaction } = require("../lib/stock");
 const { authMiddleware, requireAdmin } = require("../middleware/auth");
 const { rateLimit } = require("../middleware/rateLimit");
-const { createShipmentForOrder, checkServiceability, getTrackingByOrderId, getPickupLocations, getAvailableCouriersForOrder, getTrackingByShipmentId } = require("../shipping/shippingService");
+const { config, cleanEnvVar, assertPickupConfig } = require("../shipping/config");
+const {
+    createShipmentForOrder,
+    checkServiceability,
+    getTrackingByOrderId,
+    getPickupLocations,
+    getAvailableCouriersForOrder,
+    getTrackingByShipmentId
+} = require("../shipping/shippingService");
 
 const router = express.Router();
 
@@ -23,7 +31,8 @@ function mapShiprocketStatus(raw) {
     if (s.includes("OUT FOR DELIVERY")) return "out_for_delivery";
     if (s.includes("DELIVERED")) return "delivered";
     if (s.includes("CANCEL")) return "cancelled";
-    if (["SHIPPED", "IN TRANSIT", "IN-TRANSIT", "DISPATCHED", "PICKED UP"].some((k) => s.includes(k))) return "shipped";
+    if (["SHIPPED", "IN TRANSIT", "IN-TRANSIT", "DISPATCHED", "PICKED UP", "PICKED-UP"].some((k) => s.includes(k))) return "shipped";
+    if (["PICKUP SCHEDULED", "PICKUP GENERATED", "PICKUP QUEUED", "MANIFEST GENERATED"].some((k) => s.includes(k))) return "packed";
     return null;
 }
 
@@ -47,12 +56,30 @@ router.post("/pincode-check", rateLimit({ windowMs: 60_000, max: 20 }), async (r
         const targetPin = String(req.body.pincode || req.body.deliveryPincode || "").trim();
         if (!/^\d{6}$/.test(targetPin)) return sendError(res, 400, "invalid-argument", "Enter a valid 6-digit pincode.");
 
-        const pickupPincode = process.env.STORE_PICKUP_PINCODE || "638001";
-        const packageWeight = typeof req.body.weight === "number" && req.body.weight > 0 ? req.body.weight : 0.5;
+        assertPickupConfig();
+        const pickupPincode = config.pickupPincode;
+        const packageWeight = typeof req.body.weight === "number" && req.body.weight > 0 ? req.body.weight : config.defaultWeightKg;
+
+        if (!pickupPincode) {
+            console.warn("[pincode-check] SHIPROCKET_PICKUP_PINCODE is not configured. Returning default deliverability.");
+            return res.json({
+                success: true,
+                pincode: targetPin,
+                isServiceable: true,
+                estimatedDays: "3 to 5",
+                courierName: "Standard Delivery",
+                availableCouriersCount: 1
+            });
+        }
 
         let result = { isServiceable: true, availableCouriers: [] };
         try {
-            result = await checkServiceability({ pickupPincode, deliveryPincode: targetPin, weight: packageWeight, isCOD: req.body.isCOD === true });
+            result = await checkServiceability({
+                pickupPincode,
+                deliveryPincode: targetPin,
+                weight: packageWeight,
+                isCOD: req.body.isCOD === true
+            });
         } catch (serviceErr) {
             console.warn("[pincode-check] Shiprocket check failed, defaulting to deliverable:", serviceErr.message);
             return res.json({
@@ -94,8 +121,10 @@ router.post("/get-couriers", authMiddleware, requireAdmin, async (req, res) => {
     try {
         const { orderId } = req.body;
         if (!orderId) return sendError(res, 400, "invalid-argument", "orderId is required.");
-        const pickupPincode = process.env.STORE_PICKUP_PINCODE;
-        if (!pickupPincode) return sendError(res, 500, "internal", "STORE_PICKUP_PINCODE is not configured.");
+        const pickupPincode = config.pickupPincode;
+        if (!pickupPincode) {
+            return sendError(res, 500, "internal", "Shiprocket pickup location/pincode is not configured. Set SHIPROCKET_PICKUP_PINCODE.");
+        }
         const result = await getAvailableCouriersForOrder(orderId, pickupPincode);
         return res.json({ success: true, ...result });
     } catch (err) {
@@ -106,10 +135,10 @@ router.post("/get-couriers", authMiddleware, requireAdmin, async (req, res) => {
 
 // POST /api/shipping/track (Auth required — customers can only track own orders)
 router.post("/track", authMiddleware, async (req, res) => {
+    const isAdmin = Boolean(req.isAdmin);
     try {
         const { orderId, shipmentId } = req.body;
         if (!orderId && !shipmentId) return sendError(res, 400, "invalid-argument", "Either orderId or shipmentId is required.");
-        const isAdmin = req.isAdmin;
 
         if (orderId) {
             if (!isAdmin) {
@@ -126,7 +155,10 @@ router.post("/track", authMiddleware, async (req, res) => {
         return res.json({ success: true, ...result });
     } catch (err) {
         console.error("[shipping/track]", err);
-        return sendError(res, 500, "internal", err.message);
+        if (!isAdmin) {
+            return sendError(res, 500, "internal", "Tracking is not available right now.");
+        }
+        return sendError(res, 500, "internal", err.message || "Failed to retrieve tracking details.");
     }
 });
 
@@ -144,12 +176,14 @@ router.get("/pickup-locations", authMiddleware, requireAdmin, async (req, res) =
 // POST /api/shipping/webhook (Shiprocket Webhook)
 router.post("/webhook", async (req, res) => {
     try {
-        const webhookToken = process.env.SHIPROCKET_WEBHOOK_TOKEN;
+        const webhookToken = config.webhookToken;
         if (!webhookToken) {
             console.error("[shipping/webhook] SHIPROCKET_WEBHOOK_TOKEN is not configured — rejecting.");
             return sendError(res, 500, "internal", "Webhook not configured.");
         }
-        if (!safeEqual(req.headers["x-api-key"] || req.headers["x-shiprocket-token"], webhookToken)) {
+
+        const incomingToken = req.headers["x-api-key"] || req.headers["x-shiprocket-token"];
+        if (!safeEqual(incomingToken, webhookToken)) {
             return sendError(res, 401, "unauthenticated", "Invalid or missing webhook token.");
         }
 
@@ -157,6 +191,9 @@ router.post("/webhook", async (req, res) => {
         const shipmentId = payload.shipment_id ? String(payload.shipment_id) : null;
         const awbCode = payload.awb || payload.awb_code || null;
         const rawStatus = String(payload.current_status || payload.status || "").trim();
+
+        // Log event type and AWB only, never the token!
+        console.log("[shipping/webhook] Processing event", { status: rawStatus, awb: awbCode, shipmentId });
 
         if (!shipmentId && !awbCode && !payload.order_id) {
             return res.status(200).json({ success: true, message: "Order not found or ignored." });
@@ -214,7 +251,7 @@ router.post("/webhook", async (req, res) => {
             updatedAt: now
         };
 
-        if (targetStatus === "delivered" && orderData.payment?.method === "cod" && orderData.paymentStatus !== "paid") {
+        if (targetStatus === "delivered" && (orderData.payment?.method === "cod" || orderData.paymentMethod === "cod") && orderData.paymentStatus !== "paid") {
             updatePayload.paymentStatus = "paid";
             updatePayload["payment.paidAt"] = now;
         }
@@ -236,6 +273,7 @@ router.post("/webhook", async (req, res) => {
         // Only promote status if targetRank > currentRank
         if (targetStatus && targetRank > currentRank) {
             updatePayload.orderStatus = targetStatus;
+            updatePayload.shippingStatus = targetStatus;
             updatePayload.statusHistory = admin.firestore.FieldValue.arrayUnion({
                 status: targetStatus,
                 changedAt: new Date(),
@@ -249,7 +287,7 @@ router.post("/webhook", async (req, res) => {
         return res.status(200).json({ success: true, message: "Webhook processed successfully." });
     } catch (err) {
         console.error("[shipping/webhook]", err);
-        return sendError(res, 500, "internal", err.message || "Failed to process shipping webhook.");
+        return sendError(res, 500, "internal", "Failed to process shipping webhook.");
     }
 });
 
