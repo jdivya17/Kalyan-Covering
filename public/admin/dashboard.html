@@ -1072,6 +1072,64 @@
             }
         }
 
+        /* Mobile Order Modal (#admin-order-modal) Polish */
+        @media (max-width: 768px) {
+            #admin-order-modal {
+                padding: 0 !important;
+                align-items: flex-end !important;
+            }
+            #admin-order-modal .modal {
+                width: 100% !important;
+                max-width: 100% !important;
+                max-height: 92dvh !important;
+                height: auto !important;
+                border-radius: 16px 16px 0 0 !important;
+                margin: 0 !important;
+                padding: 1.25rem 1rem !important;
+                box-sizing: border-box !important;
+                overflow-y: auto !important;
+                border-bottom: none !important;
+            }
+            #admin-order-modal .modal-form-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            #admin-order-modal .form-input,
+            #admin-order-modal select.form-input,
+            #admin-order-modal textarea.form-input {
+                font-size: 16px !important;
+                min-height: 44px !important;
+                box-sizing: border-box !important;
+            }
+            #admin-order-modal .modal-actions-sticky {
+                flex-direction: column-reverse !important;
+                gap: 0.6rem !important;
+                position: sticky !important;
+                bottom: -1.25rem !important;
+                padding: 0.75rem 0 1rem 0 !important;
+                background: var(--black-card) !important;
+                border-top: 1px solid var(--black-border) !important;
+                z-index: 20 !important;
+            }
+            #admin-order-modal .modal-actions-sticky .btn {
+                min-height: 44px !important;
+                width: 100% !important;
+                font-size: 0.95rem !important;
+            }
+            #admin-order-modal #aom-history-list {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            #admin-order-modal .kc-desktop-only-header {
+                display: none !important;
+            }
+        }
+        @media (min-width: 769px) {
+            #admin-order-modal .kc-modal-mobile-header {
+                display: none !important;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, ::before, ::after {
                 animation-duration: 0.01ms !important;
@@ -2968,14 +3026,13 @@ iv>
         <div class="modal" style="max-width:700px">
             <!-- Mobile Modal Header (<=768px) -->
             <div class="kc-modal-mobile-header">
-                <button class="kc-modal-back-btn" type="button" onclick="handleProductModalClose()" aria-label="chevron">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="chevron"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span class="kc-modal-title" id="aom-modal-mobile-title" style="font-weight:600;font-size:1.05rem;color:var(--gold)">Manage Order</span>
+                <button class="kc-modal-back-btn" type="button" onclick="closeModal('admin-order-modal')" aria-label="Close modal" style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;background:none;border:none;color:var(--white);font-size:1.4rem;cursor:pointer;">
+                    &times;
                 </button>
-                <span class="kc-modal-title" id="kc-modal-mobile-title">Add New Product</span>
-                <div style="width:36px"></div>
             </div>
-            <button class="modal-close" onclick="closeModal('admin-order-modal')">×</button>
-            <h3 style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.2rem">Manage Order Tracking &amp;
+            <button class="modal-close kc-desktop-only-header" onclick="closeModal('admin-order-modal')">×</button>
+            <h3 class="kc-desktop-only-header" style="font-family:var(--font-serif);color:var(--gold);margin-bottom:1.2rem">Manage Order Tracking &amp;
                 Status</h3>
 
             <input type="hidden" id="aom-order-id">
@@ -3041,8 +3098,11 @@ iv>
 
             <div class="modal-actions-sticky">
                 <button class="btn btn-outline" style="flex:1" onclick="closeModal('admin-order-modal')">Cancel</button>
-                <button class="btn btn-gold" style="flex:1" onclick="saveAdminOrderTracking()">💾 Save Status &amp;
-                    Notify Live</button>
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                    <button class="btn btn-gold" style="width:100%" onclick="saveAdminOrderTracking()">💾 Save Status &amp;
+                        Notify Live</button>
+                    <span class="kc-notify-hint" style="font-size:0.75rem;color:var(--kc-muted,#aaa);text-align:center;display:block;">Customer will be notified.</span>
+                </div>
             </div>
         </div>
     </div>
@@ -5491,6 +5551,10 @@ iv>
             else if (typeof window.filterOrdersByTab === 'function') window.filterOrdersByTab(status, deskBtn);
         };
 
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         window.toggleOrderAccordion = function(headerEl) {
             const parent = headerEl.closest('.kc-accordion');
             if (parent) parent.classList.toggle('open');
@@ -5547,10 +5611,33 @@ iv>
 
             // Shipping Info
             const sd = o.shippingDetails || {};
-            const carrier = sd.courierName || sd.carrier || o.carrier || 'Standard Courier';
-            const awb = sd.awbCode || sd.trackingNumber || o.trackingNumber || '';
-            const truncAwb = middleTruncate(awb, 14);
-            const trackingUrl = sd.trackingUrl || '';
+            const hasShipment = !!(sd.shiprocketShipmentId || sd.awbCode || sd.trackingNumber || o.trackingNumber);
+            const carrier = escapeHtml(sd.courierName || sd.carrier || o.carrier || 'Standard Courier');
+            const awb = String(sd.awbCode || sd.trackingNumber || o.trackingNumber || '').trim();
+            const truncAwb = escapeHtml(middleTruncate(awb, 14));
+            const rawTrackUrl = sd.trackingUrl || '';
+            const safeTrackUrl = (rawTrackUrl && /^https:\/\//i.test(rawTrackUrl))
+                ? rawTrackUrl
+                : (awb ? `https://shiprocket.co/tracking/${encodeURIComponent(awb)}` : '');
+
+            // Shipping Eligibility Guards
+            const isCancelled = ['cancelled', 'canceled'].includes(rawStatus);
+            const isPaymentPending = rawStatus === 'payment_pending';
+            const isPaidOrCod = isCOD || ['confirmed', 'paid', 'packed', 'pending'].includes(rawStatus) || o.paymentStatus === 'paid';
+            const canCreateShipment = !hasShipment && !isCancelled && !isPaymentPending && !isRefundDue && isPaidOrCod;
+
+            let shipmentIneligibleReason = '';
+            if (hasShipment) {
+                shipmentIneligibleReason = 'Shipment already created';
+            } else if (isCancelled) {
+                shipmentIneligibleReason = 'Order cancelled';
+            } else if (isPaymentPending) {
+                shipmentIneligibleReason = 'Payment pending';
+            } else if (isRefundDue) {
+                shipmentIneligibleReason = 'Refund required';
+            } else if (!isPaidOrCod) {
+                shipmentIneligibleReason = 'Order not eligible for shipment';
+            }
 
             // Status History Timeline
             const history = Array.isArray(o.statusHistory) ? o.statusHistory : [];
@@ -5691,30 +5778,54 @@ iv>
                     <div class="kc-acc-header" onclick="toggleOrderAccordion(this)">
                         <div class="kc-acc-title-wrap">
                             <span class="kc-acc-icon">${SVG_TRUCK}</span>
-                            <span>Shipping & Fulfilment</span>
+                            <span>Shipping &amp; Fulfilment</span>
                         </div>
                         <span class="kc-acc-chevron">${SVG_CHEVRON}</span>
                     </div>
-                    <div class="kc-acc-body">
+                    <div class="kc-acc-body" id="kc-mobile-shipping-section">
                         <div class="kc-info-row">
                             <span class="kc-info-label">Courier</span>
-                            <span class="kc-info-value">${carrier}</span>
+                            <span class="kc-info-value" id="kc-ms-courier-val">${carrier}</span>
                         </div>
                         <div class="kc-info-row">
                             <span class="kc-info-label">AWB Tracking #</span>
-                            <span class="kc-info-value" style="display:inline-flex;align-items:center;gap:6px">
+                            <span class="kc-info-value" id="kc-ms-awb-val" style="display:inline-flex;align-items:center;gap:6px">
                                 <span style="font-family:monospace">${truncAwb || 'Not generated'}</span>
-                                ${awb ? `<button type="button" class="kc-mini-copy-btn" onclick="copyToClipboard('${awb}', 'AWB copied')" aria-label="Copy AWB">${SVG_COPY}</button>` : ''}
+                                ${awb ? `<button type="button" class="kc-mini-copy-btn kc-copy-awb-btn" data-awb="${escapeHtml(awb)}" aria-label="Copy AWB">${SVG_COPY}</button>` : ''}
                             </span>
                         </div>
-                        ${trackingUrl || awb ? `
-                            <div style="margin-top:10px">
-                                <a href="${trackingUrl || '#'}" target="_blank" rel="noopener" class="kc-contact-btn" style="width:100%;color:var(--kc-gold);border-color:var(--kc-gold)">
+                        ${safeTrackUrl ? `
+                            <div style="margin-top:10px" id="kc-ms-track-wrap">
+                                <a href="${escapeHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="kc-contact-btn" style="width:100%;color:var(--kc-gold);border-color:var(--kc-gold)">
                                     ${SVG_TRUCK}
                                     <span>Track</span>
                                 </a>
                             </div>
-                        ` : ''}
+                        ` : '<div id="kc-ms-track-wrap" style="display:none"></div>'}
+
+                        <div id="kc-mobile-shipping-result" style="margin-top:10px;font-size:12px;line-height:1.4"></div>
+
+                        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+                            ${!hasShipment ? `
+                                ${canCreateShipment ? `
+                                    <button type="button" id="kc-btn-create-shipment-mobile" class="btn btn-gold" style="min-height:44px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;box-sizing:border-box" onclick="handleMobileCreateShipment('${o.id}')">
+                                        ${SVG_TRUCK}
+                                        <span>Create shipment</span>
+                                    </button>
+                                ` : `
+                                    <div style="color:var(--kc-muted,#888);font-size:12px;padding:6px 0;text-align:center;font-style:italic">
+                                        ${shipmentIneligibleReason}
+                                    </div>
+                                `}
+                                <button type="button" class="btn btn-outline" style="min-height:44px;width:100%;box-sizing:border-box" onclick="handleMobileCheckCouriers('${o.id}')">
+                                    Check couriers
+                                </button>
+                            ` : `
+                                <button type="button" class="btn btn-outline" style="min-height:44px;width:100%;box-sizing:border-box" onclick="handleMobileRefreshTracking('${o.id}')">
+                                    Refresh tracking
+                                </button>
+                            `}
+                        </div>
                     </div>
                 </div>
 
@@ -5772,6 +5883,16 @@ iv>
             requestAnimationFrame(() => sheet.classList.add('active'));
             document.body.classList.add('overflow-hidden');
             if (window.pushUI) window.pushUI('orderSheet');
+
+            // Wire data-awb copy buttons safely without inline onclick
+            sheet.querySelectorAll('.kc-copy-awb-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const rawAwb = btn.getAttribute('data-awb');
+                    if (rawAwb && typeof copyToClipboard === 'function') {
+                        copyToClipboard(rawAwb, 'AWB copied');
+                    }
+                };
+            });
         };
         window.closeMobileOrderDetailSheet = function(fromPop = false) {
             const sheet = document.getElementById('mobile-order-detail-sheet');
@@ -5825,6 +5946,122 @@ iv>
             } else {
                 if (window.Toast) Toast.info('Opening status modal to cancel');
                 openAdminOrderModal(orderId);
+            }
+        };
+
+        window.handleMobileCreateShipment = function(orderId) {
+            const btn = document.getElementById('kc-btn-create-shipment-mobile');
+            const resEl = document.getElementById('kc-mobile-shipping-result');
+            if (typeof confirmModal === 'function') {
+                confirmModal(
+                    'Create Shiprocket shipment?',
+                    'This will create the order in Shiprocket and assign a courier. It uses your Shiprocket wallet balance.',
+                    'Create Shipment',
+                    async () => {
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = '<span class="spin-inline" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:adminSpin 0.8s linear infinite"></span> Creating shipment...';
+                        }
+                        if (resEl) {
+                            resEl.innerHTML = '<span style="color:var(--kc-muted,#aaa)">Creating shipment via Shiprocket…</span>';
+                        }
+                        try {
+                            const res = typeof callVercelApi === 'function'
+                                ? await callVercelApi('/api/shipping/create-shipment', { orderId })
+                                : await (async () => { throw new Error('API client not available'); })();
+
+                            const rawAwb = String(res.awbCode || res.trackingNumber || '').trim();
+                            const awbDisplay = rawAwb || '—';
+                            const courierName = String(res.courierName || res.carrier || '—').trim();
+                            const returnedTrackUrl = (res.trackingUrl && /^https:\/\//i.test(res.trackingUrl)) ? res.trackingUrl : '';
+                            const safeLink = returnedTrackUrl || (rawAwb ? `https://shiprocket.co/tracking/${encodeURIComponent(rawAwb)}` : '');
+
+                            if (window.Toast) Toast.success('Shipment created: AWB ' + (rawAwb || 'assigned'));
+                            if (resEl) {
+                                resEl.innerHTML = `<div style="color:#5cdbb5;background:rgba(92,219,181,0.1);padding:8px;border-radius:6px;border:1px solid rgba(92,219,181,0.25)">✅ Shipment created · AWB: <b>${escapeHtml(awbDisplay)}</b> · ${escapeHtml(courierName)}</div>`;
+                            }
+
+                            // Update live DOM readouts in sheet
+                            const courierVal = document.getElementById('kc-ms-courier-val');
+                            if (courierVal) courierVal.textContent = courierName;
+                            const awbVal = document.getElementById('kc-ms-awb-val');
+                            if (awbVal) {
+                                awbVal.innerHTML = `<span style="font-family:monospace">${escapeHtml(middleTruncate(rawAwb, 14))}</span> ${rawAwb ? `<button type="button" class="kc-mini-copy-btn kc-copy-awb-btn" data-awb="${escapeHtml(rawAwb)}" aria-label="Copy AWB">${SVG_COPY}</button>` : ''}`;
+                                const copyBtn = awbVal.querySelector('.kc-copy-awb-btn');
+                                if (copyBtn) {
+                                    copyBtn.onclick = () => copyToClipboard(rawAwb, 'AWB copied');
+                                }
+                            }
+                            const trackWrap = document.getElementById('kc-ms-track-wrap');
+                            if (trackWrap && safeLink) {
+                                trackWrap.style.display = 'block';
+                                trackWrap.innerHTML = `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener" class="kc-contact-btn" style="width:100%;color:var(--kc-gold);border-color:var(--kc-gold)">${SVG_TRUCK}<span>Track</span></a>`;
+                            }
+
+                            if (typeof window.loadAdminData === 'function') {
+                                await window.loadAdminData();
+                            }
+                            // Re-render open sheet with updated order data if available
+                            if (typeof window.openMobileOrderDetailSheet === 'function') {
+                                window.openMobileOrderDetailSheet(orderId);
+                            }
+                        } catch (err) {
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = `${SVG_TRUCK}<span>Create shipment</span>`;
+                            }
+                            const errMsg = err.message || 'Failed to create shipment';
+                            if (resEl) {
+                                resEl.innerHTML = `<div style="color:#f08a8a;background:rgba(240,138,138,0.1);padding:8px;border-radius:6px;border:1px solid rgba(240,138,138,0.25)">⚠️ ${escapeHtml(errMsg)}</div>`;
+                            }
+                            if (window.Toast) Toast.error('Shipment error: ' + errMsg);
+                        }
+                    }
+                );
+            } else {
+                if (window.Toast) Toast.error('Confirmation dialog unavailable');
+            }
+        };
+
+        window.handleMobileCheckCouriers = async function(orderId) {
+            const resEl = document.getElementById('kc-mobile-shipping-result');
+            if (resEl) resEl.innerHTML = '<span style="color:var(--kc-muted,#aaa)">Checking couriers…</span>';
+            try {
+                if (typeof callVercelApi !== 'function') throw new Error('API client unavailable');
+                const res = await callVercelApi('/api/shipping/get-couriers', { orderId });
+                if (resEl && res.availableCouriers && res.availableCouriers.length > 0) {
+                    const lines = res.availableCouriers.slice(0, 5).map(c =>
+                        `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.06)">${c.isRecommended ? '★ ' : ''}<b>${escapeHtml(c.courierName)}</b> — ₹${escapeHtml(c.totalRate)} · ~${escapeHtml(c.estimatedDays)}d${c.cod ? ' · COD' : ''}</div>`
+                    ).join('');
+                    resEl.innerHTML = `<div style="background:#141414;padding:8px;border-radius:6px;border:1px solid #222">${lines}</div>`;
+                } else if (resEl) {
+                    resEl.innerHTML = `<div style="color:var(--kc-muted);font-style:italic">${escapeHtml(res.message || 'No couriers available for this pincode.')}</div>`;
+                }
+            } catch (err) {
+                const errMsg = err.message || 'Courier check failed';
+                if (resEl) resEl.innerHTML = `<div style="color:#f08a8a">Error: ${escapeHtml(errMsg)}</div>`;
+                if (window.Toast) Toast.error('Courier check failed: ' + errMsg);
+            }
+        };
+
+        window.handleMobileRefreshTracking = async function(orderId) {
+            const resEl = document.getElementById('kc-mobile-shipping-result');
+            if (resEl) resEl.innerHTML = '<span style="color:var(--kc-muted,#aaa)">Refreshing tracking…</span>';
+            try {
+                if (typeof callVercelApi !== 'function') throw new Error('API client unavailable');
+                const res = await callVercelApi('/api/shipping/track', { orderId });
+                const status = res.currentStatus || 'Unknown';
+                const activities = (res.activities || []).slice(0, 3).map(a =>
+                    `<div style="font-size:11px;color:var(--kc-muted)">${escapeHtml(a.date || '')} — ${escapeHtml(a.activity || a.status || '')}</div>`
+                ).join('');
+                if (resEl) {
+                    resEl.innerHTML = `<div style="background:#141414;padding:8px;border-radius:6px;border:1px solid #222"><div style="color:var(--kc-gold);font-weight:600;margin-bottom:4px">Status: ${escapeHtml(status)}</div>${activities}</div>`;
+                }
+                if (window.Toast) Toast.info('Tracking status: ' + status);
+            } catch (err) {
+                const errMsg = err.message || 'Tracking refresh failed';
+                if (resEl) resEl.innerHTML = `<div style="color:#f08a8a">Error: ${escapeHtml(errMsg)}</div>`;
+                if (window.Toast) Toast.error('Track error: ' + errMsg);
             }
         };
 
@@ -8550,6 +8787,8 @@ iv>
             // Populate modal fields
             document.getElementById('aom-order-id').value = orderId;
             document.getElementById('aom-order-id-label').textContent = `Order #${shortId}`;
+            const mobileTitleEl = document.getElementById('aom-modal-mobile-title');
+            if (mobileTitleEl) mobileTitleEl.textContent = `Manage order #${shortId}`;
             document.getElementById('aom-customer-label').textContent = customerName;
             document.getElementById('aom-status-select').value = rawStatus;
             document.getElementById('aom-carrier').value = o.carrier || '';
