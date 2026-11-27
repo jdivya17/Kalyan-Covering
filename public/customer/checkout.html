@@ -502,6 +502,14 @@
           if (!orderRes || !orderRes.orderId) {
             throw new Error(orderRes.error || 'Failed to initialize payment gateway.');
           }
+          if (!orderRes.key) {
+            window.Toast ? window.Toast.error('Payment Unavailable', 'Payment is temporarily unavailable, please try COD or try again') : console.warn('Payment key missing');
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Place Order Securely';
+            }
+            return;
+          }
 
           const options = {
             key: orderRes.key,
