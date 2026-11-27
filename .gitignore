@@ -31,7 +31,12 @@ Thumbs.db
 .env*
 .env
 .env.*
+.env.local
 serviceAccount*.json
+serviceAccountKey.json
+*.pem
+*.key
+rzp-key*.csv
 {
 powershell.cmd
 
