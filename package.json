@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "check:razorpay": "node scripts/check-razorpay-keys.js",
     "check:shiprocket": "node scripts/shiprocket-check.js",
+    "smoke:shiprocket": "node scripts/shiprocket-smoke.js",
     "scan:secrets": "node scripts/secret-scan.js"
   },
   "dependencies": {
